@@ -1,0 +1,35 @@
+{
+	"name": "unsurf",
+	"version": "0.0.1",
+	"description": "Turn any website into a typed API",
+	"type": "module",
+	"scripts": {
+		"dev": "bun run alchemy.run.ts",
+		"deploy": "bun run alchemy.run.ts",
+		"generate": "bunx drizzle-kit generate",
+		"studio": "bunx drizzle-kit studio",
+		"check": "bunx biome check .",
+		"check:fix": "bunx biome check --write .",
+		"typecheck": "tsc --noEmit",
+		"test": "bun vitest run",
+		"test:watch": "bun vitest",
+		"lint": "bun run check && bun run typecheck"
+	},
+	"dependencies": {
+		"effect": "^3.19.16",
+		"@effect/platform": "^0.94.3",
+		"@effect/schema": "^0.75.5",
+		"drizzle-orm": "^0.44.2"
+	},
+	"devDependencies": {
+		"@biomejs/biome": "^1.9.4",
+		"@cloudflare/workers-types": "^4.20250129.0",
+		"@effect/vitest": "^0.27.0",
+		"@types/node": "^25.2.2",
+		"alchemy": "^0.77.5",
+		"drizzle-kit": "^0.30.5",
+		"typescript": "^5.7.3",
+		"vitest": "^3.0.5"
+	},
+	"license": "MIT"
+}
