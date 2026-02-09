@@ -56,13 +56,15 @@ function buildSvg(title: string, description: string): string {
   const H = 630;
 
   // Title: ~30 chars per line at 48px on 1200w with padding
-  const titleLines = wrapText(title, 32);
+  const isIndex = title.toLowerCase() === 'unsurf';
+  const titleLines = wrapText(title, isIndex ? 20 : 32);
   const descLines = description ? wrapText(description, 58) : [];
 
   // Layout constants
   const pad = 64;
-  const titleStartY = 200;
-  const titleLineHeight = 62;
+  const titleFontSize = isIndex ? 96 : 52;
+  const titleStartY = isIndex ? 280 : 200;
+  const titleLineHeight = isIndex ? 110 : 62;
   const descStartY = titleStartY + titleLines.length * titleLineHeight + 28;
   const descLineHeight = 34;
 
@@ -77,7 +79,7 @@ function buildSvg(title: string, description: string): string {
   const titleSvg = titleLines
     .map(
       (line, i) =>
-        `<text x="${pad}" y="${titleStartY + i * titleLineHeight}" font-family="'Google Sans Flex', sans-serif" font-size="52" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`
+        `<text x="${pad}" y="${titleStartY + i * titleLineHeight}" font-family="'Google Sans Flex', sans-serif" font-size="${titleFontSize}" font-weight="700" fill="${isIndex ? 'url(#titleGrad)' : '#ffffff'}" letter-spacing="${isIndex ? '-4' : '0'}">${escapeXml(line)}</text>`
     )
     .join('\n    ');
 
@@ -117,14 +119,35 @@ function buildSvg(title: string, description: string): string {
     </clipPath>
   </defs>
 
+  <defs>
+    <!-- Orb glow -->
+    <radialGradient id="orb" cx="85%" cy="15%" r="45%">
+      <stop offset="0%" stop-color="#4f46e5" stop-opacity="0.35"/>
+      <stop offset="60%" stop-color="#4f46e5" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#4f46e5" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb2" cx="10%" cy="90%" r="40%">
+      <stop offset="0%" stop-color="#22d3ee" stop-opacity="0.15"/>
+      <stop offset="100%" stop-color="#22d3ee" stop-opacity="0"/>
+    </radialGradient>
+    <!-- Title gradient -->
+    <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f5f5f5"/>
+      <stop offset="45%" stop-color="#22d3ee"/>
+      <stop offset="75%" stop-color="#4f46e5"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+  </defs>
+
   <!-- Background -->
-  <rect width="${W}" height="${H}" fill="#0a0a0a"/>
+  <rect width="${W}" height="${H}" fill="#050505"/>
+
+  <!-- Orb glows -->
+  <rect width="${W}" height="${H}" fill="url(#orb)"/>
+  <rect width="${W}" height="${H}" fill="url(#orb2)"/>
 
   <!-- Subtle grid -->
   ${gridDots.join('\n  ')}
-
-  <!-- Top accent line -->
-  <rect x="${pad}" y="120" width="64" height="3" fill="#3b82f6" rx="0"/>
 
   <!-- Title -->
   ${titleSvg}
@@ -138,7 +161,7 @@ function buildSvg(title: string, description: string): string {
   <!-- Branding: left -->
   <text x="${pad}" y="${H - 40}" font-family="'Google Sans Code', monospace" font-size="20" font-weight="600" fill="#ffffff">unsurf</text>
 
-  <!-- Branding: right -->
+  <!-- URL: right -->
   <text x="${W - pad}" y="${H - 40}" font-family="'Google Sans Code', monospace" font-size="16" font-weight="400" fill="#555555" text-anchor="end">unsurf.coey.dev</text>
 </svg>`;
 }
