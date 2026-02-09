@@ -14,5 +14,7 @@ export default defineConfig({
 		"@effect/schema",
 		"drizzle-orm",
 		"@cloudflare/puppeteer",
+		"@modelcontextprotocol/sdk",
+		"zod",
 	],
 });

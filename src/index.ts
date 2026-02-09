@@ -63,6 +63,9 @@ export {
 // Utilities
 export { normalizeUrlPattern, extractDomain } from "./lib/url.js";
 
+// MCP
+export { createMcpServer, handleMcpRequest } from "./mcp.js";
+
 // Database (for advanced consumers)
 export { createDb } from "./db/queries.js";
 export type { Db } from "./db/queries.js";
