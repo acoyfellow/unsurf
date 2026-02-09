@@ -152,12 +152,9 @@ unsurf/
 │   │   ├── Scout.ts
 │   │   ├── Worker.ts
 │   │   └── Heal.ts
-│   ├── ai/                       # LLM scout agent
-│   │   ├── ScoutAgent.ts         # Navigation toolkit
-│   │   └── Plan.ts               # ExecutionPlan
+│   ├── ai/                       # LLM scout agent (planned)
 │   └── lib/                      # Utilities
-│       ├── url.ts                # URL pattern normalization
-│       └── codegen.ts            # TS client generation
+│       └── url.ts                # URL pattern normalization
 ├── migrations/                   # Drizzle-generated SQL migrations
 ├── drizzle.config.ts
 ├── test/
