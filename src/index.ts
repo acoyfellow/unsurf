@@ -66,6 +66,12 @@ export { normalizeUrlPattern, extractDomain } from "./lib/url.js";
 // MCP
 export { createMcpServer, handleMcpRequest } from "./mcp.js";
 
+// AI Scout Agent
+export { runScoutAgent, SCOUT_SYSTEM_PROMPT, MAX_AGENT_STEPS } from "./ai/ScoutAgent.js";
+export type { AgentAction, AgentStep, LlmProvider, LlmContext } from "./ai/ScoutAgent.js";
+export { makeAnthropicProvider } from "./ai/AnthropicProvider.js";
+export type { AnthropicConfig } from "./ai/AnthropicProvider.js";
+
 // Database (for advanced consumers)
 export { createDb } from "./db/queries.js";
 export type { Db } from "./db/queries.js";

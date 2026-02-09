@@ -8,7 +8,9 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
 import { Effect, Layer } from "effect";
 import { z } from "zod";
-import { BrowserCfLive } from "./services/Browser.js";
+import { makeAnthropicProvider } from "./ai/AnthropicProvider.js";
+import { runScoutAgent } from "./ai/ScoutAgent.js";
+import { BrowserCfLive, makeCfBrowser } from "./services/Browser.js";
 import { OpenApiGenerator, makeOpenApiGenerator } from "./services/OpenApiGenerator.js";
 import { SchemaInferrer, makeSchemaInferrer } from "./services/SchemaInferrer.js";
 import { StoreD1Live } from "./services/Store.js";
@@ -20,6 +22,7 @@ interface Env {
 	DB: D1Database;
 	STORAGE: R2Bucket;
 	BROWSER: BrowserWorker;
+	ANTHROPIC_API_KEY?: string | undefined;
 }
 
 function buildLayer(env: Env) {
@@ -121,6 +124,53 @@ export function createMcpServer(env: Env): McpServer {
 			};
 		},
 	);
+
+	if (env.ANTHROPIC_API_KEY) {
+		server.registerTool(
+			"agent-scout",
+			{
+				title: "Agent Scout",
+				description:
+					"LLM-guided exploration — an AI agent clicks, types, and navigates to find more API endpoints than a simple page load.",
+				inputSchema: {
+					url: z.string().url().describe("The URL to explore"),
+					task: z.string().describe("What to look for and do on the site"),
+				},
+			},
+			async ({ url, task }) => {
+				const llm = makeAnthropicProvider({
+					apiKey: env.ANTHROPIC_API_KEY as string,
+				});
+				const browserEffect = Effect.scoped(
+					Effect.gen(function* () {
+						const browser = yield* makeCfBrowser(env.BROWSER);
+						return yield* runScoutAgent({ browser, llm, url, task });
+					}),
+				);
+				const result = await Effect.runPromise(browserEffect);
+				return {
+					content: [
+						{
+							type: "text" as const,
+							text: JSON.stringify(
+								{
+									steps: result.steps,
+									networkEventsCount: result.events.length,
+									events: result.events.map((e) => ({
+										method: e.method,
+										url: e.url,
+										status: e.responseStatus,
+									})),
+								},
+								null,
+								2,
+							),
+						},
+					],
+				};
+			},
+		);
+	}
 
 	return server;
 }
