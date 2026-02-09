@@ -8,6 +8,7 @@ const stateStore: StateStoreType | undefined = process.env.ALCHEMY_STATE_TOKEN
 
 const app = await alchemy("unsurf", {
 	password: process.env.ALCHEMY_PASSWORD || "dev-password",
+	stage: process.env.ALCHEMY_STAGE || "production",
 	...(stateStore ? { stateStore } : {}),
 });
 
