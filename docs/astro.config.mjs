@@ -38,6 +38,7 @@ export default defineConfig({
             { label: 'Heal a broken path', slug: 'guides/heal' },
             { label: 'Agent integration', slug: 'guides/agent-integration' },
             { label: 'MCP Server', slug: 'guides/mcp' },
+            { label: 'API Gallery', slug: 'guides/gallery' },
           ],
         },
         {

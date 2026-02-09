@@ -8,6 +8,7 @@ import { PathStep, ScoutedPath } from "../domain/Path.js";
 import { Site } from "../domain/Site.js";
 import { extractDomain, normalizeUrlPattern } from "../lib/url.js";
 import { Browser } from "../services/Browser.js";
+import { Gallery } from "../services/Gallery.js";
 import { OpenApiGenerator } from "../services/OpenApiGenerator.js";
 import { SchemaInferrer } from "../services/SchemaInferrer.js";
 import { Store } from "../services/Store.js";
@@ -17,6 +18,7 @@ import { Store } from "../services/Store.js";
 export interface ScoutInput {
 	readonly url: string;
 	readonly task: string;
+	readonly publish?: boolean | undefined;
 }
 
 export interface ScoutResult {
@@ -24,6 +26,7 @@ export interface ScoutResult {
 	readonly endpointCount: number;
 	readonly pathId: string;
 	readonly openApiSpec: Record<string, unknown>;
+	readonly fromGallery?: boolean | undefined;
 }
 
 // ==================== Helpers ====================
@@ -149,7 +152,7 @@ const persistResults = (
 	path: ScoutedPath,
 	openApiSpec: Record<string, unknown>,
 	screenshot: Uint8Array,
-	input: ScoutInput,
+	input: { url: string; task: string },
 ): Effect.Effect<void, StoreError, Store> =>
 	Effect.gen(function* () {
 		const store = yield* Store;
@@ -192,10 +195,83 @@ export const scout = (
 	Browser | Store | SchemaInferrer | OpenApiGenerator
 > =>
 	Effect.gen(function* () {
-		const browser = yield* Browser;
 		const openapi = yield* OpenApiGenerator;
+		const store = yield* Store;
 
 		const now = nowISO();
+		const domain = extractDomain(input.url);
+
+		// Check gallery for cached spec (optional — skip if Gallery isn't in layer)
+		const galleryResult = yield* Effect.serviceOption(Gallery).pipe(
+			Effect.flatMap((galleryOpt) => {
+				if (Option.isNone(galleryOpt)) return Effect.succeed(null);
+				const gallery = galleryOpt.value;
+				return gallery.getByDomain(domain).pipe(
+					Effect.flatMap((entry) => {
+						if (!entry) return Effect.succeed(null);
+						return gallery.getSpec(entry.id).pipe(
+							Effect.map((spec) => ({ entry, spec })),
+							Effect.catchAll(() => Effect.succeed(null)),
+						);
+					}),
+					Effect.catchAll(() => Effect.succeed(null)),
+				);
+			}),
+		);
+
+		if (galleryResult) {
+			// Return cached spec from gallery
+			const siteId = generateId("site");
+			const site = new Site({
+				id: siteId,
+				url: input.url,
+				domain,
+				firstScoutedAt: now,
+				lastScoutedAt: now,
+			});
+
+			const pathId = generateId("path");
+			const path = new ScoutedPath({
+				id: pathId,
+				siteId,
+				task: input.task,
+				steps: [new PathStep({ action: "navigate", url: input.url })],
+				endpointIds: [],
+				status: "active",
+				createdAt: now,
+				lastUsedAt: Option.some(now),
+				failCount: 0,
+				healCount: 0,
+			});
+
+			yield* store.saveSite(site);
+			yield* store.savePath(path);
+			yield* store.saveRun({
+				id: generateId("run"),
+				pathId: path.id,
+				tool: "scout",
+				status: "success",
+				input: JSON.stringify({ url: input.url, task: input.task }),
+				output: JSON.stringify({
+					siteId: site.id,
+					endpointCount: galleryResult.entry.endpointCount,
+					pathId: path.id,
+					fromGallery: true,
+				}),
+				createdAt: now,
+			});
+
+			return {
+				siteId,
+				endpointCount: galleryResult.entry.endpointCount,
+				pathId,
+				openApiSpec: galleryResult.spec,
+				fromGallery: true,
+			} satisfies ScoutResult;
+		}
+
+		// No cached spec, proceed with browser scouting
+		const browser = yield* Browser;
 		const siteId = generateId("site");
 
 		// 1. Navigate and capture network traffic
@@ -213,7 +289,7 @@ export const scout = (
 		const site = new Site({
 			id: siteId,
 			url: input.url,
-			domain: extractDomain(input.url),
+			domain,
 			firstScoutedAt: now,
 			lastScoutedAt: now,
 		});
@@ -238,5 +314,15 @@ export const scout = (
 		// 5. Persist everything
 		yield* persistResults(site, [...endpoints], path, openApiSpec, screenshot, input);
 
-		return { siteId, endpointCount: endpoints.length, pathId, openApiSpec };
+		// 6. Publish to gallery if requested (and Gallery service is available)
+		if (input.publish !== false) {
+			yield* Effect.serviceOption(Gallery).pipe(
+				Effect.flatMap((galleryOpt) => {
+					if (Option.isNone(galleryOpt)) return Effect.void;
+					return galleryOpt.value.publish(siteId).pipe(Effect.catchAll(() => Effect.void));
+				}),
+			);
+		}
+
+		return { siteId, endpointCount: endpoints.length, pathId, openApiSpec } satisfies ScoutResult;
 	});

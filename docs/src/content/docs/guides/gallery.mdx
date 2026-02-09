@@ -1,0 +1,129 @@
+---
+title: Using the API Gallery
+description: Search and contribute to the community API gallery
+---
+
+import { Aside, Steps } from '@astrojs/starlight/components';
+import SourceCode from '../../../components/SourceCode.astro';
+
+The **API Gallery** is a community-contributed registry of unsurfed APIs. Every time anyone scouts a site, the captured OpenAPI spec gets published to the gallery. Agents search the gallery before scouting — if someone already unsurfed that site, skip the browser entirely.
+
+**One line:** _Scout once, share forever._
+
+## What is the Gallery
+
+The gallery is both a **read cache** (check before scouting) and a **write-through cache** (populated by scouting). The more people scout, the more the gallery knows.
+
+Each gallery entry tracks:
+
+| Field | What it stores |
+|---|---|
+| `domain` | The API's domain (e.g. `api.stripe.com`) |
+| `endpointCount` | How many endpoints were captured |
+| `endpointsSummary` | Human-readable list of methods + paths |
+| `specKey` | Pointer to the full OpenAPI spec in R2 |
+| `contributor` | Who published it |
+| `version` | Bumped on each re-publish |
+
+```
+scout(url, task)
+  │
+  ├─ 1. Check gallery for domain  →  found? return cached spec (skip browser)
+  │
+  ├─ 2. No hit → run normal scout
+  │
+  └─ 3. After scout succeeds → publish to gallery
+```
+
+## Searching for APIs
+
+Search by domain, endpoint path, or description:
+
+```bash
+# By domain
+curl "https://unsurf.coy.workers.dev/gallery?domain=api.stripe.com"
+
+# By keyword
+curl "https://unsurf.coy.workers.dev/gallery?q=payment"
+
+# With limit
+curl "https://unsurf.coy.workers.dev/gallery?q=users&limit=5"
+```
+
+<Aside>
+At least one of `q` or `domain` is required.
+</Aside>
+
+Programmatically, use the `Gallery` service:
+
+```typescript
+import { makeTestGallery, makeTestStore } from "unsurf";
+import { Effect } from "effect";
+
+const store = makeTestStore();
+const gallery = makeTestGallery(store);
+
+// Search by keyword
+const results = await Effect.runPromise(gallery.search("stripe"));
+
+// Look up by exact domain — use this to check cache before scouting
+const entry = await Effect.runPromise(gallery.getByDomain("api.stripe.com"));
+if (entry) {
+  console.log(`Cache hit! ${entry.endpointCount} endpoints, v${entry.version}`);
+}
+```
+
+## Publishing your discoveries
+
+After scouting, publish the captured API to share it with everyone:
+
+<Steps>
+
+1. **Scout a site** — this creates a `siteId` and captures endpoints.
+
+2. **Publish** — pass the `siteId` to the gallery. The gallery extracts the domain, endpoints, and OpenAPI spec.
+
+   ```bash
+   curl -X POST "https://unsurf.coy.workers.dev/gallery/publish" \
+     -H "Content-Type: application/json" \
+     -d '{"siteId": "site_abc123", "contributor": "your-name"}'
+   ```
+
+3. **Re-publish** — if you scout the same domain again, publishing bumps the version instead of creating a duplicate.
+
+</Steps>
+
+<Aside type="tip">
+  Scout automatically publishes to the gallery by default. Pass `publish: false` to opt out.
+</Aside>
+
+Fetch the complete OpenAPI spec for any gallery entry:
+
+```bash
+curl "https://unsurf.coy.workers.dev/gallery/gal_abc123/spec"
+```
+
+## MCP Tool Usage
+
+The `gallery` MCP tool lets agents search the gallery before deciding whether to scout:
+
+```json
+{
+  "name": "gallery",
+  "arguments": {
+    "query": "payment API",
+    "domain": "stripe.com"
+  }
+}
+```
+
+A well-prompted agent should:
+1. **Check the gallery first** — if the domain is already there, use the cached spec
+2. **Scout only on cache miss** — saves browser resources
+3. **Publish after scouting** — grows the gallery for everyone
+
+## Full example
+
+This example seeds a test store, publishes to the gallery, searches, and checks the domain cache:
+
+<SourceCode file="examples/gallery-search.ts" />

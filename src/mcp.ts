@@ -10,10 +10,12 @@ import { Effect, Layer } from "effect";
 import { z } from "zod";
 import { makeAnthropicProvider } from "./ai/AnthropicProvider.js";
 import { runScoutAgent } from "./ai/ScoutAgent.js";
+import { createDb } from "./db/queries.js";
 import { BrowserCfLive, makeCfBrowser } from "./services/Browser.js";
+import { Gallery, makeD1Gallery, makeKvCache } from "./services/Gallery.js";
 import { OpenApiGenerator, makeOpenApiGenerator } from "./services/OpenApiGenerator.js";
 import { SchemaInferrer, makeSchemaInferrer } from "./services/SchemaInferrer.js";
-import { StoreD1Live } from "./services/Store.js";
+import { StoreD1Live, makeD1Store } from "./services/Store.js";
 import { heal } from "./tools/Heal.js";
 import { scout } from "./tools/Scout.js";
 import { worker } from "./tools/Worker.js";
@@ -22,15 +24,26 @@ interface Env {
 	DB: D1Database;
 	STORAGE: R2Bucket;
 	BROWSER: BrowserWorker;
+	CACHE?: KVNamespace | undefined;
 	ANTHROPIC_API_KEY?: string | undefined;
 }
 
+function buildGalleryService(env: Env) {
+	const storeService = makeD1Store(createDb(env.DB), env.STORAGE);
+	const kvCache = env.CACHE ? makeKvCache(env.CACHE) : undefined;
+	return makeD1Gallery(env.DB, storeService, kvCache);
+}
+
 function buildLayer(env: Env) {
+	const storeService = makeD1Store(createDb(env.DB), env.STORAGE);
+	const kvCache = env.CACHE ? makeKvCache(env.CACHE) : undefined;
+
 	return Layer.mergeAll(
 		StoreD1Live(env.DB, env.STORAGE),
 		BrowserCfLive(env.BROWSER),
 		Layer.succeed(SchemaInferrer, makeSchemaInferrer()),
 		Layer.succeed(OpenApiGenerator, makeOpenApiGenerator()),
+		Layer.succeed(Gallery, makeD1Gallery(env.DB, storeService, kvCache)),
 	);
 }
 
@@ -119,6 +132,34 @@ export function createMcpServer(env: Env): McpServer {
 					{
 						type: "text" as const,
 						text: JSON.stringify(result, null, 2),
+					},
+				],
+			};
+		},
+	);
+
+	server.registerTool(
+		"gallery",
+		{
+			title: "Gallery",
+			description:
+				"Search the API gallery for previously unsurfed sites. Check here before scouting — someone may have already captured the API you need.",
+			inputSchema: {
+				query: z
+					.string()
+					.optional()
+					.describe("Search term (domain, endpoint path, or description)"),
+				domain: z.string().optional().describe("Exact domain to look up"),
+			},
+		},
+		async ({ query, domain }) => {
+			const galleryService = buildGalleryService(env);
+			const results = await Effect.runPromise(galleryService.search(query ?? "", domain));
+			return {
+				content: [
+					{
+						type: "text" as const,
+						text: JSON.stringify({ results, total: results.length }, null, 2),
 					},
 				],
 			};

@@ -30,6 +30,17 @@ export {
 } from "./services/Store.js";
 export type { StoreService } from "./services/Store.js";
 export {
+	Gallery,
+	GalleryD1Live,
+	GalleryTestLive,
+	makeTestGallery,
+	makeD1Gallery,
+	KvCache,
+	KvCacheLive,
+	makeKvCache,
+} from "./services/Gallery.js";
+export type { GalleryService, KvCacheService } from "./services/Gallery.js";
+export {
 	SchemaInferrer,
 	SchemaInferrerLive,
 	makeSchemaInferrer,
@@ -52,6 +63,7 @@ export {
 	isApiRequest,
 } from "./domain/NetworkEvent.js";
 export { Site } from "./domain/Site.js";
+export { GalleryEntry } from "./domain/Gallery.js";
 export {
 	NetworkError,
 	BrowserError,

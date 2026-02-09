@@ -1,6 +1,6 @@
 import alchemy, { type StateStoreType } from "alchemy";
 import type { Binding } from "alchemy/cloudflare";
-import { BrowserRendering, D1Database, R2Bucket, Worker } from "alchemy/cloudflare";
+import { BrowserRendering, D1Database, KVNamespace, R2Bucket, Worker } from "alchemy/cloudflare";
 import { CloudflareStateStore } from "alchemy/state";
 
 const stateStore: StateStoreType | undefined = process.env.ALCHEMY_STATE_TOKEN
@@ -24,7 +24,11 @@ const STORAGE = await R2Bucket("unsurf-storage", {
 
 const BROWSER = BrowserRendering();
 
-const bindings: Record<string, Binding> = { DB, STORAGE, BROWSER };
+const CACHE = await KVNamespace("unsurf-gallery-cache", {
+	adopt: true,
+});
+
+const bindings: Record<string, Binding> = { DB, STORAGE, BROWSER, CACHE };
 
 // Optional: pass Anthropic API key for LLM-guided scout
 if (process.env.ANTHROPIC_API_KEY) {

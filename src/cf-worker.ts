@@ -5,11 +5,13 @@ import type { BrowserWorker } from "@cloudflare/puppeteer";
  * Cloudflare Worker entry point
  */
 import { Effect, Layer } from "effect";
+import { createDb } from "./db/queries.js";
 import { handleMcpRequest } from "./mcp.js";
 import { BrowserCfLive } from "./services/Browser.js";
+import { Gallery, KvCache, KvCacheLive, makeD1Gallery, makeKvCache } from "./services/Gallery.js";
 import { OpenApiGenerator, makeOpenApiGenerator } from "./services/OpenApiGenerator.js";
 import { SchemaInferrer, makeSchemaInferrer } from "./services/SchemaInferrer.js";
-import { StoreD1Live } from "./services/Store.js";
+import { Store, StoreD1Live, makeD1Store } from "./services/Store.js";
 import { heal } from "./tools/Heal.js";
 import { scout } from "./tools/Scout.js";
 import { worker } from "./tools/Worker.js";
@@ -18,6 +20,7 @@ interface Env {
 	DB: D1Database;
 	STORAGE: R2Bucket;
 	BROWSER: BrowserWorker;
+	CACHE?: KVNamespace | undefined;
 	ANTHROPIC_API_KEY?: string | undefined;
 }
 
@@ -48,12 +51,56 @@ function errorResponse(message: string, status = 500): Response {
 // ==================== Runtime Layer ====================
 
 function buildLayer(env: Env) {
+	const storeService = makeD1Store(createDb(env.DB), env.STORAGE);
+	const kvCache = env.CACHE ? makeKvCache(env.CACHE) : undefined;
+
 	return Layer.mergeAll(
 		StoreD1Live(env.DB, env.STORAGE),
 		BrowserCfLive(env.BROWSER),
 		Layer.succeed(SchemaInferrer, makeSchemaInferrer()),
 		Layer.succeed(OpenApiGenerator, makeOpenApiGenerator()),
+		Layer.succeed(Gallery, makeD1Gallery(env.DB, storeService, kvCache)),
 	);
+}
+
+// ==================== Gallery Helpers ====================
+
+function buildGalleryService(env: Env) {
+	const storeService = makeD1Store(createDb(env.DB), env.STORAGE);
+	const kvCache = env.CACHE ? makeKvCache(env.CACHE) : undefined;
+	return makeD1Gallery(env.DB, storeService, kvCache);
+}
+
+async function handleGallerySearch(url: URL, env: Env): Promise<Response> {
+	const q = url.searchParams.get("q") ?? undefined;
+	const domain = url.searchParams.get("domain") ?? undefined;
+	const limitParam = url.searchParams.get("limit");
+	const limit = limitParam ? Number.parseInt(limitParam, 10) : undefined;
+
+	if (!q && !domain) {
+		return errorResponse("At least one of 'q' or 'domain' must be provided", 400);
+	}
+
+	const gallery = buildGalleryService(env);
+	const results = await Effect.runPromise(gallery.search(q ?? "", domain, limit));
+	return jsonResponse({ results, total: results.length });
+}
+
+async function handleGallerySpec(id: string, env: Env): Promise<Response> {
+	const gallery = buildGalleryService(env);
+	const spec = await Effect.runPromise(gallery.getSpec(id));
+	return jsonResponse(spec);
+}
+
+async function handleGalleryPublish(body: unknown, env: Env): Promise<Response> {
+	const { siteId, contributor } = body as { siteId: string; contributor?: string };
+	if (!siteId) {
+		return errorResponse("Missing 'siteId' in request body", 400);
+	}
+
+	const gallery = buildGalleryService(env);
+	const entry = await Effect.runPromise(gallery.publish(siteId, contributor));
+	return jsonResponse(entry);
 }
 
 // ==================== Route Handlers ====================
@@ -104,6 +151,7 @@ async function handleHeal(body: unknown, env: Env): Promise<Response> {
 // ==================== Entry Point ====================
 
 export default {
+	// biome-ignore lint/complexity/noExcessiveCognitiveComplexity: routing dispatch, each branch is simple
 	async fetch(request: Request, env: Env): Promise<Response> {
 		const url = new URL(request.url);
 
@@ -118,7 +166,7 @@ export default {
 				name: "unsurf",
 				version: "0.2.0",
 				description: "Turn any website into a typed API",
-				tools: ["scout", "worker", "heal"],
+				tools: ["scout", "worker", "heal", "gallery"],
 				mcp: "/mcp",
 				docs: "https://unsurf.coey.dev",
 			});
@@ -127,6 +175,29 @@ export default {
 		// MCP endpoint
 		if (url.pathname === "/mcp") {
 			return handleMcpRequest(request, env);
+		}
+
+		// Gallery routes
+		if (url.pathname.startsWith("/gallery")) {
+			try {
+				if (request.method === "GET" && url.pathname === "/gallery") {
+					return await handleGallerySearch(url, env);
+				}
+				// Match /gallery/:id/spec
+				const specMatch = url.pathname.match(/^\/gallery\/([^/]+)\/spec$/);
+				const specId = specMatch?.[1];
+				if (request.method === "GET" && specId) {
+					return await handleGallerySpec(specId, env);
+				}
+				if (request.method === "POST" && url.pathname === "/gallery/publish") {
+					const body = await request.json();
+					return await handleGalleryPublish(body, env);
+				}
+				return errorResponse("Not found", 404);
+			} catch (e) {
+				const message = e instanceof Error ? e.message : String(e);
+				return errorResponse(message);
+			}
 		}
 
 		// Tool routes (REST API)

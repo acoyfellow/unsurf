@@ -10,6 +10,7 @@ import {
 	Browser,
 	BrowserError,
 	CapturedEndpoint,
+	GalleryEntry,
 	NetworkError,
 	NetworkEvent,
 	NotFoundError,
@@ -20,6 +21,7 @@ import {
 	SchemaInferrer,
 	SchemaInferrerLive,
 	ScoutedPath,
+	Site,
 	Store,
 	StoreError,
 	extractDomain,
@@ -28,6 +30,7 @@ import {
 	makeOpenApiGenerator,
 	makeSchemaInferrer,
 	makeTestBrowserWithEvents,
+	makeTestGallery,
 	makeTestStore,
 	normalizeUrlPattern,
 	scout,
@@ -266,6 +269,134 @@ describe("Examples dogfood", () => {
 			const pathKeys = Object.keys(specPaths);
 			expect(pathKeys.length).toBe(1);
 			expect(pathKeys[0]).toContain("posts");
+		});
+	});
+
+	describe("gallery-search", () => {
+		it("creates gallery service with test store", () => {
+			const store = makeTestStore();
+			const gallery = makeTestGallery(store);
+			expect(gallery).toBeDefined();
+			expect(gallery.search).toBeDefined();
+			expect(gallery.publish).toBeDefined();
+			expect(gallery.getSpec).toBeDefined();
+			expect(gallery.getByDomain).toBeDefined();
+		});
+
+		it("GalleryEntry has expected fields", () => {
+			const entry = new GalleryEntry({
+				id: "gal_123",
+				domain: "api.stripe.com",
+				url: "https://api.stripe.com",
+				task: "find payment APIs",
+				endpointCount: 12,
+				endpointsSummary: "GET /charges, POST /charges",
+				specKey: "specs/site_1/openapi.json",
+				contributor: "anonymous",
+				createdAt: "2024-01-15T10:00:00Z",
+				updatedAt: "2024-01-15T10:00:00Z",
+				version: 1,
+			});
+			expect(entry.domain).toBe("api.stripe.com");
+			expect(entry.endpointCount).toBe(12);
+			expect(entry.version).toBe(1);
+		});
+
+		it("publishes a scouted site and finds it via search", async () => {
+			const store = makeTestStore();
+			const gallery = makeTestGallery(store);
+
+			// Seed store with a site and endpoints
+			await Effect.runPromise(
+				store.saveSite(
+					new Site({
+						id: "site_gal1",
+						url: "https://api.weather.com",
+						domain: "api.weather.com",
+						firstScoutedAt: "2024-01-15T10:00:00Z",
+						lastScoutedAt: "2024-01-15T10:00:00Z",
+					}),
+				),
+			);
+			await Effect.runPromise(
+				store.saveEndpoints([
+					new CapturedEndpoint({
+						id: "ep_w1",
+						siteId: "site_gal1",
+						method: "GET",
+						pathPattern: "/forecast",
+						requestSchema: Option.none(),
+						responseSchema: Option.some({ type: "object" }),
+						sampleCount: 3,
+						firstSeenAt: "2024-01-15T10:00:00Z",
+						lastSeenAt: "2024-01-15T10:00:00Z",
+					}),
+				]),
+			);
+
+			// Publish
+			const entry = await Effect.runPromise(gallery.publish("site_gal1", "tester"));
+			expect(entry.domain).toBe("api.weather.com");
+			expect(entry.endpointCount).toBe(1);
+			expect(entry.contributor).toBe("tester");
+			expect(entry.version).toBe(1);
+
+			// Search by keyword
+			const results = await Effect.runPromise(gallery.search("weather"));
+			expect(results).toHaveLength(1);
+			expect(results[0]?.domain).toBe("api.weather.com");
+
+			// Lookup by domain
+			const found = await Effect.runPromise(gallery.getByDomain("api.weather.com"));
+			expect(found).not.toBeNull();
+			expect(found?.id).toBe(entry.id);
+		});
+
+		it("re-publishing the same domain bumps the version", async () => {
+			const store = makeTestStore();
+			const gallery = makeTestGallery(store);
+
+			await Effect.runPromise(
+				store.saveSite(
+					new Site({
+						id: "site_v",
+						url: "https://api.github.com",
+						domain: "api.github.com",
+						firstScoutedAt: "2024-01-15T10:00:00Z",
+						lastScoutedAt: "2024-01-15T10:00:00Z",
+					}),
+				),
+			);
+			await Effect.runPromise(
+				store.saveEndpoints([
+					new CapturedEndpoint({
+						id: "ep_g1",
+						siteId: "site_v",
+						method: "GET",
+						pathPattern: "/repos",
+						requestSchema: Option.none(),
+						responseSchema: Option.some({ type: "array" }),
+						sampleCount: 1,
+						firstSeenAt: "2024-01-15T10:00:00Z",
+						lastSeenAt: "2024-01-15T10:00:00Z",
+					}),
+				]),
+			);
+
+			const v1 = await Effect.runPromise(gallery.publish("site_v"));
+			expect(v1.version).toBe(1);
+
+			const v2 = await Effect.runPromise(gallery.publish("site_v", "updater"));
+			expect(v2.version).toBe(2);
+			expect(v2.contributor).toBe("updater");
+		});
+
+		it("returns null for unknown domain", async () => {
+			const store = makeTestStore();
+			const gallery = makeTestGallery(store);
+
+			const result = await Effect.runPromise(gallery.getByDomain("nonexistent.com"));
+			expect(result).toBeNull();
 		});
 	});
 });
