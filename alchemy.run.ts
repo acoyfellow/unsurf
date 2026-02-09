@@ -15,7 +15,7 @@ const BROWSER = BrowserRendering();
 
 export const WORKER = await Worker("unsurf", {
 	name: "unsurf",
-	entrypoint: "./src/index.ts",
+	entrypoint: "./src/cf-worker.ts",
 	bindings: { DB, STORAGE, BROWSER },
 	url: true,
 	adopt: true,
