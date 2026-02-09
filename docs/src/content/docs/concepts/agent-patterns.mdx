@@ -4,6 +4,7 @@ description: How AI agents interact with unsurf — lifecycle, context managemen
 ---
 
 import { Aside } from '@astrojs/starlight/components';
+import SourceCode from '../../../components/SourceCode.astro';
 
 ## Why agent-first
 
@@ -109,13 +110,13 @@ When the scout captures requests, it normalizes URL patterns so the agent gets c
 | `/api/items/SGVsbG8gV29ybGQ=` | `/api/items/:id` |
 | `/api/v2/users` | `/api/v2/users` (no change) |
 
-The normalizer detects four ID patterns:
-- **Numeric** — `\d+`
-- **UUID** — standard 8-4-4-4-12 hex format
-- **Base64** — 16+ chars of `[A-Za-z0-9+/=]`
-- **Hex** — 8+ hex characters
+Here's the normalizer in action — this is real library code, tested in CI:
 
-Everything else is treated as a literal path segment. This means the agent sees `GET /users/:id` once, not `GET /users/1`, `GET /users/2`, `GET /users/3` separately.
+<SourceCode file="examples/url-normalization.ts" title="URL normalization (live example)" />
+
+The implementation lives in `src/lib/url.ts`:
+
+<SourceCode file="src/lib/url.ts" title="URL normalizer source" />
 
 ## Schema inference
 
@@ -135,13 +136,11 @@ What the inferrer detects:
 | `[...]` | `array` | `items` schema inferred from elements |
 | `{...}` | `object` | `properties` + `required` inferred |
 
-When multiple responses are observed for the same endpoint, schemas are **merged**:
-- Properties present in all samples → `required`
-- Properties present in some samples → optional
-- `integer` + `number` → `number`
-- Conflicting types → `anyOf`
+Here's the inferrer in action — this is real library code, tested in CI:
 
-This means the more traffic the scout captures, the more accurate the schema becomes.
+<SourceCode file="examples/schema-inference.ts" title="Schema inference (live example)" />
+
+When multiple responses are observed, schemas are **merged**: properties in all samples → `required`, properties in some → optional, `integer` + `number` → `number`, conflicting types → `anyOf`. The more traffic the scout captures, the more accurate the schema becomes.
 
 ## Cost and latency model
 
@@ -171,13 +170,6 @@ Each error type signals a different recovery strategy:
 | `NotFoundError` | `pathId` doesn't exist | Re-scout the site |
 | `PathBrokenError` | Site changed, path invalid | Call `heal` |
 
-A robust agent handles errors like this:
+Here's how typed errors and `catchTag` work — this is real library code, tested in CI:
 
-```
-worker(pathId, data)
-  ├─ success → return result
-  ├─ PathBrokenError → heal(pathId) → worker(newPathId, data)
-  ├─ NotFoundError → scout(url, task) → worker(newPathId, data)  
-  ├─ NetworkError → wait 2s → retry up to 3x
-  └─ BrowserError → report failure to user
-```
+<SourceCode file="examples/error-handling.ts" title="Typed error routing (live example)" />

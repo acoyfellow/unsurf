@@ -74,7 +74,9 @@ The heal system uses `catchTag` to route each error type to the right recovery s
 
 <SourceCode file="src/services/Browser.ts" title="Browser service" />
 
-In production, `Browser.Live` connects to Cloudflare's browser. In tests, `Browser.TestLive` replays recorded fixtures. The business logic is identical.
+In production, `Browser.Live` connects to Cloudflare's browser. In tests, `Browser.TestLive` replays recorded fixtures. The business logic is identical:
+
+<SourceCode file="examples/scout-with-layers.ts" title="Scout with test layers (live example)" />
 
 **Streams.** CDP emits hundreds of network events during a session. Effect's `Stream` processes them as they arrive — filter, group, transform — without buffering everything in memory.
 

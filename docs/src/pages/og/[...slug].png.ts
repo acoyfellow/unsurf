@@ -1,6 +1,20 @@
 import type { GetStaticPaths } from 'astro';
 import { getCollection } from 'astro:content';
 import sharp from 'sharp';
+import fs from 'node:fs';
+import path from 'node:path';
+
+// Load self-hosted font files for SVG → PNG rendering
+const fontsDir = path.resolve(import.meta.dirname, '../../../public/fonts');
+const sansFlexRegular = fs.readFileSync(path.join(fontsDir, 'google-sans-flex-400.ttf'));
+const sansFlexBold = fs.readFileSync(path.join(fontsDir, 'google-sans-flex-700.ttf'));
+const codeRegular = fs.readFileSync(path.join(fontsDir, 'google-sans-code-400.ttf'));
+const codeWeight500 = fs.readFileSync(path.join(fontsDir, 'google-sans-code-500.ttf'));
+
+const sansFlexRegularB64 = sansFlexRegular.toString('base64');
+const sansFlexBoldB64 = sansFlexBold.toString('base64');
+const codeRegularB64 = codeRegular.toString('base64');
+const codeWeight500B64 = codeWeight500.toString('base64');
 
 export const getStaticPaths: GetStaticPaths = async () => {
   const docs = await getCollection('docs');
@@ -63,19 +77,41 @@ function buildSvg(title: string, description: string): string {
   const titleSvg = titleLines
     .map(
       (line, i) =>
-        `<text x="${pad}" y="${titleStartY + i * titleLineHeight}" font-family="'Space Grotesk', 'SF Pro Display', 'Inter', system-ui, sans-serif" font-size="52" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`
+        `<text x="${pad}" y="${titleStartY + i * titleLineHeight}" font-family="'Google Sans Flex', sans-serif" font-size="52" font-weight="700" fill="#ffffff">${escapeXml(line)}</text>`
     )
     .join('\n    ');
 
   const descSvg = descLines
     .map(
       (line, i) =>
-        `<text x="${pad}" y="${descStartY + i * descLineHeight}" font-family="'Space Grotesk', 'SF Pro Display', 'Inter', system-ui, sans-serif" font-size="24" font-weight="400" fill="#888888">${escapeXml(line)}</text>`
+        `<text x="${pad}" y="${descStartY + i * descLineHeight}" font-family="'Google Sans Flex', sans-serif" font-size="24" font-weight="400" fill="#888888">${escapeXml(line)}</text>`
     )
     .join('\n    ');
 
   return `<svg width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
+    <style>
+      @font-face {
+        font-family: 'Google Sans Flex';
+        font-weight: 400;
+        src: url('data:font/truetype;base64,${sansFlexRegularB64}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Google Sans Flex';
+        font-weight: 700;
+        src: url('data:font/truetype;base64,${sansFlexBoldB64}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Google Sans Code';
+        font-weight: 400;
+        src: url('data:font/truetype;base64,${codeRegularB64}') format('truetype');
+      }
+      @font-face {
+        font-family: 'Google Sans Code';
+        font-weight: 600;
+        src: url('data:font/truetype;base64,${codeWeight500B64}') format('truetype');
+      }
+    </style>
     <clipPath id="rounded">
       <rect width="${W}" height="${H}" rx="0" ry="0"/>
     </clipPath>
@@ -100,10 +136,10 @@ function buildSvg(title: string, description: string): string {
   <line x1="${pad}" y1="${H - 80}" x2="${W - pad}" y2="${H - 80}" stroke="#1a1a1a" stroke-width="1"/>
 
   <!-- Branding: left -->
-  <text x="${pad}" y="${H - 40}" font-family="'JetBrains Mono', 'SF Mono', 'Fira Code', monospace" font-size="20" font-weight="600" fill="#ffffff">unsurf</text>
+  <text x="${pad}" y="${H - 40}" font-family="'Google Sans Code', monospace" font-size="20" font-weight="600" fill="#ffffff">unsurf</text>
 
   <!-- Branding: right -->
-  <text x="${W - pad}" y="${H - 40}" font-family="'JetBrains Mono', 'SF Mono', 'Fira Code', monospace" font-size="16" font-weight="400" fill="#555555" text-anchor="end">unsurf.coey.dev</text>
+  <text x="${W - pad}" y="${H - 40}" font-family="'Google Sans Code', monospace" font-size="16" font-weight="400" fill="#555555" text-anchor="end">unsurf.coey.dev</text>
 </svg>`;
 }
 
