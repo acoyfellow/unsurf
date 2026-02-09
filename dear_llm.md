@@ -56,7 +56,7 @@ src/
 - **Name**: `unsurf` on NPM
 - **Version**: 0.1.0
 - **Entry**: `dist/index.js` (ESM), `dist/index.d.ts` (types)
-- **Exports**: 44 public symbols — tools, services, domain types, utilities, db, MCP, AI agent
+- **Exports**: 45+ public symbols (tools, services, domain, MCP, AI agent, codegen) — tools, services, domain types, utilities, db, MCP, AI agent
 - **Build**: `bun run build` (tsup)
 - **Prepublish**: `bun run prepublishOnly` → check + typecheck + test + build
 - **Files included**: `dist/`, `src/` (excluding `cf-worker.ts`)
@@ -108,9 +108,11 @@ src/
 
 1. ~~**MCP server**~~ — **Done.** Phase 8 complete. MCP Streamable HTTP at `/mcp` using `@modelcontextprotocol/sdk`. Stateless mode. All 3 tools registered with Zod input schemas.
 2. ~~**LLM Scout Agent**~~ — **Done.** Phase 9 complete. `src/ai/ScoutAgent.ts` with `LlmProvider` interface + `AnthropicProvider`. MCP `agent-scout` tool when `ANTHROPIC_API_KEY` is set. 4 tests.
-3. **TypeScript client codegen** — `src/lib/codegen.ts` referenced in README/PLAN.md but not built.
+3. ~~**TypeScript client codegen**~~ — **Done.** `src/lib/codegen.ts` — `generateClient(spec)` → typed fetch client string.
 4. **E2E smoke test** — POST /tools/scout against live URL with a real site. Browser Rendering may require CF Workers Paid plan.
 5. **HttpApiSwagger** — PLAN.md Phase 1 mentions Swagger UI at `/docs`, not implemented. Current worker uses manual routing in `cf-worker.ts`.
+6. **API Gallery** — Jan Wilmake (@janwilmake) suggested: a public GitHub repo or docs page that auto-updates with every API unsurf discovers. Living registry of "unsurfed" APIs with their OpenAPI specs.
+7. **Docs OG images + SEO** — Done. Dynamic per-page OG images via sharp, custom Head component with twitter cards + JSON-LD.
 
 ### Known issues
 
