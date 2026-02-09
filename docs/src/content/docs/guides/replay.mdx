@@ -10,7 +10,7 @@ import { Aside } from '@astrojs/starlight/components';
 After scouting, the worker tool replays captured API calls directly — no browser needed.
 
 ```bash
-curl -X POST https://your-unsurf-url.workers.dev/tools/worker \
+curl -X POST $UNSURF_URL/tools/worker \
   -H "Content-Type: application/json" \
   -d '{
     "pathId": "your-path-id",

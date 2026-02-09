@@ -14,7 +14,7 @@ The heal tool fixes it automatically.
 ## Trigger a heal
 
 ```bash
-curl -X POST https://your-unsurf-url.workers.dev/tools/heal \
+curl -X POST $UNSURF_URL/tools/heal \
   -H "Content-Type: application/json" \
   -d '{
     "pathId": "your-broken-path-id",
@@ -47,7 +47,7 @@ Each heal attempt is logged in the `runs` table with full before/after diff, so 
 Query a path's status:
 
 ```bash
-curl https://your-unsurf-url.workers.dev/sites/{siteId}/paths
+curl $UNSURF_URL/sites/{siteId}/paths
 ```
 
 Each path includes:

@@ -46,12 +46,18 @@ We will deploy unsurf to your Cloudflare account and use the **scout** tool to c
 
 Now we will capture the API behind [JSONPlaceholder](https://jsonplaceholder.typicode.com), a free public API.
 
+Set your deployed URL as an environment variable (shown in the `bun run deploy` output):
+
+```bash
+export UNSURF_URL="https://unsurf.<your-subdomain>.workers.dev"
+```
+
 <Steps>
 
 1. **Call the scout tool**
 
    ```bash
-   curl -X POST https://your-unsurf-url.workers.dev/tools/scout \
+   curl -X POST $UNSURF_URL/tools/scout \
      -H "Content-Type: application/json" \
      -d '{
        "url": "https://jsonplaceholder.typicode.com",
@@ -70,7 +76,7 @@ Now we will capture the API behind [JSONPlaceholder](https://jsonplaceholder.typ
 3. **View captured endpoints**
 
    ```bash
-   curl https://your-unsurf-url.workers.dev/sites/{siteId}/endpoints
+   curl $UNSURF_URL/sites/{siteId}/endpoints
    ```
 
    You will see every endpoint that was called during the scout — `GET /posts`, `GET /posts/:id`, `GET /users`, and more — each with inferred request and response schemas.
