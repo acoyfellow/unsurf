@@ -1,4 +1,5 @@
 import alchemy, { type StateStoreType } from "alchemy";
+import type { Binding } from "alchemy/cloudflare";
 import { BrowserRendering, D1Database, R2Bucket, Worker } from "alchemy/cloudflare";
 import { CloudflareStateStore } from "alchemy/state";
 
@@ -23,10 +24,17 @@ const STORAGE = await R2Bucket("unsurf-storage", {
 
 const BROWSER = BrowserRendering();
 
+const bindings: Record<string, Binding> = { DB, STORAGE, BROWSER };
+
+// Optional: pass Anthropic API key for LLM-guided scout
+if (process.env.ANTHROPIC_API_KEY) {
+	bindings.ANTHROPIC_API_KEY = alchemy.secret(process.env.ANTHROPIC_API_KEY);
+}
+
 export const WORKER = await Worker("unsurf", {
 	name: "unsurf",
 	entrypoint: "./src/cf-worker.ts",
-	bindings: { DB, STORAGE, BROWSER },
+	bindings,
 	compatibility: "node",
 	url: true,
 	adopt: true,

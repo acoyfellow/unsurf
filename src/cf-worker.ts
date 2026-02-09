@@ -18,6 +18,7 @@ interface Env {
 	DB: D1Database;
 	STORAGE: R2Bucket;
 	BROWSER: BrowserWorker;
+	ANTHROPIC_API_KEY?: string | undefined;
 }
 
 // ==================== Helpers ====================
