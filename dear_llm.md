@@ -58,11 +58,24 @@ src/
 
 ## Status
 
-Phases 1–9 complete. **75 tests passing.** All tools implemented and wired to Worker entry point.
+Phases 1–9 complete. **75 tests passing** across 8 test files. Typecheck, lint, and tests all green.
 
-**Phase 10 (Infrastructure)** remains: deploy worker to Cloudflare via Alchemy, custom domain, CI for worker deploy, e2e smoke test.
+All three MCP tools (Scout, Worker, Heal) are implemented and wired to the Worker entry point at `src/index.ts`. The Worker routes POST requests to `/tools/scout`, `/tools/worker`, `/tools/heal` and builds Effect layers from CF bindings per-request.
 
-**Future work** (not started): `src/ai/` (LLM-guided scout agent), `src/lib/codegen.ts` (TypeScript client generation).
+### What remains (Phase 10 — Infrastructure + Polish)
+
+1. **Deploy the API worker** — `bun run deploy` (runs `alchemy.run.ts`). Needs `ALCHEMY_PASSWORD` env var. Creates D1 database, R2 bucket, Browser Rendering binding, deploys Worker.
+2. **CI for worker deploy** — Add a `deploy` job to `.github/workflows/ci.yml` that runs `bun run deploy` on push to main (needs `ALCHEMY_PASSWORD` secret in GitHub).
+3. **Smoke test** — After deploy, `curl POST /tools/scout` against the live URL to verify end-to-end.
+4. **Docs updates** — Tutorial and guides reference `your-unsurf-url.workers.dev` — update with real deployed URL once known.
+5. **MCP server** — Not yet implemented. The README mentions MCP but the current API is plain HTTP POST. Adding an MCP transport layer (stdio or SSE) is a future enhancement.
+6. **TypeScript client codegen** — `src/lib/codegen.ts` referenced in README but not built. Future.
+7. **LLM-guided scout** — `src/ai/` not built. Future enhancement where an LLM decides what to click/fill during scouting.
+
+### Known issues
+- CI `docs` job may fail if Cloudflare secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) aren't set in GitHub repo settings
+- `alchemy.run.ts` uses `"dev-password"` fallback — must set real `ALCHEMY_PASSWORD` for production
+- Browser Rendering requires a paid Cloudflare Workers plan
 
 ## Links
 
