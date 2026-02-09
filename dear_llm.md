@@ -58,19 +58,35 @@ src/
 
 ## Status
 
-Phases 1–9 complete. **75 tests passing** across 8 test files. Typecheck, lint, and tests all green.
+Phases 1–9 complete. **Phase 10 partially complete** — CI deploy pipeline and docs updates are done; actual deploy blocked on Cloudflare credentials.
+
+**75 tests passing** across 8 test files. Typecheck, lint, and tests all green.
 
 All three MCP tools (Scout, Worker, Heal) are implemented and wired to the Worker entry point at `src/index.ts`. The Worker routes POST requests to `/tools/scout`, `/tools/worker`, `/tools/heal` and builds Effect layers from CF bindings per-request.
 
-### What remains (Phase 10 — Infrastructure + Polish)
+### Phase 10 progress
 
-1. **Deploy the API worker** — `bun run deploy` (runs `alchemy.run.ts`). Needs `ALCHEMY_PASSWORD` env var. Creates D1 database, R2 bucket, Browser Rendering binding, deploys Worker.
-2. **CI for worker deploy** — Add a `deploy` job to `.github/workflows/ci.yml` that runs `bun run deploy` on push to main (needs `ALCHEMY_PASSWORD` secret in GitHub).
-3. **Smoke test** — After deploy, `curl POST /tools/scout` against the live URL to verify end-to-end.
-4. **Docs updates** — Tutorial and guides reference `your-unsurf-url.workers.dev` — update with real deployed URL once known.
-5. **MCP server** — Not yet implemented. The README mentions MCP but the current API is plain HTTP POST. Adding an MCP transport layer (stdio or SSE) is a future enhancement.
-6. **TypeScript client codegen** — `src/lib/codegen.ts` referenced in README but not built. Future.
-7. **LLM-guided scout** — `src/ai/` not built. Future enhancement where an LLM decides what to click/fill during scouting.
+| Task | Status | Notes |
+|---|---|---|
+| Deploy API worker | 🔲 Blocked | Needs `CLOUDFLARE_API_TOKEN` or `alchemy login` — no CF credentials on build VM |
+| CI deploy job | ✅ Done | `deploy` job in `.github/workflows/ci.yml`, runs after `check`, main only. Needs 3 GitHub secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALCHEMY_PASSWORD` |
+| Smoke test | ⏳ Pending | CI deploy job has a smoke test step. Set `WORKER_URL` repo variable once deployed. |
+| Docs URL updates | ✅ Done | Replaced hardcoded `your-unsurf-url.workers.dev` with `$UNSURF_URL` shell variable pattern across all guides and tutorial |
+| Update dear_llm.md | ✅ Done | This file |
+
+### To deploy (manual steps for repo owner)
+
+1. Set GitHub repo secrets: `CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`, `ALCHEMY_PASSWORD`
+2. Push to `main` — CI will run `check` → `deploy`
+3. Or deploy locally: `CLOUDFLARE_API_TOKEN=xxx ALCHEMY_PASSWORD=xxx bun run deploy`
+4. Once deployed, set `WORKER_URL` as a GitHub repo variable for the CI smoke test
+5. Update docs `$UNSURF_URL` examples with the real URL if desired
+
+### What remains (future)
+
+1. **MCP server** — Not yet implemented. The README mentions MCP but the current API is plain HTTP POST. Adding an MCP transport layer (stdio or SSE) is a future enhancement.
+2. **TypeScript client codegen** — `src/lib/codegen.ts` referenced in README but not built. Future.
+3. **LLM-guided scout** — `src/ai/` not built. Future enhancement where an LLM decides what to click/fill during scouting.
 
 ### Known issues
 - CI `docs` job may fail if Cloudflare secrets (`CLOUDFLARE_API_TOKEN`, `CLOUDFLARE_ACCOUNT_ID`) aren't set in GitHub repo settings
