@@ -115,7 +115,7 @@ export default {
 		if (url.pathname === "/") {
 			return jsonResponse({
 				name: "unsurf",
-				version: "0.0.1",
+				version: "0.1.0",
 				description: "Turn any website into a typed API",
 				tools: ["scout", "worker", "heal"],
 				docs: "https://unsurf.coey.dev",

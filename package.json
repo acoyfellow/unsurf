@@ -1,6 +1,6 @@
 {
 	"name": "unsurf",
-	"version": "0.0.1",
+	"version": "0.1.0",
 	"description": "Turn any website into a typed API",
 	"type": "module",
 	"main": "dist/index.js",
