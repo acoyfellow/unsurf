@@ -56,7 +56,7 @@ src/
 - **Name**: `unsurf` on NPM
 - **Version**: 0.1.0
 - **Entry**: `dist/index.js` (ESM), `dist/index.d.ts` (types)
-- **Exports**: 38 public symbols — tools, services, domain types, utilities, db, MCP
+- **Exports**: 44 public symbols — tools, services, domain types, utilities, db, MCP, AI agent
 - **Build**: `bun run build` (tsup)
 - **Prepublish**: `bun run prepublishOnly` → check + typecheck + test + build
 - **Files included**: `dist/`, `src/` (excluding `cf-worker.ts`)
@@ -80,7 +80,7 @@ src/
 
 ## Status
 
-**Phases 1–10 complete.** 75 tests passing. Worker deployed. NPM package built.
+**All phases complete (1-10).** 79 tests passing across 9 files. Worker deployed. NPM package published. MCP server live. AI agent built.
 
 | Layer | State | Details |
 |---|---|---|
@@ -101,12 +101,13 @@ src/
 | CI | ✅ | check → docs → deploy pipeline |
 | Docs | ✅ | https://unsurf.coey.dev |
 | NPM publish | ✅ | v0.1.0 live on npmjs.com |
-| MCP server | ✅ | Streamable HTTP at /mcp, 3 tools registered |
+| MCP server | ✅ | Streamable HTTP at /mcp, 3 tools (+ agent-scout with API key) |
+| AI Scout Agent | ✅ | LlmProvider interface, Anthropic adapter, 4 tests |
 
 ### What remains (future)
 
 1. ~~**MCP server**~~ — **Done.** Phase 8 complete. MCP Streamable HTTP at `/mcp` using `@modelcontextprotocol/sdk`. Stateless mode. All 3 tools registered with Zod input schemas.
-2. **LLM Scout Agent** (PLAN.md Phase 9) — Not implemented. `src/ai/` not built. Future enhancement where an LLM decides what to click/fill during scouting using `@effect/ai`.
+2. ~~**LLM Scout Agent**~~ — **Done.** Phase 9 complete. `src/ai/ScoutAgent.ts` with `LlmProvider` interface + `AnthropicProvider`. MCP `agent-scout` tool when `ANTHROPIC_API_KEY` is set. 4 tests.
 3. **TypeScript client codegen** — `src/lib/codegen.ts` referenced in README/PLAN.md but not built.
 4. **E2E smoke test** — POST /tools/scout against live URL with a real site. Browser Rendering may require CF Workers Paid plan.
 5. **HttpApiSwagger** — PLAN.md Phase 1 mentions Swagger UI at `/docs`, not implemented. Current worker uses manual routing in `cf-worker.ts`.
