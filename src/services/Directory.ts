@@ -267,7 +267,7 @@ export function makeD1Directory(
 					}
 				}
 
-				const capabilities = [...capabilitySet];
+				const capabilities = [...capabilitySet] as Capability[];
 				const specKey = `directory/${domain}/openapi.json`;
 
 				// Check if fingerprint exists
@@ -645,7 +645,7 @@ export function makeTestDirectory(store: StoreService): DirectoryService {
 					} as EndpointSummary);
 				}
 
-				const capabilities = [...capabilitySet];
+				const capabilities = [...capabilitySet] as Capability[];
 				const existingFpId = fpIdByDomain.get(domain);
 
 				let fpId: string;
