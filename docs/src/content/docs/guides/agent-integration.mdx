@@ -14,7 +14,7 @@ This guide covers how to connect, what to send, and the patterns that produce re
 The unsurf MCP server speaks [Streamable HTTP](https://modelcontextprotocol.io) at:
 
 ```
-https://unsurf.coy.workers.dev/mcp
+https://unsurf-api.coey.dev/mcp
 ```
 
 <Tabs>
@@ -26,7 +26,7 @@ https://unsurf.coy.workers.dev/mcp
       "mcpServers": {
         "unsurf": {
           "type": "streamable-http",
-          "url": "https://unsurf.coy.workers.dev/mcp"
+          "url": "https://unsurf-api.coey.dev/mcp"
         }
       }
     }
@@ -39,7 +39,7 @@ https://unsurf.coy.workers.dev/mcp
 
     - **Name:** `unsurf`
     - **Transport:** Streamable HTTP
-    - **URL:** `https://unsurf.coy.workers.dev/mcp`
+    - **URL:** `https://unsurf-api.coey.dev/mcp`
 
     The tools are now available in Cursor's agent mode.
   </TabItem>
@@ -56,7 +56,7 @@ https://unsurf.coy.workers.dev/mcp
     );
 
     const transport = new StreamableHTTPClientTransport(
-      new URL("https://unsurf.coy.workers.dev/mcp")
+      new URL("https://unsurf-api.coey.dev/mcp")
     );
 
     await client.connect(transport);

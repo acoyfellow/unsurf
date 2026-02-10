@@ -29,7 +29,7 @@ import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/componen
   "mcpServers": {
     "unsurf": {
       "type": "streamable-http",
-      "url": "https://unsurf.coy.workers.dev/mcp"
+      "url": "https://unsurf-api.coey.dev/mcp"
     }
   }
 }
@@ -38,7 +38,7 @@ import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/componen
   <TabItem label="curl">
 ```bash
 # Scout any site → get a typed OpenAPI spec
-curl -X POST https://unsurf.coy.workers.dev/tools/scout \
+curl -X POST https://unsurf-api.coey.dev/tools/scout \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://any-website.com",

@@ -66,14 +66,14 @@ bun install
 CLOUDFLARE_API_TOKEN=your-token ALCHEMY_PASSWORD=your-password bun run deploy
 ```
 
-Live instance: [`https://unsurf.coy.workers.dev`](https://unsurf.coy.workers.dev)
+Live instance: [`https://unsurf-api.coey.dev`](https://unsurf-api.coey.dev)
 
 ## MCP Server
 
 The live instance exposes an MCP endpoint at:
 
 ```
-https://unsurf.coy.workers.dev/mcp
+https://unsurf-api.coey.dev/mcp
 ```
 
 Connect from Claude Desktop, Cursor, or any MCP client using the Streamable HTTP transport.

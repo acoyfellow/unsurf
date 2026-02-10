@@ -18,7 +18,7 @@ Let's walk through a complete scenario: scouting a user API, watching it break, 
 ### 1. Scout the site
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/tools/scout \
+curl -X POST https://unsurf-api.coey.dev/tools/scout \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://acme-app.com",
@@ -54,7 +54,7 @@ Acme deploys a new version. The user list endpoint moves from `/api/v1/users` to
 ### 3. Worker fails with PathBrokenError
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/tools/worker \
+curl -X POST https://unsurf-api.coey.dev/tools/worker \
   -H "Content-Type: application/json" \
   -d '{ "pathId": "path_lx1a_q7z2" }'
 ```
@@ -72,7 +72,7 @@ The path's status flips to `broken` and its `failCount` increments.
 Pass the broken path ID and (optionally) the error message to give the re-scout context:
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/tools/heal \
+curl -X POST https://unsurf-api.coey.dev/tools/heal \
   -H "Content-Type: application/json" \
   -d '{
     "pathId": "path_lx1a_q7z2",
@@ -94,7 +94,7 @@ Heal retried the original path (3 attempts with exponential backoff), confirmed 
 Use the `newPathId` from the heal response:
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/tools/worker \
+curl -X POST https://unsurf-api.coey.dev/tools/worker \
   -H "Content-Type: application/json" \
   -d '{ "pathId": "path_mx2b_r8a1" }'
 ```

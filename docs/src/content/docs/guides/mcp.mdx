@@ -10,7 +10,7 @@ import { Aside } from '@astrojs/starlight/components';
 The unsurf MCP server is available at:
 
 ```
-https://unsurf.coy.workers.dev/mcp
+https://unsurf-api.coey.dev/mcp
 ```
 
 It uses the **Streamable HTTP** transport from the [MCP specification](https://modelcontextprotocol.io). The server runs in stateless mode — each request is independent.
@@ -26,7 +26,7 @@ Add this to your Claude Desktop MCP config (`~/.claude/mcp.json`):
   "mcpServers": {
     "unsurf": {
       "type": "streamable-http",
-      "url": "https://unsurf.coy.workers.dev/mcp"
+      "url": "https://unsurf-api.coey.dev/mcp"
     }
   }
 }
@@ -42,7 +42,7 @@ Open Cursor Settings → MCP Servers → **Add Server** and enter:
 |---|---|
 | Name | `unsurf` |
 | Transport | `Streamable HTTP` |
-| URL | `https://unsurf.coy.workers.dev/mcp` |
+| URL | `https://unsurf-api.coey.dev/mcp` |
 
 Cursor will discover the `scout`, `worker`, and `heal` tools automatically.
 
@@ -65,7 +65,7 @@ You can verify the MCP endpoint works with plain `curl`.
 ### Initialize
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/mcp \
+curl -X POST https://unsurf-api.coey.dev/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{
@@ -85,7 +85,7 @@ You should get back a response with `serverInfo` and `capabilities`.
 ### List tools
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/mcp \
+curl -X POST https://unsurf-api.coey.dev/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}'
@@ -96,7 +96,7 @@ The response should list three tools: `scout`, `worker`, and `heal`.
 ### Call a tool
 
 ```bash
-curl -X POST https://unsurf.coy.workers.dev/mcp \
+curl -X POST https://unsurf-api.coey.dev/mcp \
   -H "Content-Type: application/json" \
   -H "Accept: application/json, text/event-stream" \
   -d '{

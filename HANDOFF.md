@@ -8,7 +8,7 @@
 
 ## Context
 
-**unsurf** turns any website into a typed API. Three MCP tools: Scout (browser+CDP→OpenAPI), Worker (HTTP replay), Heal (retry+re-scout). Deployed at https://unsurf.coy.workers.dev. 94 tests, 10 files, zero TODOs.
+**unsurf** turns any website into a typed API. Three MCP tools: Scout (browser+CDP→OpenAPI), Worker (HTTP replay), Heal (retry+re-scout). Deployed at https://unsurf-api.coey.dev. 94 tests, 10 files, zero TODOs.
 
 The **API Gallery** is the next feature: a community registry of unsurfed APIs. Agents search before scouting — skip the browser if someone already captured that site's API. Architecture doc: `GALLERY.md`.
 
@@ -235,7 +235,7 @@ const WORKER = await Worker("unsurf", {
 - [ ] `npx tsc --noEmit` clean
 - [ ] `npx biome check .` clean
 - [ ] Docs guide page for gallery
-- [ ] Deployed to https://unsurf.coy.workers.dev
+- [ ] Deployed to https://unsurf-api.coey.dev
 - [ ] Smoke test passes against prod
 
 ## What NOT to do

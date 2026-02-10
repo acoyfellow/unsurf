@@ -63,7 +63,7 @@ src/
 
 ## Live Deployment
 
-- **Worker URL**: https://unsurf.coy.workers.dev
+- **Worker URL**: https://unsurf-api.coey.dev
 - **Alchemy stage**: `production` (pinned in alchemy.run.ts, not hostname-derived)
 - **Alchemy state**: `CloudflareStateStore` (Durable Object on CF, used when `ALCHEMY_STATE_TOKEN` is set)
 - **D1 Database**: `unsurf-unsurf-db-production`
@@ -96,7 +96,7 @@ src/
 | Tests | ✅ | 94 passing, 10 files |
 | Lint/Types | ✅ | Biome + tsc clean |
 | NPM package | ✅ | tsup build, barrel export, 36 symbols |
-| CF deploy | ✅ | https://unsurf.coy.workers.dev |
+| CF deploy | ✅ | https://unsurf-api.coey.dev |
 | CI | ✅ | check → docs → deploy pipeline |
 | Docs | ✅ | https://unsurf.coey.dev — 11 pages, Diátaxis, agent-first |
 | NPM publish | ✅ | v0.1.0 live on npmjs.com |
@@ -128,4 +128,4 @@ src/
 - Repo: https://github.com/acoyfellow/unsurf
 - NPM: https://www.npmjs.com/package/unsurf
 - Docs: https://unsurf.coey.dev
-- Worker: https://unsurf.coy.workers.dev
+- Worker: https://unsurf-api.coey.dev

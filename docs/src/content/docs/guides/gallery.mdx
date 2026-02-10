@@ -41,13 +41,13 @@ Search by domain, endpoint path, or description:
 
 ```bash
 # By domain
-curl "https://unsurf.coy.workers.dev/gallery?domain=api.stripe.com"
+curl "https://unsurf-api.coey.dev/gallery?domain=api.stripe.com"
 
 # By keyword
-curl "https://unsurf.coy.workers.dev/gallery?q=payment"
+curl "https://unsurf-api.coey.dev/gallery?q=payment"
 
 # With limit
-curl "https://unsurf.coy.workers.dev/gallery?q=users&limit=5"
+curl "https://unsurf-api.coey.dev/gallery?q=users&limit=5"
 ```
 
 <Aside>
@@ -84,7 +84,7 @@ After scouting, publish the captured API to share it with everyone:
 2. **Publish** — pass the `siteId` to the gallery. The gallery extracts the domain, endpoints, and OpenAPI spec.
 
    ```bash
-   curl -X POST "https://unsurf.coy.workers.dev/gallery/publish" \
+   curl -X POST "https://unsurf-api.coey.dev/gallery/publish" \
      -H "Content-Type: application/json" \
      -d '{"siteId": "site_abc123", "contributor": "your-name"}'
    ```
@@ -100,7 +100,7 @@ After scouting, publish the captured API to share it with everyone:
 Fetch the complete OpenAPI spec for any gallery entry:
 
 ```bash
-curl "https://unsurf.coy.workers.dev/gallery/gal_abc123/spec"
+curl "https://unsurf-api.coey.dev/gallery/gal_abc123/spec"
 ```
 
 ## MCP Tool Usage

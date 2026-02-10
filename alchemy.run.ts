@@ -1,6 +1,6 @@
 import alchemy, { type StateStoreType } from "alchemy";
 import type { Binding } from "alchemy/cloudflare";
-import { BrowserRendering, D1Database, KVNamespace, R2Bucket, Worker } from "alchemy/cloudflare";
+import { BrowserRendering, CustomDomain, D1Database, KVNamespace, R2Bucket, Worker } from "alchemy/cloudflare";
 import { CloudflareStateStore } from "alchemy/state";
 
 const stateStore: StateStoreType | undefined = process.env.ALCHEMY_STATE_TOKEN
@@ -41,6 +41,13 @@ export const WORKER = await Worker("unsurf", {
 	bindings,
 	compatibility: "node",
 	url: true,
+	adopt: true,
+});
+
+// Custom domain for the API worker
+await CustomDomain("unsurf-api-domain", {
+	name: "unsurf-api.coey.dev",
+	workerName: WORKER.name,
 	adopt: true,
 });
 

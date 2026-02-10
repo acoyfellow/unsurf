@@ -54,4 +54,4 @@ jobs:
       - name: Smoke test
         run: |
           sleep 5
-          curl -sf https://unsurf.coy.workers.dev/ | jq .name | grep -q unsurf
+          curl -sf https://unsurf-api.coey.dev/ | jq .name | grep -q unsurf
