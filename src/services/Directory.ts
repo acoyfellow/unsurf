@@ -7,6 +7,7 @@ import type {
 	Fingerprint,
 	SearchResult,
 } from "../domain/Fingerprint.js";
+import type { StoreService } from "./Store.js";
 
 // ==================== Service Interface ====================
 
@@ -503,3 +504,196 @@ export const DirectoryD1Live = (
 	vectors: VectorizeBinding,
 	ai: AiBinding,
 ) => Layer.succeed(Directory, makeD1Directory(db, storage, vectors, ai));
+
+// ==================== In-Memory Test Implementation ====================
+
+export function makeTestDirectory(store: StoreService): DirectoryService {
+	const fingerprints = new Map<string, Fingerprint & { id: string; specKey: string }>();
+	const directoryEndpoints = new Map<string, EndpointSummary[]>();
+	const fpIdByDomain = new Map<string, string>();
+
+	return {
+		getFingerprint: (domain) =>
+			Effect.sync(() => {
+				const fpId = fpIdByDomain.get(domain);
+				return fpId ? fingerprints.get(fpId) : undefined;
+			}).pipe(
+				Effect.flatMap((fp) =>
+					fp
+						? Effect.succeed(fp as Fingerprint)
+						: Effect.fail(new NotFoundError({ id: domain, resource: "fingerprint" })),
+				),
+			),
+
+		getCapabilitySlice: (domain, capability) =>
+			Effect.gen(function* () {
+				const fpId = fpIdByDomain.get(domain);
+				if (!fpId)
+					return yield* Effect.fail(
+						new NotFoundError({ id: domain, resource: "fingerprint" }),
+					);
+
+				const eps = (directoryEndpoints.get(fpId) ?? []).filter(
+					(ep) => classifyEndpoint(ep.method, ep.path) === capability,
+				);
+
+				return {
+					domain,
+					capability,
+					endpoints: eps,
+				} as CapabilitySlice;
+			}),
+
+		getEndpoint: (domain, method, path) =>
+			Effect.gen(function* () {
+				const fpId = fpIdByDomain.get(domain);
+				if (!fpId)
+					return yield* Effect.fail(
+						new NotFoundError({ id: domain, resource: "fingerprint" }),
+					);
+
+				const eps = directoryEndpoints.get(fpId) ?? [];
+				const found = eps.find(
+					(ep) => ep.method === method.toUpperCase() && ep.path === path,
+				);
+				if (!found)
+					return yield* Effect.fail(
+						new NotFoundError({ id: `${method} ${path}`, resource: "endpoint" }),
+					);
+
+				return found;
+			}),
+
+		getSpec: (domain) =>
+			Effect.gen(function* () {
+				const fpId = fpIdByDomain.get(domain);
+				if (!fpId)
+					return yield* Effect.fail(
+						new NotFoundError({ id: domain, resource: "fingerprint" }),
+					);
+				const fp = fingerprints.get(fpId);
+				if (!fp)
+					return yield* Effect.fail(
+						new NotFoundError({ id: domain, resource: "fingerprint" }),
+					);
+
+				const blob = yield* store.getBlob(fp.specKey);
+				if (!blob)
+					return yield* Effect.fail(
+						new NotFoundError({ id: domain, resource: "spec" }),
+					);
+
+				const text = new TextDecoder().decode(blob);
+				return JSON.parse(text) as Record<string, unknown>;
+			}),
+
+		search: (query, limit = 10) => {
+			const q = query.toLowerCase();
+			const results: SearchResult[] = [];
+
+			for (const [fpId, fp] of fingerprints) {
+				const eps = directoryEndpoints.get(fpId) ?? [];
+				for (const ep of eps) {
+					const text =
+						`${fp.domain} ${ep.method} ${ep.path} ${ep.summary}`.toLowerCase();
+					if (text.includes(q)) {
+						results.push({
+							domain: fp.domain,
+							match: `${ep.method} ${ep.path}`,
+							capability: classifyEndpoint(ep.method, ep.path),
+							confidence: 0.9,
+							specUrl: `/d/${fp.domain}/spec`,
+						} as SearchResult);
+					}
+				}
+			}
+
+			return Effect.succeed(results.slice(0, limit));
+		},
+
+		publish: (siteId, contributor = "anonymous") =>
+			Effect.gen(function* () {
+				const site = yield* store.getSite(siteId);
+				const siteEndpoints = yield* store.getEndpoints(siteId);
+
+				const domain = site.domain;
+				const url = site.url;
+				const now = nowISO();
+
+				const capabilitySet = new Set<string>();
+				const methodCounts: Record<string, number> = {};
+				let detectedAuthType = "none";
+
+				const epSummaries: EndpointSummary[] = [];
+
+				for (const ep of siteEndpoints) {
+					const cap = classifyEndpoint(ep.method, ep.pathPattern);
+					capabilitySet.add(cap);
+					methodCounts[ep.method] = (methodCounts[ep.method] || 0) + 1;
+
+					const summary = generateSummary(ep.method, ep.pathPattern);
+					epSummaries.push({
+						method: ep.method,
+						path: ep.pathPattern,
+						summary,
+						requestSchema: ep.requestSchema
+							? Option.some(ep.requestSchema)
+							: Option.none(),
+						responseSchema: ep.responseSchema ?? {},
+						auth: false,
+						example: Option.none(),
+					} as EndpointSummary);
+				}
+
+				const capabilities = [...capabilitySet];
+				const existingFpId = fpIdByDomain.get(domain);
+
+				let fpId: string;
+				let version = 1;
+
+				if (existingFpId) {
+					fpId = existingFpId;
+					const existingFp = fingerprints.get(fpId);
+					version = (existingFp?.version ?? 1) + 1;
+				} else {
+					fpId = generateId("fp");
+					fpIdByDomain.set(domain, fpId);
+				}
+
+				// Store endpoint summaries
+				directoryEndpoints.set(fpId, epSummaries);
+
+				const fp = {
+					id: fpId,
+					domain,
+					url,
+					endpoints: siteEndpoints.length,
+					capabilities,
+					methods: methodCounts,
+					auth: detectedAuthType as Fingerprint["auth"],
+					confidence: 0.9,
+					lastScouted: now,
+					version,
+					specUrl: `/d/${domain}/spec`,
+					specKey: `directory/${domain}/openapi.json`,
+				};
+
+				fingerprints.set(fpId, fp);
+
+				return fp as Fingerprint;
+			}),
+
+		list: (offset = 0, limit = 20) => {
+			const all = [...fingerprints.values()]
+				.sort(
+					(a, b) =>
+						new Date(b.lastScouted).getTime() - new Date(a.lastScouted).getTime(),
+				)
+				.slice(offset, offset + limit);
+			return Effect.succeed(all as Fingerprint[]);
+		},
+	};
+}
+
+export const DirectoryTestLive = (store: StoreService) =>
+	Layer.succeed(Directory, makeTestDirectory(store));
