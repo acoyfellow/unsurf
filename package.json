@@ -12,6 +12,9 @@
 			"types": "./dist/index.d.ts"
 		}
 	},
+	"bin": {
+		"unsurf": "./dist/cli.js"
+	},
 	"files": ["dist", "src", "!src/cf-worker.ts"],
 	"keywords": [
 		"api",
