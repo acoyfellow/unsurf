@@ -16,7 +16,7 @@ import { Store, StoreD1Live, makeD1Store } from "./services/Store.js";
 import { heal } from "./tools/Heal.js";
 import { scout } from "./tools/Scout.js";
 import { worker } from "./tools/Worker.js";
-import directoryHtml from "./ui/directory.html";
+import { directoryHtml } from "./ui/directoryHtml.js";
 
 interface Env {
 	DB: D1Database;
