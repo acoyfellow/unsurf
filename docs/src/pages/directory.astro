@@ -11,94 +11,43 @@ const frontmatter = {
 <StarlightPage frontmatter={frontmatter}>
   <div class="directory" id="directory">
     
-    <!-- BOOT SEQUENCE -->
-    <div class="boot" id="boot">
-      <div class="boot-inner">
-        <div class="boot-logo">
-          <span class="boot-glyph">◈</span>
-        </div>
-        <div class="boot-status" id="boot-status">INITIALIZING</div>
-        <div class="boot-bar">
-          <div class="boot-fill" id="boot-fill"></div>
-        </div>
-        <div class="boot-count" id="boot-count">0</div>
+    <!-- HEADER -->
+    <header class="header">
+      <div class="stats">
+        <span class="stat" id="api-count">0 APIs</span>
+        <span class="stat-sep">·</span>
+        <span class="stat" id="endpoint-count">0 endpoints</span>
       </div>
+      <div class="search-box">
+        <input type="text" id="search" placeholder="Search..." autocomplete="off" />
+      </div>
+    </header>
+
+    <!-- TABLE -->
+    <div class="table" id="table">
+      <div class="table-header">
+        <span class="col-domain">Domain</span>
+        <span class="col-endpoints">Endpoints</span>
+        <span class="col-actions"></span>
+      </div>
+      <div class="table-body" id="table-body"></div>
     </div>
 
-    <!-- MAIN CONTENT (hidden until boot completes) -->
-    <div class="main" id="main">
-      
-      <!-- TITLE CARD -->
-      <header class="hero">
-        <div class="hero-badge">COMMUNITY REGISTRY</div>
-        <h1 class="hero-title">
-          <span class="hero-count" id="hero-count">0</span>
-          <span class="hero-label">APIs Discovered</span>
-        </h1>
-        <p class="hero-sub">
-          <span id="hero-endpoints">0</span> endpoints · no docs required
-        </p>
-      </header>
+    <!-- EMPTY -->
+    <div class="empty" id="empty">No APIs found</div>
 
-      <!-- SEARCH -->
-      <div class="search-wrap">
-        <div class="search-box">
-          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
-          </svg>
-          <input type="text" id="search" placeholder="Search APIs..." autocomplete="off" />
-          <kbd class="search-kbd">/</kbd>
-        </div>
-      </div>
-
-      <!-- GRID -->
-      <div class="grid" id="grid"></div>
-
-      <!-- EMPTY STATE -->
-      <div class="empty" id="empty">
-        <div class="empty-icon">∅</div>
-        <p>No APIs found</p>
-      </div>
-
-      <!-- CONTRIBUTE -->
-      <!-- SUBMIT FORM -->
-      <section class="submit-section" id="submit-section">
-        <div class="submit-header">
-          <h2 class="submit-title">Add an API</h2>
-          <p class="submit-desc">Scout a site and publish it to the directory</p>
-        </div>
-        <form class="submit-form" id="submit-form">
-          <div class="submit-input-wrap">
-            <input 
-              type="url" 
-              id="submit-url" 
-              placeholder="https://api.example.com" 
-              required 
-              autocomplete="off"
-            />
-            <button type="submit" id="submit-btn">
-              <span class="submit-btn-text">Scout & Publish</span>
-              <span class="submit-btn-loading">Scouting...</span>
-            </button>
-          </div>
-          <div class="submit-status" id="submit-status"></div>
-        </form>
-        <p class="submit-alt">or via CLI: <code>npx unsurf scout https://… --publish</code></p>
-      </section>
+    <!-- ADD -->
+    <div class="add-section">
+      <input type="url" id="add-url" placeholder="https://api.example.com" />
+      <button id="add-btn">Add API</button>
     </div>
 
     <!-- MODAL -->
     <div class="modal-overlay" id="modal-overlay">
       <div class="modal" id="modal">
-        <button class="modal-close" id="modal-close">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M18 6 6 18M6 6l12 12"/>
-          </svg>
-        </button>
         <div class="modal-header">
-          <div class="modal-icon" id="modal-icon">◈</div>
-          <div class="modal-title" id="modal-title">—</div>
-          <div class="modal-meta" id="modal-meta"></div>
+          <span class="modal-title" id="modal-title">—</span>
+          <button class="modal-close" id="modal-close">×</button>
         </div>
         <div class="modal-body" id="modal-body"></div>
         <div class="modal-footer" id="modal-footer"></div>
@@ -109,1069 +58,429 @@ const frontmatter = {
 </StarlightPage>
 
 <style is:global>
-  /* Reset starlight defaults for this page */
-  .directory {
-    --accent: #8b5cf6;
-    --accent-glow: rgba(139, 92, 246, 0.3);
-    --surface: rgba(0, 0, 0, 0.04);
-    --surface-hover: rgba(0, 0, 0, 0.07);
-    --border: rgba(0, 0, 0, 0.12);
-    --border-hover: rgba(0, 0, 0, 0.25);
-    --text-1: rgba(0, 0, 0, 0.9);
-    --text-2: rgba(0, 0, 0, 0.6);
-    --text-3: rgba(0, 0, 0, 0.4);
-    --bg-boot: #fafafa;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
-    --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
-    
-    min-height: 100vh;
-    position: relative;
+  /* Hide Starlight chrome */
+  [data-has-hero] .page {
+    padding-top: 0 !important;
   }
-  
-  :root[data-theme='dark'] .directory {
-    --surface: rgba(255, 255, 255, 0.04);
-    --surface-hover: rgba(255, 255, 255, 0.07);
-    --border: rgba(255, 255, 255, 0.1);
-    --border-hover: rgba(255, 255, 255, 0.2);
-    --text-1: rgba(255, 255, 255, 0.95);
-    --text-2: rgba(255, 255, 255, 0.6);
-    --text-3: rgba(255, 255, 255, 0.4);
-    --bg-boot: #0f0f0f;
-    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
-    --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
-  }
-
-  /* Hide the redundant page title from Starlight */
-  .sl-container > h1#_top {
+  [data-has-hero] header.hero {
     display: none !important;
   }
-
-  /* ===== BOOT SEQUENCE ===== */
-  .boot {
-    position: fixed;
-    inset: 0;
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: var(--bg-boot);
-    transition: opacity 0.6s ease, visibility 0.6s ease;
+  .sl-markdown-content {
+    max-width: none;
   }
-  .boot.done {
-    opacity: 0;
-    visibility: hidden;
-    pointer-events: none;
-  }
-  .boot-inner {
-    text-align: center;
-  }
-  .boot-logo {
-    margin-bottom: 2rem;
-  }
-  .boot-glyph {
-    font-size: 3rem;
-    color: var(--accent);
-    animation: pulse 1.5s ease-in-out infinite;
-  }
-  @keyframes pulse {
-    0%, 100% { opacity: 0.4; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.1); }
-  }
-  .boot-status {
-    font-size: 0.75rem;
-    letter-spacing: 0.2em;
-    color: var(--text-3);
-    margin-bottom: 1.5rem;
-    font-family: var(--sl-font-mono);
-  }
-  .boot-bar {
-    width: 200px;
-    height: 2px;
-    background: var(--border);
-    border-radius: 1px;
-    overflow: hidden;
-    margin: 0 auto 1rem;
-  }
-  .boot-fill {
-    height: 100%;
-    width: 0%;
-    background: var(--accent);
-    transition: width 0.1s ease-out;
-  }
-  .boot-count {
-    font-size: 2.5rem;
-    font-weight: 600;
-    color: var(--text-1);
-    font-variant-numeric: tabular-nums;
-  }
-
-  /* ===== MAIN ===== */
-  .main {
-    opacity: 0;
-    transform: translateY(20px);
-    transition: opacity 0.8s ease, transform 0.8s ease;
-    padding: 0 1.5rem 4rem;
-    max-width: 1100px;
+  main.sl-container {
+    max-width: 900px;
     margin: 0 auto;
   }
-  .main.visible {
-    opacity: 1;
-    transform: translateY(0);
+
+  /* Variables */
+  .directory {
+    --text: #1a1a1a;
+    --text-muted: #666;
+    --border: #e5e5e5;
+    --bg: #fff;
+    --bg-hover: #fafafa;
+    --accent: #0066cc;
+  }
+  :root[data-theme='dark'] .directory {
+    --text: #e5e5e5;
+    --text-muted: #999;
+    --border: #333;
+    --bg: #1a1a1a;
+    --bg-hover: #222;
+    --accent: #4d9fff;
   }
 
-  /* ===== HERO ===== */
-  .hero {
-    text-align: center;
-    padding: 2rem 0 1rem;
-  }
-  .hero-badge {
-    display: inline-block;
-    font-size: 0.65rem;
-    letter-spacing: 0.15em;
-    color: var(--accent);
-    background: rgba(139, 92, 246, 0.1);
-    padding: 0.4rem 0.8rem;
-    border-radius: 100px;
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(139, 92, 246, 0.2);
-  }
-  .hero-title {
-    margin: 0;
-    line-height: 1;
-  }
-  .hero-count {
-    display: block;
-    font-size: clamp(4rem, 15vw, 8rem);
-    font-weight: 700;
-    background: linear-gradient(135deg, var(--text-1) 0%, var(--text-2) 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    font-variant-numeric: tabular-nums;
-  }
-  .hero-label {
-    display: block;
-    font-size: 1.5rem;
-    font-weight: 500;
-    color: var(--text-2);
-    margin-top: 0.5rem;
-    letter-spacing: -0.02em;
-    line-height: 1.3;
-    -webkit-text-fill-color: currentColor;
-    background: none;
-  }
-  .hero-sub {
-    margin-top: 0.75rem;
-    font-size: 0.9rem;
-    color: var(--text-3);
+  .directory {
+    font-family: system-ui, -apple-system, sans-serif;
+    color: var(--text);
+    padding: 2rem 1rem;
   }
 
-  /* ===== SEARCH ===== */
-  .search-wrap {
+  /* Header */
+  .header {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1.5rem;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
-  .search-box {
-    position: relative;
-    width: 100%;
-    max-width: 400px;
+  .stats {
+    font-size: 0.875rem;
+    color: var(--text-muted);
   }
-  .search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 18px;
-    height: 18px;
-    color: var(--text-3);
-    pointer-events: none;
+  .stat-sep {
+    margin: 0 0.5rem;
   }
   .search-box input {
-    width: 100%;
-    padding: 0.875rem 3rem 0.875rem 2.75rem;
-    font-size: 0.95rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    color: var(--text-1);
-    outline: none;
-    transition: all 0.2s ease;
-  }
-  .search-box input::placeholder {
-    color: var(--text-3);
-  }
-  .search-box input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-  .search-kbd {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    font-size: 0.7rem;
-    padding: 0.25rem 0.5rem;
-    background: var(--surface);
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
     border-radius: 4px;
-    color: var(--text-3);
-    font-family: var(--sl-font-mono);
-    pointer-events: none;
+    font-size: 0.875rem;
+    background: var(--bg);
+    color: var(--text);
+    width: 200px;
+  }
+  .search-box input:focus {
+    outline: none;
+    border-color: var(--accent);
   }
 
-  /* ===== GRID ===== */
-  .grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1rem;
-  }
-
-  /* ===== CARD ===== */
-  .card {
-    position: relative;
-    background: var(--surface);
+  /* Table */
+  .table {
     border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.5rem;
+    border-radius: 6px;
+    overflow: hidden;
+  }
+  .table-header {
+    display: grid;
+    grid-template-columns: 1fr 100px 80px;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+    background: var(--bg-hover);
+    border-bottom: 1px solid var(--border);
+  }
+  .table-body {
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  .table-row {
+    display: grid;
+    grid-template-columns: 1fr 100px 80px;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
     cursor: pointer;
-    transition: all 0.25s ease;
-    overflow: hidden;
-    box-shadow: var(--card-shadow);
-    height: 160px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
+    transition: background 0.1s;
   }
-  .card::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.03) 100%);
-    opacity: 0;
-    transition: opacity 0.25s ease;
+  .table-row:last-child {
+    border-bottom: none;
   }
-  .card:hover {
-    border-color: var(--border-hover);
-    transform: translateY(-2px);
-    box-shadow: var(--card-shadow-hover);
+  .table-row:hover {
+    background: var(--bg-hover);
   }
-  .card:hover::before {
-    opacity: 1;
+  .row-domain {
+    font-weight: 500;
+    color: var(--text);
   }
-  .card-header {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    position: relative;
+  .row-endpoints {
+    color: var(--text-muted);
+    font-size: 0.875rem;
   }
-  .card-icon {
-    width: 40px;
-    height: 40px;
-    border-radius: 10px;
-    background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    color: white;
-    flex-shrink: 0;
-    font-weight: 600;
+  .row-action {
+    text-align: right;
   }
-  .card-info {
-    flex: 1;
-    min-width: 0;
-  }
-  .card-domain {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-1);
-    margin: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .card-url {
-    font-size: 0.75rem;
-    color: var(--text-3);
-    margin-top: 0.25rem;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .card-stats {
-    display: flex;
-    gap: 1.5rem;
-  }
-  .card-stat {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
-  .card-stat-num {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-1);
-  }
-  .card-stat-label {
-    font-size: 0.75rem;
-    color: var(--text-3);
-  }
-  .card-arrow {
-    position: absolute;
-    right: 0;
-    top: 50%;
-    transform: translateY(-50%) translateX(10px);
-    opacity: 0;
+  .row-action a {
     color: var(--accent);
-    transition: all 0.25s ease;
+    text-decoration: none;
+    font-size: 0.875rem;
   }
-  .card:hover .card-arrow {
-    opacity: 1;
-    transform: translateY(-50%) translateX(0);
+  .row-action a:hover {
+    text-decoration: underline;
   }
 
-  /* ===== EMPTY ===== */
+  /* Empty */
   .empty {
     display: none;
+    padding: 3rem;
     text-align: center;
-    padding: 4rem 2rem;
-    color: var(--text-3);
+    color: var(--text-muted);
   }
   .empty.visible {
     display: block;
   }
-  .empty-icon {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-    opacity: 0.3;
-  }
 
-  /* ===== CONTRIBUTE ===== */
-  /* ===== SUBMIT FORM ===== */
-  .submit-section {
-    margin-top: 4rem;
-    padding: 2.5rem;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    border-radius: 20px;
-    text-align: center;
-  }
-  .submit-header {
-    margin-bottom: 1.5rem;
-  }
-  .submit-title {
-    font-size: 1.25rem;
-    font-weight: 600;
-    color: var(--text-1);
-    margin: 0 0 0.5rem;
-  }
-  .submit-desc {
-    font-size: 0.9rem;
-    color: var(--text-3);
-    margin: 0;
-  }
-  .submit-form {
-    max-width: 500px;
-    margin: 0 auto;
-  }
-  .submit-input-wrap {
+  /* Add section */
+  .add-section {
+    margin-top: 2rem;
     display: flex;
-    gap: 0.75rem;
+    gap: 0.5rem;
   }
-  .submit-input-wrap input {
+  .add-section input {
     flex: 1;
-    padding: 0.875rem 1rem;
-    font-size: 0.95rem;
-    background: var(--sl-color-bg);
+    padding: 0.5rem 0.75rem;
     border: 1px solid var(--border);
-    border-radius: 10px;
-    color: var(--text-1);
-    outline: none;
-    transition: all 0.2s ease;
+    border-radius: 4px;
+    font-size: 0.875rem;
+    background: var(--bg);
+    color: var(--text);
   }
-  .submit-input-wrap input:focus {
-    border-color: var(--accent);
-    box-shadow: 0 0 0 3px var(--accent-glow);
-  }
-  .submit-input-wrap button {
-    padding: 0.875rem 1.5rem;
-    font-size: 0.9rem;
-    font-weight: 500;
-    background: var(--accent);
-    border: none;
-    border-radius: 10px;
-    color: white;
+  .add-section button {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 0.875rem;
     cursor: pointer;
-    transition: all 0.2s ease;
-    white-space: nowrap;
+    transition: background 0.1s;
   }
-  .submit-input-wrap button:hover:not(:disabled) {
-    background: #7c3aed;
+  .add-section button:hover {
+    background: var(--bg-hover);
   }
-  .submit-input-wrap button:disabled {
-    opacity: 0.7;
+  .add-section button:disabled {
+    opacity: 0.5;
     cursor: not-allowed;
   }
-  .submit-btn-loading {
-    display: none;
-  }
-  .submit-form.loading .submit-btn-text {
-    display: none;
-  }
-  .submit-form.loading .submit-btn-loading {
-    display: inline;
-  }
-  .submit-status {
-    margin-top: 1rem;
-    font-size: 0.875rem;
-    min-height: 1.5rem;
-  }
-  .submit-status.success {
-    color: #22c55e;
-  }
-  .submit-status.error {
-    color: #ef4444;
-  }
-  .submit-alt {
-    margin-top: 1.5rem;
-    font-size: 0.8rem;
-    color: var(--text-3);
-  }
-  .submit-alt code {
-    color: var(--accent);
-    background: none;
-  }
 
-  .contribute {
-    font-size: 0.85rem;
-    color: var(--accent);
-    background: none;
-    padding: 0;
-  }
-
-  /* ===== MODAL ===== */
+  /* Modal */
   .modal-overlay {
+    display: none;
     position: fixed;
     inset: 0;
-    z-index: 2000;
-    background: rgba(0, 0, 0, 0.8);
-    backdrop-filter: blur(8px);
-    display: flex;
+    background: rgba(0,0,0,0.5);
+    z-index: 1000;
     align-items: center;
     justify-content: center;
-    padding: 2rem;
-    opacity: 0;
-    visibility: hidden;
-    transition: all 0.3s ease;
   }
   .modal-overlay.open {
-    opacity: 1;
-    visibility: visible;
+    display: flex;
   }
   .modal {
-    position: relative;
-    width: 100%;
+    background: var(--bg);
+    border-radius: 6px;
+    width: 90%;
     max-width: 500px;
     max-height: 80vh;
-    background: var(--sl-color-bg);
-    border: 1px solid var(--border);
-    border-radius: 20px;
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    transform: scale(0.95) translateY(20px);
-    transition: transform 0.3s ease;
-  }
-  .modal-overlay.open .modal {
-    transform: scale(1) translateY(0);
-  }
-  .modal-close {
-    position: absolute;
-    top: 1rem;
-    right: 1rem;
-    width: 32px;
-    height: 32px;
-    border-radius: 8px;
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-2);
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: all 0.2s ease;
-    z-index: 1;
-  }
-  .modal-close:hover {
-    background: var(--surface-hover);
-    color: var(--text-1);
-  }
-  .modal-close svg {
-    width: 16px;
-    height: 16px;
   }
   .modal-header {
-    padding: 2rem 2rem 1.5rem;
-    text-align: center;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
     border-bottom: 1px solid var(--border);
   }
-  .modal-icon {
-    width: 56px;
-    height: 56px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-    color: white;
-    margin: 0 auto 1rem;
-    font-weight: 600;
-  }
   .modal-title {
-    font-size: 1.25rem;
     font-weight: 600;
-    color: var(--text-1);
+    font-size: 1rem;
   }
-  .modal-meta {
-    font-size: 0.8rem;
-    color: var(--text-3);
-    margin-top: 0.5rem;
+  .modal-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    line-height: 1;
   }
   .modal-body {
-    flex: 1;
+    padding: 1rem;
     overflow-y: auto;
-    padding: 1.5rem 2rem;
+    flex: 1;
   }
-  .modal-section {
-    margin-bottom: 1.5rem;
-  }
-  .modal-section:last-child {
-    margin-bottom: 0;
-  }
-  .modal-section-title {
-    font-size: 0.7rem;
-    letter-spacing: 0.1em;
-    color: var(--text-3);
-    margin-bottom: 0.75rem;
-    text-transform: uppercase;
-  }
-  .endpoint-list {
+  .modal-footer {
+    padding: 1rem;
+    border-top: 1px solid var(--border);
     display: flex;
-    flex-direction: column;
     gap: 0.5rem;
+    justify-content: flex-end;
+  }
+  .modal-footer a {
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 0.875rem;
+    color: var(--text);
+  }
+  .modal-footer a:hover {
+    background: var(--bg-hover);
+  }
+  .modal-footer a.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+
+  /* Endpoint list */
+  .endpoint-list {
+    font-size: 0.875rem;
   }
   .endpoint-item {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--surface);
-    border-radius: 8px;
-    font-family: var(--sl-font-mono);
-    font-size: 0.85rem;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .endpoint-item:last-child {
+    border-bottom: none;
   }
   .endpoint-method {
     font-size: 0.7rem;
     font-weight: 600;
-    padding: 0.2rem 0.4rem;
-    border-radius: 4px;
-    background: rgba(34, 197, 94, 0.15);
-    color: #22c55e;
+    padding: 0.15rem 0.4rem;
+    border-radius: 3px;
+    background: #e5e5e5;
+    color: #333;
   }
-  .endpoint-method.post { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
-  .endpoint-method.put { background: rgba(249, 115, 22, 0.15); color: #f97316; }
-  .endpoint-method.delete { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+  .endpoint-method.get { background: #dcfce7; color: #166534; }
+  .endpoint-method.post { background: #dbeafe; color: #1e40af; }
+  .endpoint-method.put { background: #fef3c7; color: #92400e; }
+  .endpoint-method.delete { background: #fee2e2; color: #991b1b; }
   .endpoint-path {
-    color: var(--text-2);
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .endpoint-try {
-    background: transparent;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    padding: 0.35rem 0.5rem;
-    cursor: pointer;
-    color: var(--text-3);
-    transition: all 0.2s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    opacity: 0;
-  }
-  .endpoint-item:hover .endpoint-try {
-    opacity: 1;
-  }
-  .endpoint-try:hover {
-    border-color: var(--accent);
-    color: var(--accent);
-    background: rgba(139, 92, 246, 0.1);
-  }
-  .endpoint-try.loading {
-    opacity: 1;
-    pointer-events: none;
-  }
-  .endpoint-try.loading svg {
-    animation: spin 1s linear infinite;
-  }
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-  .try-result {
-    border-top: 1px solid var(--border);
-    padding-top: 1rem;
-  }
-  .try-response {
-    background: var(--surface);
-    border-radius: 8px;
-    padding: 1rem;
+    font-family: ui-monospace, monospace;
     font-size: 0.8rem;
-    overflow-x: auto;
-    max-height: 200px;
-    overflow-y: auto;
-    margin: 0;
-    white-space: pre-wrap;
-    word-break: break-all;
-  }
-  .try-response.error {
-    color: #ef4444;
-  }
-  .try-response.success {
-    color: #22c55e;
-  }
-  .modal-footer {
-    padding: 1.5rem 2rem;
-    border-top: 1px solid var(--border);
-    display: flex;
-    gap: 0.75rem;
-  }
-  .modal-btn {
-    flex: 1;
-    padding: 0.875rem 1.25rem;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    text-align: center;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-  }
-  .modal-btn-secondary {
-    background: var(--surface);
-    border: 1px solid var(--border);
-    color: var(--text-2);
-  }
-  .modal-btn-secondary:hover {
-    background: var(--surface-hover);
-    color: var(--text-1);
-  }
-  .modal-btn-primary {
-    background: var(--accent);
-    border: none;
-    color: white;
-  }
-  .modal-btn-primary:hover {
-    background: #7c3aed;
-  }
-
-  /* ===== RESPONSIVE ===== */
-  @media (max-width: 600px) {
-    .hero-count { font-size: 4rem; }
-    .card { padding: 1.25rem; }
-    .modal { border-radius: 16px; }
-    .modal-header, .modal-body, .modal-footer { padding-left: 1.5rem; padding-right: 1.5rem; }
+    color: var(--text-muted);
   }
 </style>
 
 <script>
   const API = 'https://unsurf-api.coey.dev';
-  
   let allApis = [];
   let currentDomain = null;
-  
-  // Elements
-  const boot = document.getElementById('boot');
-  const bootStatus = document.getElementById('boot-status');
-  const bootFill = document.getElementById('boot-fill');
-  const bootCount = document.getElementById('boot-count');
-  const main = document.getElementById('main');
-  const heroCount = document.getElementById('hero-count');
-  const heroEndpoints = document.getElementById('hero-endpoints');
-  const grid = document.getElementById('grid');
+
+  const tableBody = document.getElementById('table-body');
   const empty = document.getElementById('empty');
   const search = document.getElementById('search');
+  const apiCount = document.getElementById('api-count');
+  const endpointCount = document.getElementById('endpoint-count');
   const modalOverlay = document.getElementById('modal-overlay');
-  const modalIcon = document.getElementById('modal-icon');
   const modalTitle = document.getElementById('modal-title');
-  const modalMeta = document.getElementById('modal-meta');
   const modalBody = document.getElementById('modal-body');
   const modalFooter = document.getElementById('modal-footer');
-  const modalClose = document.getElementById('modal-close');
-  
-  // Boot sequence
-  async function bootSequence() {
-    bootStatus.textContent = 'CONNECTING';
-    await delay(300);
-    
-    bootStatus.textContent = 'FETCHING REGISTRY';
-    bootFill.style.width = '20%';
-    
+  const addUrl = document.getElementById('add-url');
+  const addBtn = document.getElementById('add-btn');
+
+  // Load data
+  async function load() {
     try {
-      const res = await fetch(`${API}/d/?limit=100`);
+      const res = await fetch(`${API}/d/`);
       const data = await res.json();
       allApis = data.fingerprints || [];
-      
-      bootFill.style.width = '60%';
-      bootStatus.textContent = 'INDEXING';
-      await delay(200);
-      
-      // Animate count up
-      const total = allApis.length;
-      const totalEndpoints = allApis.reduce((s, f) => s + (f.endpoints || 0), 0);
-      let current = 0;
-      const step = Math.ceil(total / 20);
-      
-      while (current < total) {
-        current = Math.min(current + step, total);
-        bootCount.textContent = current;
-        bootFill.style.width = `${60 + (current / total) * 35}%`;
-        await delay(50);
-      }
-      
-      bootFill.style.width = '100%';
-      bootStatus.textContent = 'READY';
-      await delay(400);
-      
-      // Reveal
-      boot.classList.add('done');
-      await delay(100);
-      main.classList.add('visible');
-      
-      // Animate hero numbers
-      animateNumber(heroCount, total, 600);
-      animateNumber(heroEndpoints, totalEndpoints, 600);
-      
-      // Render grid
-      renderGrid(allApis);
-      
-    } catch (err) {
-      bootStatus.textContent = 'CONNECTION FAILED';
-      bootFill.style.background = '#ef4444';
-      await delay(1500);
-      boot.classList.add('done');
-      main.classList.add('visible');
+      const totalEndpoints = allApis.reduce((sum, a) => sum + a.endpoints, 0);
+      apiCount.textContent = `${allApis.length} APIs`;
+      endpointCount.textContent = `${totalEndpoints} endpoints`;
+      render(allApis);
+    } catch (e) {
+      console.error(e);
       empty.classList.add('visible');
     }
   }
-  
-  function delay(ms) {
-    return new Promise(r => setTimeout(r, ms));
-  }
-  
-  function animateNumber(el, target, duration) {
-    const start = parseInt(el.textContent) || 0;
-    const startTime = performance.now();
-    
-    function update(now) {
-      const elapsed = now - startTime;
-      const progress = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      el.textContent = Math.round(start + (target - start) * eased);
-      if (progress < 1) requestAnimationFrame(update);
-    }
-    requestAnimationFrame(update);
-  }
-  
-  function getInitial(domain) {
-    return domain.replace(/^(api\.|www\.)/i, '').charAt(0).toUpperCase();
-  }
-  
-  function renderGrid(apis) {
-    if (!apis.length) {
-      grid.innerHTML = '';
+
+  // Render table
+  function render(apis) {
+    if (apis.length === 0) {
+      tableBody.innerHTML = '';
       empty.classList.add('visible');
       return;
     }
-    
     empty.classList.remove('visible');
-    grid.innerHTML = apis.map(api => `
-      <div class="card" data-domain="${api.domain}">
-        <div class="card-header">
-          <div class="card-icon">${getInitial(api.domain)}</div>
-          <div class="card-info">
-            <div class="card-domain">${api.domain}</div>
-            <div class="card-url">${api.url || `https://${api.domain}`}</div>
-          </div>
-          <svg class="card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M5 12h14M12 5l7 7-7 7"/>
-          </svg>
-        </div>
-        <div class="card-stats">
-          <div class="card-stat">
-            <span class="card-stat-num">${api.endpoints || 0}</span>
-            <span class="card-stat-label">endpoints</span>
-          </div>
-        </div>
+    tableBody.innerHTML = apis.map(api => `
+      <div class="table-row" data-domain="${api.domain}">
+        <span class="row-domain">${api.domain}</span>
+        <span class="row-endpoints">${api.endpoints}</span>
+        <span class="row-action"><a href="${API}/d/${api.domain}/spec" target="_blank">spec</a></span>
       </div>
     `).join('');
-    
-    // Attach click handlers
-    grid.querySelectorAll('.card').forEach(card => {
-      card.addEventListener('click', () => openModal(card.dataset.domain));
+
+    // Click handlers
+    tableBody.querySelectorAll('.table-row').forEach(row => {
+      row.addEventListener('click', (e) => {
+        if (e.target.tagName === 'A') return;
+        openModal(row.dataset.domain);
+      });
     });
   }
-  
+
+  // Search
+  search.addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    const filtered = allApis.filter(a => a.domain.toLowerCase().includes(q));
+    render(filtered);
+  });
+
+  // Modal
   async function openModal(domain) {
     currentDomain = domain;
-    const api = allApis.find(a => a.domain === domain);
-    if (!api) return;
-    
-    modalIcon.textContent = getInitial(domain);
     modalTitle.textContent = domain;
-    modalMeta.textContent = 'Loading...';
-    modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-3)">Loading endpoints...</div>';
+    modalBody.innerHTML = 'Loading...';
     modalFooter.innerHTML = '';
-    
     modalOverlay.classList.add('open');
-    document.body.style.overflow = 'hidden';
-    
+
     try {
-      // Fetch domain info
-      const infoRes = await fetch(`${API}/d/${domain}`);
-      const info = await infoRes.json();
+      const res = await fetch(`${API}/d/${domain}/spec`);
+      const spec = await res.json();
+      const paths = spec.paths || {};
       
-      modalMeta.textContent = `${info.capabilities?.length || 0} capabilities`;
-      
-      // Fetch endpoints from all capabilities
-      let endpoints = [];
-      for (const cap of (info.capabilities || [])) {
-        try {
-          const capRes = await fetch(`${API}/d/${domain}/${cap}`);
-          const capData = await capRes.json();
-          endpoints = endpoints.concat((capData.endpoints || []).map(e => ({ ...e, capability: cap })));
-        } catch (e) {}
+      const endpoints = [];
+      for (const [path, methods] of Object.entries(paths)) {
+        for (const method of Object.keys(methods)) {
+          if (['get','post','put','delete','patch'].includes(method.toLowerCase())) {
+            endpoints.push({ method: method.toUpperCase(), path });
+          }
+        }
       }
-      
-      if (endpoints.length) {
+
+      if (endpoints.length === 0) {
+        modalBody.innerHTML = '<p style="color:var(--text-muted)">No endpoints</p>';
+      } else {
         modalBody.innerHTML = `
-          <div class="modal-section">
-            <div class="modal-section-title">Endpoints</div>
-            <div class="endpoint-list">
-              ${endpoints.map((e) => {
-                // Extract just the path from full URL
-                let displayPath = e.path;
-                try {
-                  const url = new URL(e.path);
-                  displayPath = url.pathname + url.search;
-                } catch {}
-                return `
-                <div class="endpoint-item" data-endpoint='${JSON.stringify(e).replace(/'/g, "&#39;")}'>
-                  <span class="endpoint-method ${(e.method || 'GET').toLowerCase()}">${e.method || 'GET'}</span>
-                  <span class="endpoint-path">${displayPath}</span>
-                  <button class="endpoint-try" onclick="tryEndpoint(this)" title="Try this endpoint">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                      <polygon points="5 3 19 12 5 21 5 3"/>
-                    </svg>
-                  </button>
-                </div>`;
-              }).join('')}
-            </div>
-          </div>
-          <div class="modal-section try-result" id="try-result" style="display:none">
-            <div class="modal-section-title">Response</div>
-            <pre class="try-response" id="try-response"></pre>
+          <div class="endpoint-list">
+            ${endpoints.map(e => `
+              <div class="endpoint-item">
+                <span class="endpoint-method ${e.method.toLowerCase()}">${e.method}</span>
+                <span class="endpoint-path">${e.path}</span>
+              </div>
+            `).join('')}
           </div>
         `;
-      } else {
-        modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-3)">No endpoints found</div>';
       }
-      
+
       modalFooter.innerHTML = `
-        <a class="modal-btn modal-btn-secondary" href="${info.url || `https://${domain}`}" target="_blank">
-          Visit Site
-        </a>
-        <a class="modal-btn modal-btn-primary" href="${API}/d/${domain}/spec" target="_blank">
-          View OpenAPI
-        </a>
+        <a href="https://${domain}" target="_blank">Visit</a>
+        <a href="${API}/d/${domain}/spec" target="_blank" class="primary">OpenAPI</a>
       `;
-      
-    } catch (err) {
-      modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444">Failed to load</div>';
+    } catch (e) {
+      modalBody.innerHTML = '<p style="color:#991b1b">Failed to load</p>';
     }
   }
-  
-  // Try endpoint directly
-  window.tryEndpoint = async function(btn) {
-    const item = btn.closest('.endpoint-item');
-    const endpoint = JSON.parse(item.dataset.endpoint);
-    const resultDiv = document.getElementById('try-result');
-    const responseDiv = document.getElementById('try-response');
-    
-    // Show loading
-    btn.classList.add('loading');
-    resultDiv.style.display = 'block';
-    responseDiv.className = 'try-response';
-    responseDiv.textContent = 'Loading...';
-    
-    try {
-      // For GET requests, try to call the endpoint directly
-      const url = endpoint.path.startsWith('http') ? endpoint.path : `https://${currentDomain}${endpoint.path}`;
-      const method = endpoint.method || 'GET';
-      
-      if (method === 'GET') {
-        const res = await fetch(url, {
-          method: 'GET',
-          headers: { 'Accept': 'application/json' }
-        });
-        
-        const contentType = res.headers.get('content-type') || '';
-        let data;
-        if (contentType.includes('json')) {
-          data = await res.json();
-          responseDiv.textContent = JSON.stringify(data, null, 2);
-        } else {
-          data = await res.text();
-          responseDiv.textContent = data.slice(0, 2000) + (data.length > 2000 ? '...' : '');
-        }
-        responseDiv.className = 'try-response success';
-      } else {
-        responseDiv.textContent = `${method} requests require data. Use the API or MCP tool:\n\ncurl -X POST ${API}/tools/worker \\\n  -H "Content-Type: application/json" \\\n  -d '{"pathId": "...", "data": {...}}'`;
-        responseDiv.className = 'try-response';
-      }
-    } catch (err) {
-      // CORS error - suggest using worker
-      responseDiv.textContent = `Direct call blocked (CORS). Use the unsurf API:\n\ncurl -X POST ${API}/tools/worker \\\n  -H "Content-Type: application/json" \\\n  -d '{\n    "pathId": "...",\n    "headers": { "Authorization": "Bearer ..." }\n  }'`;
-      responseDiv.className = 'try-response error';
-    } finally {
-      btn.classList.remove('loading');
-    }
-  }
-  
+
   function closeModal() {
     modalOverlay.classList.remove('open');
-    document.body.style.overflow = '';
     currentDomain = null;
   }
-  
-  // Search
-  let searchTimeout;
-  search.addEventListener('input', () => {
-    clearTimeout(searchTimeout);
-    searchTimeout = setTimeout(() => {
-      const q = search.value.trim().toLowerCase();
-      if (!q) {
-        renderGrid(allApis);
-        return;
-      }
-      const filtered = allApis.filter(a => 
-        a.domain.toLowerCase().includes(q) ||
-        (a.url || '').toLowerCase().includes(q)
-      );
-      renderGrid(filtered);
-    }, 150);
-  });
-  
-  // Keyboard shortcuts
-  document.addEventListener('keydown', (e) => {
-    if (e.key === '/' && document.activeElement !== search) {
-      e.preventDefault();
-      search.focus();
-    }
-    if (e.key === 'Escape') {
-      if (modalOverlay.classList.contains('open')) {
-        closeModal();
-      } else if (document.activeElement === search) {
-        search.blur();
-        search.value = '';
-        renderGrid(allApis);
-      }
-    }
-  });
-  
-  // Modal close handlers
-  modalClose.addEventListener('click', closeModal);
+
+  document.getElementById('modal-close').addEventListener('click', closeModal);
   modalOverlay.addEventListener('click', (e) => {
     if (e.target === modalOverlay) closeModal();
   });
-  
-  // Submit form
-  const submitForm = document.getElementById('submit-form');
-  const submitUrl = document.getElementById('submit-url');
-  const submitBtn = document.getElementById('submit-btn');
-  const submitStatus = document.getElementById('submit-status');
-  
-  submitForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const url = submitUrl.value.trim();
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeModal();
+  });
+
+  // Add API
+  addBtn.addEventListener('click', async () => {
+    const url = addUrl.value.trim();
     if (!url) return;
     
-    submitForm.classList.add('loading');
-    submitBtn.disabled = true;
-    submitStatus.className = 'submit-status';
-    submitStatus.textContent = '';
+    addBtn.disabled = true;
+    addBtn.textContent = 'Scouting...';
     
     try {
-      // First scout the URL
-      submitStatus.textContent = 'Scouting site...';
-      const scoutRes = await fetch(`${API}/tools/scout`, {
+      const res = await fetch(`${API}/tools/scout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url, task: 'explore the API' })
+        body: JSON.stringify({ url, task: 'discover API', publish: true, force: true })
       });
-      
-      if (!scoutRes.ok) {
-        const err = await scoutRes.text();
-        throw new Error(err || 'Scout failed');
-      }
-      
-      const scoutData = await scoutRes.json();
-      
-      if (!scoutData.endpoints?.length) {
-        throw new Error('No API endpoints found on this site');
-      }
-      
-      // Then publish to directory
-      submitStatus.textContent = 'Publishing to directory...';
-      const publishRes = await fetch(`${API}/d/publish`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          url: scoutData.url || url,
-          endpoints: scoutData.endpoints,
-          openapi: scoutData.openapi
-        })
-      });
-      
-      if (!publishRes.ok) {
-        const err = await publishRes.text();
-        throw new Error(err || 'Publish failed');
-      }
-      
-      submitStatus.className = 'submit-status success';
-      submitStatus.textContent = `✓ Published ${scoutData.endpoints.length} endpoints`;
-      submitUrl.value = '';
-      
-      // Refresh the list
-      setTimeout(() => location.reload(), 1500);
-      
-    } catch (err) {
-      submitStatus.className = 'submit-status error';
-      submitStatus.textContent = `✗ ${err.message}`;
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      addUrl.value = '';
+      load();
+    } catch (e) {
+      alert('Failed: ' + e.message);
     } finally {
-      submitForm.classList.remove('loading');
-      submitBtn.disabled = false;
+      addBtn.disabled = false;
+      addBtn.textContent = 'Add API';
     }
   });
-  
+
   // Init
-  bootSequence();
+  load();
 </script>
