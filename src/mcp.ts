@@ -82,14 +82,29 @@ export function createMcpServer(env: Env): McpServer {
 		{
 			title: "Scout",
 			description:
-				"Explore a website and capture every API call. Returns captured endpoints with inferred schemas and an OpenAPI spec.",
+				"Use when you need to discover what API endpoints a website uses internally. " +
+				"Opens the URL in a headless browser, captures all network traffic (XHR/fetch), " +
+				"groups requests by endpoint pattern, infers request/response schemas, and generates an OpenAPI spec. " +
+				"Returns a siteId (for publishing), pathId (for replaying via worker), endpoint count, and the full OpenAPI spec. " +
+				"Check gallery/directory first — the site may already be captured.",
 			inputSchema: {
-				url: z.string().url().describe("The URL to scout"),
-				task: z.string().describe("What to look for, e.g. 'find all API endpoints'"),
+				url: z
+					.string()
+					.url()
+					.describe(
+						"Full URL to scout, e.g. 'https://api.example.com' or 'https://app.example.com/dashboard'",
+					),
+				task: z
+					.string()
+					.describe(
+						"What to look for — guides which page to visit. E.g. 'find all API endpoints', 'discover the search API', 'map the user authentication flow'",
+					),
 				publish: z
 					.boolean()
 					.optional()
-					.describe("Auto-publish the scouted site to the directory after scouting"),
+					.describe(
+						"Set true to auto-publish results to the public API directory after scouting. Default: false (private).",
+					),
 			},
 		},
 		async ({ url, task, publish }) => {
@@ -112,14 +127,28 @@ export function createMcpServer(env: Env): McpServer {
 		{
 			title: "Worker",
 			description:
-				"Replay a scouted API path directly — no browser needed. Pass the pathId from a scout result. Include headers for authenticated endpoints.",
+				"Use to execute a previously scouted API endpoint directly — no browser needed. " +
+				"Looks up the pathId from a scout result, finds the matching endpoint, and replays the HTTP request. " +
+				"Returns the API response. Requires a pathId from a previous scout result. " +
+				"If it fails, use 'heal' to fix the broken path.",
 			inputSchema: {
-				pathId: z.string().describe("The path ID from a scout result"),
-				data: z.record(z.string(), z.unknown()).optional().describe("Data to pass to the endpoint"),
+				pathId: z
+					.string()
+					.describe(
+						"Path ID from a scout result (format: path_<timestamp>_<random>). Get this from the scout tool's output.",
+					),
+				data: z
+					.record(z.string(), z.unknown())
+					.optional()
+					.describe(
+						"Data for the request. Used as JSON body for POST/PUT/PATCH, or substituted into URL params for GET (e.g. {id: '123'} fills :id).",
+					),
 				headers: z
 					.record(z.string(), z.string())
 					.optional()
-					.describe("Custom headers (Authorization, Cookie, etc.) for authenticated endpoints"),
+					.describe(
+						"Custom HTTP headers. Use for authenticated endpoints: {'Authorization': 'Bearer <token>'} or {'Cookie': 'session=abc'}.",
+					),
 			},
 		},
 		async ({ pathId, data, headers }) => {
@@ -141,10 +170,19 @@ export function createMcpServer(env: Env): McpServer {
 		"heal",
 		{
 			title: "Heal",
-			description: "Fix a broken path. Retries with backoff, then re-scouts and patches if needed.",
+			description:
+				"Use when a worker call fails — fixes broken API paths automatically. " +
+				"First retries the endpoint with exponential backoff (handles transient errors). " +
+				"If retries fail, re-scouts the original URL to discover updated endpoints, then verifies the new path works. " +
+				"Returns whether healing succeeded and optionally a new pathId to use going forward.",
 			inputSchema: {
-				pathId: z.string().describe("The broken path ID"),
-				error: z.string().optional().describe("The error message that caused the break"),
+				pathId: z.string().describe("The broken path ID from a failed worker call"),
+				error: z
+					.string()
+					.optional()
+					.describe(
+						"The error message from the failed worker call — helps diagnose the issue (e.g. 'HTTP 404', 'endpoint returned HTML instead of JSON')",
+					),
 			},
 		},
 		async ({ pathId, error }) => {
@@ -167,13 +205,20 @@ export function createMcpServer(env: Env): McpServer {
 		{
 			title: "Gallery",
 			description:
-				"Search the API gallery for previously unsurfed sites. Check here before scouting — someone may have already captured the API you need.",
+				"Search the cache of previously scouted APIs before using scout. " +
+				"Returns matching sites with their domains, endpoint counts, and OpenAPI spec availability. " +
+				"Much faster than scouting — no browser needed. Use this first to avoid redundant scouting.",
 			inputSchema: {
 				query: z
 					.string()
 					.optional()
-					.describe("Search term (domain, endpoint path, or description)"),
-				domain: z.string().optional().describe("Exact domain to look up"),
+					.describe(
+						"Free-text search — matches domain names, endpoint paths, and descriptions. E.g. 'weather', 'pokemon', 'user authentication'",
+					),
+				domain: z
+					.string()
+					.optional()
+					.describe("Exact domain lookup, e.g. 'api.github.com'. More precise than query search."),
 			},
 		},
 		async ({ query, domain }) => {
@@ -198,7 +243,10 @@ export function createMcpServer(env: Env): McpServer {
 			{
 				title: "Directory",
 				description:
-					"Fingerprint-first API directory. Look up domains, browse capabilities, inspect endpoints, semantic search, or publish scouted sites. Check here before scouting — returns token-efficient fingerprints, not full specs.",
+					"The public API directory — look up domains, browse by capability, inspect endpoints, or search across all known APIs. " +
+					"Start with 'fingerprint' for a lightweight overview (~50 tokens), drill into 'capability' for endpoint lists, " +
+					"or use 'search' for semantic matching. Use 'publish' to add a scouted site. " +
+					"Token-efficient: returns compact fingerprints, not full specs.",
 				inputSchema: {
 					action: z
 						.enum(["fingerprint", "capability", "endpoint", "search", "publish"])
@@ -281,10 +329,17 @@ export function createMcpServer(env: Env): McpServer {
 			{
 				title: "Agent Scout",
 				description:
-					"LLM-guided exploration — an AI agent clicks, types, and navigates to find more API endpoints than a simple page load.",
+					"Use instead of regular scout when the site requires interaction — clicking buttons, filling forms, navigating menus — " +
+					"to trigger API calls that wouldn't appear from a simple page load. " +
+					"An AI agent controls the browser, performing actions you describe, while capturing all network traffic. " +
+					"More thorough but slower and more expensive than regular scout. Use regular scout first; escalate to agent-scout if it finds too few endpoints.",
 				inputSchema: {
 					url: z.string().url().describe("The URL to explore"),
-					task: z.string().describe("What to look for and do on the site"),
+					task: z
+						.string()
+						.describe(
+							"Instructions for the AI browser agent. Be specific: 'click the search button, type a query, submit the form' rather than just 'find search API'",
+						),
 				},
 			},
 			async ({ url, task }) => {
