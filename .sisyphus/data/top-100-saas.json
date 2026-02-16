@@ -1,688 +1,952 @@
-[
-	{
-		"name": "Slack",
-		"url": "https://slack.com",
-		"category": "communication",
-		"difficulty": "medium",
-		"description": "Team messaging and collaboration platform"
-	},
-	{
-		"name": "Notion",
-		"url": "https://www.notion.so",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "All-in-one workspace for notes, docs, and databases"
-	},
-	{
-		"name": "GitHub",
-		"url": "https://github.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Code hosting and collaboration platform"
-	},
-	{
-		"name": "Figma",
-		"url": "https://www.figma.com",
-		"category": "design",
-		"difficulty": "medium",
-		"description": "Collaborative design and prototyping tool"
-	},
-	{
-		"name": "Linear",
-		"url": "https://linear.app",
-		"category": "project-management",
-		"difficulty": "easy",
-		"description": "Issue tracking and project management for software teams"
-	},
-	{
-		"name": "Vercel",
-		"url": "https://vercel.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Frontend deployment and hosting platform"
-	},
-	{
-		"name": "Supabase",
-		"url": "https://supabase.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Open source Firebase alternative with PostgreSQL"
-	},
-	{
-		"name": "Stripe",
-		"url": "https://stripe.com",
-		"category": "finance",
-		"difficulty": "medium",
-		"description": "Payment processing platform for online businesses"
-	},
-	{
-		"name": "Twilio",
-		"url": "https://www.twilio.com",
-		"category": "communication",
-		"difficulty": "medium",
-		"description": "Cloud communications platform for SMS, voice, and video"
-	},
-	{
-		"name": "Shopify",
-		"url": "https://www.shopify.com",
-		"category": "ecommerce",
-		"difficulty": "medium",
-		"description": "E-commerce platform for online stores"
-	},
-	{
-		"name": "HubSpot",
-		"url": "https://www.hubspot.com",
-		"category": "marketing",
-		"difficulty": "medium",
-		"description": "CRM and marketing automation platform"
-	},
-	{
-		"name": "Mailchimp",
-		"url": "https://mailchimp.com",
-		"category": "marketing",
-		"difficulty": "easy",
-		"description": "Email marketing and automation platform"
-	},
-	{
-		"name": "Salesforce",
-		"url": "https://www.salesforce.com",
-		"category": "crm",
-		"difficulty": "hard",
-		"description": "Enterprise CRM and cloud computing platform"
-	},
-	{
-		"name": "Asana",
-		"url": "https://asana.com",
-		"category": "project-management",
-		"difficulty": "medium",
-		"description": "Project and task management for teams"
-	},
-	{
-		"name": "Trello",
-		"url": "https://trello.com",
-		"category": "project-management",
-		"difficulty": "easy",
-		"description": "Visual project management with Kanban boards"
-	},
-	{
-		"name": "Monday",
-		"url": "https://monday.com",
-		"category": "project-management",
-		"difficulty": "medium",
-		"description": "Work operating system for project management"
-	},
-	{
-		"name": "Jira",
-		"url": "https://www.atlassian.com/software/jira",
-		"category": "project-management",
-		"difficulty": "medium",
-		"description": "Issue and project tracking for software teams"
-	},
-	{
-		"name": "ClickUp",
-		"url": "https://clickup.com",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "All-in-one productivity and project management platform"
-	},
-	{
-		"name": "Airtable",
-		"url": "https://www.airtable.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Low-code platform for building collaborative apps"
-	},
-	{
-		"name": "Coda",
-		"url": "https://coda.io",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "Documents with spreadsheet and database features"
-	},
-	{
-		"name": "Zapier",
-		"url": "https://zapier.com",
-		"category": "automation",
-		"difficulty": "easy",
-		"description": "Workflow automation connecting web applications"
-	},
-	{
-		"name": "Make",
-		"url": "https://www.make.com",
-		"category": "automation",
-		"difficulty": "medium",
-		"description": "Visual platform for workflow automation"
-	},
-	{
-		"name": "Webflow",
-		"url": "https://webflow.com",
-		"category": "design",
-		"difficulty": "medium",
-		"description": "No-code website design and hosting platform"
-	},
-	{
-		"name": "Framer",
-		"url": "https://www.framer.com",
-		"category": "design",
-		"difficulty": "medium",
-		"description": "Interactive design and website builder"
-	},
-	{
-		"name": "Miro",
-		"url": "https://miro.com",
-		"category": "collaboration",
-		"difficulty": "medium",
-		"description": "Online collaborative whiteboard platform"
-	},
-	{
-		"name": "Loom",
-		"url": "https://www.loom.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Video messaging and screen recording tool"
-	},
-	{
-		"name": "Discord",
-		"url": "https://discord.com",
-		"category": "communication",
-		"difficulty": "hard",
-		"description": "Community chat and voice platform"
-	},
-	{
-		"name": "Zoom",
-		"url": "https://zoom.us",
-		"category": "communication",
-		"difficulty": "hard",
-		"description": "Video conferencing and online meetings"
-	},
-	{
-		"name": "Calendly",
-		"url": "https://calendly.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Scheduling automation and appointment booking"
-	},
-	{
-		"name": "Typeform",
-		"url": "https://www.typeform.com",
-		"category": "marketing",
-		"difficulty": "easy",
-		"description": "Conversational forms and surveys"
-	},
-	{
-		"name": "Intercom",
-		"url": "https://www.intercom.com",
-		"category": "customer-support",
-		"difficulty": "medium",
-		"description": "Customer messaging and engagement platform"
-	},
-	{
-		"name": "Zendesk",
-		"url": "https://www.zendesk.com",
-		"category": "customer-support",
-		"difficulty": "medium",
-		"description": "Customer service platform and support ticketing"
-	},
-	{
-		"name": "Freshdesk",
-		"url": "https://freshdesk.com",
-		"category": "customer-support",
-		"difficulty": "easy",
-		"description": "Cloud-based customer support software"
-	},
-	{
-		"name": "Mixpanel",
-		"url": "https://mixpanel.com",
-		"category": "analytics",
-		"difficulty": "easy",
-		"description": "Product analytics and user behavior tracking"
-	},
-	{
-		"name": "Amplitude",
-		"url": "https://amplitude.com",
-		"category": "analytics",
-		"difficulty": "medium",
-		"description": "Product intelligence and analytics platform"
-	},
-	{
-		"name": "Segment",
-		"url": "https://segment.com",
-		"category": "analytics",
-		"difficulty": "medium",
-		"description": "Customer data platform and event tracking"
-	},
-	{
-		"name": "Google Analytics",
-		"url": "https://analytics.google.com",
-		"category": "analytics",
-		"difficulty": "hard",
-		"description": "Web analytics and reporting platform"
-	},
-	{
-		"name": "Plausible",
-		"url": "https://plausible.io",
-		"category": "analytics",
-		"difficulty": "easy",
-		"description": "Privacy-friendly web analytics"
-	},
-	{
-		"name": "Sentry",
-		"url": "https://sentry.io",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Error tracking and performance monitoring"
-	},
-	{
-		"name": "Datadog",
-		"url": "https://www.datadoghq.com",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "Cloud monitoring and observability platform"
-	},
-	{
-		"name": "LogRocket",
-		"url": "https://logrocket.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Session replay and frontend performance monitoring"
-	},
-	{
-		"name": "GitLab",
-		"url": "https://gitlab.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "DevOps platform with Git repository management"
-	},
-	{
-		"name": "Bitbucket",
-		"url": "https://bitbucket.org",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Git code management and collaboration"
-	},
-	{
-		"name": "CircleCI",
-		"url": "https://circleci.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Continuous integration and delivery platform"
-	},
-	{
-		"name": "GitHub Actions",
-		"url": "https://github.com/features/actions",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "CI/CD automation integrated with GitHub"
-	},
-	{
-		"name": "Docker Hub",
-		"url": "https://hub.docker.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Container image registry and repository"
-	},
-	{
-		"name": "AWS Console",
-		"url": "https://aws.amazon.com/console",
-		"category": "cloud",
-		"difficulty": "hard",
-		"description": "Amazon Web Services management console"
-	},
-	{
-		"name": "Vercel Dashboard",
-		"url": "https://vercel.com/dashboard",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Deployment and project management dashboard"
-	},
-	{
-		"name": "Netlify",
-		"url": "https://www.netlify.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Web hosting and automation platform"
-	},
-	{
-		"name": "Railway",
-		"url": "https://railway.app",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Infrastructure platform for deploying applications"
-	},
-	{
-		"name": "Render",
-		"url": "https://render.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Cloud platform for hosting web services"
-	},
-	{
-		"name": "PlanetScale",
-		"url": "https://planetscale.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Serverless MySQL database platform"
-	},
-	{
-		"name": "MongoDB Atlas",
-		"url": "https://www.mongodb.com/cloud/atlas",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "Cloud-hosted MongoDB database service"
-	},
-	{
-		"name": "Firebase",
-		"url": "https://firebase.google.com",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "Google's mobile and web app development platform"
-	},
-	{
-		"name": "Auth0",
-		"url": "https://auth0.com",
-		"category": "security",
-		"difficulty": "medium",
-		"description": "Identity and access management platform"
-	},
-	{
-		"name": "Okta",
-		"url": "https://www.okta.com",
-		"category": "security",
-		"difficulty": "hard",
-		"description": "Enterprise identity and access management"
-	},
-	{
-		"name": "Cloudflare Dashboard",
-		"url": "https://dash.cloudflare.com",
-		"category": "cloud",
-		"difficulty": "medium",
-		"description": "CDN, security, and edge computing management"
-	},
-	{
-		"name": "SendGrid",
-		"url": "https://sendgrid.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Email delivery and marketing platform"
-	},
-	{
-		"name": "Postmark",
-		"url": "https://postmarkapp.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Transactional email service for applications"
-	},
-	{
-		"name": "Mailgun",
-		"url": "https://www.mailgun.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Email API service for developers"
-	},
-	{
-		"name": "Pusher",
-		"url": "https://pusher.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Real-time messaging and WebSocket infrastructure"
-	},
-	{
-		"name": "Ably",
-		"url": "https://ably.com",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Real-time messaging and data streaming platform"
-	},
-	{
-		"name": "Stream",
-		"url": "https://getstream.io",
-		"category": "communication",
-		"difficulty": "easy",
-		"description": "Activity feeds and chat API for applications"
-	},
-	{
-		"name": "Algolia",
-		"url": "https://www.algolia.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Search and discovery API platform"
-	},
-	{
-		"name": "Elastic",
-		"url": "https://www.elastic.co",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "Search, observability, and security platform"
-	},
-	{
-		"name": "Redis Cloud",
-		"url": "https://redis.com/redis-enterprise-cloud",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Managed Redis database service"
-	},
-	{
-		"name": "Upstash",
-		"url": "https://upstash.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Serverless Redis and Kafka for modern applications"
-	},
-	{
-		"name": "Confluent Cloud",
-		"url": "https://www.confluent.io/cloud",
-		"category": "devtools",
-		"difficulty": "medium",
-		"description": "Managed Apache Kafka service"
-	},
-	{
-		"name": "LaunchDarkly",
-		"url": "https://launchdarkly.com",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Feature flag management and experimentation"
-	},
-	{
-		"name": "Split",
-		"url": "https://www.split.io",
-		"category": "devtools",
-		"difficulty": "easy",
-		"description": "Feature delivery and experimentation platform"
-	},
-	{
-		"name": "Optimizely",
-		"url": "https://www.optimizely.com",
-		"category": "marketing",
-		"difficulty": "medium",
-		"description": "Digital experimentation and personalization"
-	},
-	{
-		"name": "PostHog",
-		"url": "https://posthog.com",
-		"category": "analytics",
-		"difficulty": "easy",
-		"description": "Open source product analytics platform"
-	},
-	{
-		"name": "Heap",
-		"url": "https://heap.io",
-		"category": "analytics",
-		"difficulty": "medium",
-		"description": "Digital insights and behavioral analytics"
-	},
-	{
-		"name": "Hotjar",
-		"url": "https://www.hotjar.com",
-		"category": "analytics",
-		"difficulty": "easy",
-		"description": "Behavior analytics and user feedback platform"
-	},
-	{
-		"name": "FullStory",
-		"url": "https://www.fullstory.com",
-		"category": "analytics",
-		"difficulty": "medium",
-		"description": "Digital experience analytics and session replay"
-	},
-	{
-		"name": "Drift",
-		"url": "https://www.drift.com",
-		"category": "marketing",
-		"difficulty": "medium",
-		"description": "Conversational marketing and sales platform"
-	},
-	{
-		"name": "Clearbit",
-		"url": "https://clearbit.com",
-		"category": "marketing",
-		"difficulty": "easy",
-		"description": "B2B data enrichment and intelligence"
-	},
-	{
-		"name": "Apollo",
-		"url": "https://www.apollo.io",
-		"category": "sales",
-		"difficulty": "medium",
-		"description": "Sales intelligence and engagement platform"
-	},
-	{
-		"name": "Outreach",
-		"url": "https://www.outreach.io",
-		"category": "sales",
-		"difficulty": "hard",
-		"description": "Sales execution platform for enterprise"
-	},
-	{
-		"name": "Salesloft",
-		"url": "https://salesloft.com",
-		"category": "sales",
-		"difficulty": "hard",
-		"description": "Revenue workflow platform for sales teams"
-	},
-	{
-		"name": "Pipedrive",
-		"url": "https://www.pipedrive.com",
-		"category": "crm",
-		"difficulty": "easy",
-		"description": "CRM and pipeline management for sales"
-	},
-	{
-		"name": "Close",
-		"url": "https://close.com",
-		"category": "crm",
-		"difficulty": "medium",
-		"description": "CRM with built-in calling and email"
-	},
-	{
-		"name": "Copper",
-		"url": "https://www.copper.com",
-		"category": "crm",
-		"difficulty": "easy",
-		"description": "CRM for Google Workspace users"
-	},
-	{
-		"name": "Notion Calendar",
-		"url": "https://www.notion.so/product/calendar",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Calendar and scheduling integrated with Notion"
-	},
-	{
-		"name": "Cron",
-		"url": "https://cron.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Modern calendar for professionals"
-	},
-	{
-		"name": "Todoist",
-		"url": "https://todoist.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Task management and to-do list app"
-	},
-	{
-		"name": "Things",
-		"url": "https://culturedcode.com/things",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Personal task management for macOS and iOS"
-	},
-	{
-		"name": "Remember The Milk",
-		"url": "https://www.rememberthemilk.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Online task management and to-do lists"
-	},
-	{
-		"name": "Evernote",
-		"url": "https://evernote.com",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "Note-taking and document organization"
-	},
-	{
-		"name": "OneNote",
-		"url": "https://www.onenote.com",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "Microsoft's note-taking application"
-	},
-	{
-		"name": "Google Docs",
-		"url": "https://docs.google.com",
-		"category": "productivity",
-		"difficulty": "hard",
-		"description": "Cloud-based document editing and collaboration"
-	},
-	{
-		"name": "Dropbox",
-		"url": "https://www.dropbox.com",
-		"category": "storage",
-		"difficulty": "medium",
-		"description": "Cloud file storage and sharing"
-	},
-	{
-		"name": "Box",
-		"url": "https://www.box.com",
-		"category": "storage",
-		"difficulty": "medium",
-		"description": "Enterprise cloud content management"
-	},
-	{
-		"name": "Google Drive",
-		"url": "https://drive.google.com",
-		"category": "storage",
-		"difficulty": "hard",
-		"description": "Cloud storage and file synchronization"
-	},
-	{
-		"name": "WeTransfer",
-		"url": "https://wetransfer.com",
-		"category": "storage",
-		"difficulty": "easy",
-		"description": "Simple file sharing and transfer"
-	},
-	{
-		"name": "DocuSign",
-		"url": "https://www.docusign.com",
-		"category": "productivity",
-		"difficulty": "medium",
-		"description": "Electronic signature and agreement cloud"
-	},
-	{
-		"name": "HelloSign",
-		"url": "https://www.hellosign.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Simple e-signature for documents"
-	},
-	{
-		"name": "PandaDoc",
-		"url": "https://www.pandadoc.com",
-		"category": "productivity",
-		"difficulty": "easy",
-		"description": "Document workflow and e-signature platform"
-	}
-]
+{
+	"_meta": {
+		"description": "Top 100 SaaS tools for unsurf directory scouting",
+		"total": 100,
+		"categories": 10,
+		"criteria": "Developer demand x scout friendliness x API richness",
+		"excludes_seed_apis": true,
+		"difficulty_tiers": {
+			"easy": "Public-facing pages with discoverable API calls, minimal auth required",
+			"medium": "SPA with background API calls, may need navigation or free trial",
+			"hard": "Heavy auth walls, bot protection, or complex multi-page SPAs"
+		},
+		"excluded_sites": [
+			"LinkedIn (heavy bot protection)",
+			"Facebook/Meta (aggressive anti-scraping)",
+			"Twitter/X (API locked down)",
+			"Google Workspace (complex OAuth)",
+			"Microsoft 365 (complex OAuth)",
+			"Salesforce (extreme auth complexity)"
+		]
+	},
+	"sites": [
+		{
+			"name": "HubSpot",
+			"url": "https://app.hubspot.com",
+			"apiUrl": "https://api.hubapi.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 1,
+			"description": "All-in-one CRM with marketing, sales, and service hubs",
+			"notes": "Rich REST API, free tier available, CRM + marketing + sales endpoints"
+		},
+		{
+			"name": "Pipedrive",
+			"url": "https://app.pipedrive.com",
+			"apiUrl": "https://api.pipedrive.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 2,
+			"description": "Sales-focused CRM with pipeline management",
+			"notes": "Well-documented REST API, deal/contact/activity endpoints"
+		},
+		{
+			"name": "Close",
+			"url": "https://app.close.com",
+			"apiUrl": "https://api.close.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 3,
+			"description": "Inside sales CRM with built-in calling and email",
+			"notes": "Clean REST API, lead/opportunity/task endpoints"
+		},
+		{
+			"name": "Freshsales",
+			"url": "https://freshsales.io",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "Freshworks CRM for sales teams with AI scoring",
+			"notes": "Part of Freshworks suite, REST API with contact and deal management"
+		},
+		{
+			"name": "Copper",
+			"url": "https://app.copper.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Google Workspace-native CRM",
+			"notes": "Tight Google integration, REST API for contacts/leads/opportunities"
+		},
+		{
+			"name": "Attio",
+			"url": "https://app.attio.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "Modern data-driven CRM with flexible data model",
+			"notes": "Clean modern SPA, REST API with customizable objects"
+		},
+		{
+			"name": "Insightly",
+			"url": "https://crm.insightly.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "CRM with project management and workflow automation",
+			"notes": "REST API for contacts, organizations, projects, tasks"
+		},
+		{
+			"name": "Agile CRM",
+			"url": "https://www.agilecrm.com",
+			"category": "crm",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "All-in-one CRM for small businesses with marketing automation",
+			"notes": "REST API, free tier for up to 10 users"
+		},
+		{
+			"name": "Zoho CRM",
+			"url": "https://www.zoho.com/crm",
+			"category": "crm",
+			"difficulty": "hard",
+			"priority": 9,
+			"description": "Feature-rich CRM with extensive customization",
+			"notes": "Complex OAuth, very broad API surface but heavy SPA"
+		},
+		{
+			"name": "Bitrix24",
+			"url": "https://www.bitrix24.com",
+			"category": "crm",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "All-in-one business suite with CRM, tasks, and communication",
+			"notes": "Heavy SPA with many modules, REST API available"
+		},
+		{
+			"name": "Linear",
+			"url": "https://linear.app",
+			"apiUrl": "https://api.linear.app",
+			"category": "project-management",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Modern issue tracking with keyboard-first design",
+			"notes": "Clean GraphQL API, well-structured SPA, popular with dev teams"
+		},
+		{
+			"name": "Notion",
+			"url": "https://www.notion.so",
+			"apiUrl": "https://api.notion.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 2,
+			"description": "All-in-one workspace for docs, wikis, and project management",
+			"notes": "REST API for pages/databases/blocks, massive user base"
+		},
+		{
+			"name": "Asana",
+			"url": "https://app.asana.com",
+			"apiUrl": "https://app.asana.com/api",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 3,
+			"description": "Work management platform for teams",
+			"notes": "REST API for tasks, projects, workspaces, portfolios"
+		},
+		{
+			"name": "ClickUp",
+			"url": "https://app.clickup.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "All-in-one productivity and project management platform",
+			"notes": "REST API v2, spaces/folders/lists/tasks hierarchy"
+		},
+		{
+			"name": "Monday.com",
+			"url": "https://monday.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Work OS for teams with customizable workflows",
+			"notes": "GraphQL API, boards/items/columns model"
+		},
+		{
+			"name": "Height",
+			"url": "https://height.app",
+			"category": "project-management",
+			"difficulty": "easy",
+			"priority": 6,
+			"description": "Autonomous project management with AI features",
+			"notes": "Clean modern SPA, REST API for tasks and lists"
+		},
+		{
+			"name": "Basecamp",
+			"url": "https://basecamp.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Project management and team communication platform",
+			"notes": "REST API, to-dos/messages/schedules/docs endpoints"
+		},
+		{
+			"name": "Wrike",
+			"url": "https://www.wrike.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Collaborative work management platform",
+			"notes": "REST API v4, folders/tasks/workflows/timelog endpoints"
+		},
+		{
+			"name": "Teamwork",
+			"url": "https://www.teamwork.com",
+			"category": "project-management",
+			"difficulty": "medium",
+			"priority": 9,
+			"description": "Project management for client work and agencies",
+			"notes": "REST API, projects/tasks/time/invoices endpoints"
+		},
+		{
+			"name": "Jira",
+			"url": "https://www.atlassian.com/software/jira",
+			"category": "project-management",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Enterprise issue and project tracking by Atlassian",
+			"notes": "Complex SPA, REST + GraphQL APIs, heavy auth flow"
+		},
+		{
+			"name": "Twilio",
+			"url": "https://www.twilio.com",
+			"apiUrl": "https://api.twilio.com",
+			"category": "communication",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Cloud communications platform for SMS, voice, and video",
+			"notes": "API-first platform, extensive REST API documentation"
+		},
+		{
+			"name": "Resend",
+			"url": "https://resend.com",
+			"apiUrl": "https://api.resend.com",
+			"category": "communication",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "Modern email API built for developers",
+			"notes": "Clean REST API, simple auth, React Email integration"
+		},
+		{
+			"name": "Postmark",
+			"url": "https://postmarkapp.com",
+			"apiUrl": "https://api.postmarkapp.com",
+			"category": "communication",
+			"difficulty": "easy",
+			"priority": 3,
+			"description": "Transactional email service with high deliverability",
+			"notes": "Simple REST API, email/bounce/stats endpoints"
+		},
+		{
+			"name": "SendGrid",
+			"url": "https://app.sendgrid.com",
+			"apiUrl": "https://api.sendgrid.com",
+			"category": "communication",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "Email delivery and marketing platform by Twilio",
+			"notes": "REST API v3, mail/contacts/campaigns/stats endpoints"
+		},
+		{
+			"name": "Mailchimp",
+			"url": "https://mailchimp.com",
+			"category": "communication",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Email marketing and audience management platform",
+			"notes": "REST API, lists/campaigns/automations/reports endpoints"
+		},
+		{
+			"name": "Intercom",
+			"url": "https://app.intercom.com",
+			"category": "communication",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "Customer messaging platform with bots and live chat",
+			"notes": "REST API, contacts/conversations/messages/articles endpoints"
+		},
+		{
+			"name": "Crisp",
+			"url": "https://crisp.chat",
+			"category": "communication",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Business messaging platform with live chat and chatbots",
+			"notes": "REST API, conversations/contacts/campaigns endpoints"
+		},
+		{
+			"name": "Zendesk",
+			"url": "https://www.zendesk.com",
+			"category": "communication",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Customer service and engagement platform",
+			"notes": "REST API, tickets/users/organizations/search endpoints"
+		},
+		{
+			"name": "Slack",
+			"url": "https://slack.com",
+			"apiUrl": "https://slack.com/api",
+			"category": "communication",
+			"difficulty": "hard",
+			"priority": 9,
+			"description": "Team messaging and collaboration platform",
+			"notes": "Complex SPA, rich Web API but heavy auth requirements"
+		},
+		{
+			"name": "Discord",
+			"url": "https://discord.com",
+			"apiUrl": "https://discord.com/api",
+			"category": "communication",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Community platform for messaging, voice, and video",
+			"notes": "Bot protection, REST API for guilds/channels/messages"
+		},
+		{
+			"name": "PostHog",
+			"url": "https://app.posthog.com",
+			"category": "analytics",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Open-source product analytics with session replay and feature flags",
+			"notes": "Open-source, REST API, events/persons/insights/feature-flags endpoints"
+		},
+		{
+			"name": "Plausible",
+			"url": "https://plausible.io",
+			"category": "analytics",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "Privacy-focused lightweight web analytics",
+			"notes": "Simple API, stats/breakdown endpoints, no cookies"
+		},
+		{
+			"name": "Mixpanel",
+			"url": "https://mixpanel.com",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 3,
+			"description": "Product analytics for tracking user behavior and funnels",
+			"notes": "REST API, events/funnels/retention/cohorts endpoints"
+		},
+		{
+			"name": "Amplitude",
+			"url": "https://amplitude.com",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "Digital analytics platform for product and growth teams",
+			"notes": "REST API, events/cohorts/dashboards endpoints"
+		},
+		{
+			"name": "Fathom",
+			"url": "https://usefathom.com",
+			"category": "analytics",
+			"difficulty": "easy",
+			"priority": 5,
+			"description": "Simple privacy-first website analytics",
+			"notes": "Clean REST API, sites/aggregations endpoints"
+		},
+		{
+			"name": "Heap",
+			"url": "https://heap.io",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "Digital insights platform with auto-capture analytics",
+			"notes": "REST API, events/users/segments endpoints"
+		},
+		{
+			"name": "Segment",
+			"url": "https://segment.com",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Customer data platform for collecting and routing analytics",
+			"notes": "REST API, sources/destinations/tracking endpoints"
+		},
+		{
+			"name": "Hotjar",
+			"url": "https://www.hotjar.com",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Heatmaps, session recordings, and user feedback tools",
+			"notes": "SPA dashboard, REST API for sites/heatmaps/recordings"
+		},
+		{
+			"name": "FullStory",
+			"url": "https://app.fullstory.com",
+			"category": "analytics",
+			"difficulty": "medium",
+			"priority": 9,
+			"description": "Digital experience intelligence with session replay",
+			"notes": "REST API, sessions/events/segments endpoints"
+		},
+		{
+			"name": "Datadog",
+			"url": "https://app.datadoghq.com",
+			"category": "analytics",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Infrastructure monitoring and APM platform",
+			"notes": "Extensive REST API but complex SPA, metrics/logs/traces/monitors endpoints"
+		},
+		{
+			"name": "Supabase",
+			"url": "https://supabase.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Open-source Firebase alternative with Postgres, auth, and storage",
+			"notes": "REST + GraphQL APIs, clean dashboard SPA, very popular with developers"
+		},
+		{
+			"name": "Vercel",
+			"url": "https://vercel.com",
+			"apiUrl": "https://api.vercel.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "Frontend deployment and serverless functions platform",
+			"notes": "REST API, projects/deployments/domains/env endpoints"
+		},
+		{
+			"name": "Neon",
+			"url": "https://neon.tech",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 3,
+			"description": "Serverless Postgres with branching and auto-scaling",
+			"notes": "REST API, projects/branches/endpoints/databases management"
+		},
+		{
+			"name": "Upstash",
+			"url": "https://upstash.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 4,
+			"description": "Serverless Redis and Kafka for modern applications",
+			"notes": "REST API for database management, clean dashboard"
+		},
+		{
+			"name": "Railway",
+			"url": "https://railway.app",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 5,
+			"description": "Infrastructure platform for deploying apps and databases",
+			"notes": "GraphQL API, projects/services/deployments endpoints"
+		},
+		{
+			"name": "Netlify",
+			"url": "https://app.netlify.com",
+			"apiUrl": "https://api.netlify.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 6,
+			"description": "Web hosting and automation platform for modern web projects",
+			"notes": "REST API, sites/deploys/forms/functions endpoints"
+		},
+		{
+			"name": "Render",
+			"url": "https://render.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 7,
+			"description": "Cloud platform for hosting web services and databases",
+			"notes": "REST API, services/deploys/disks endpoints"
+		},
+		{
+			"name": "Fly.io",
+			"url": "https://fly.io",
+			"category": "devtools",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Global application deployment platform with edge computing",
+			"notes": "GraphQL API, apps/machines/volumes endpoints"
+		},
+		{
+			"name": "Deno Deploy",
+			"url": "https://dash.deno.com",
+			"category": "devtools",
+			"difficulty": "easy",
+			"priority": 9,
+			"description": "Serverless edge runtime platform for Deno applications",
+			"notes": "REST API for projects and deployments, clean dashboard"
+		},
+		{
+			"name": "PlanetScale",
+			"url": "https://planetscale.com",
+			"category": "devtools",
+			"difficulty": "medium",
+			"priority": 10,
+			"description": "Serverless MySQL platform with branching workflow",
+			"notes": "REST API, databases/branches/deploy-requests endpoints"
+		},
+		{
+			"name": "Buffer",
+			"url": "https://buffer.com",
+			"apiUrl": "https://api.bufferapp.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 1,
+			"description": "Social media scheduling and publishing platform",
+			"notes": "REST API, profiles/updates/analytics endpoints"
+		},
+		{
+			"name": "MailerLite",
+			"url": "https://app.mailerlite.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 2,
+			"description": "Email marketing platform with automation and landing pages",
+			"notes": "REST API, subscribers/campaigns/automations/forms endpoints"
+		},
+		{
+			"name": "ConvertKit",
+			"url": "https://app.convertkit.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 3,
+			"description": "Email marketing platform built for creators",
+			"notes": "REST API v4, subscribers/broadcasts/sequences/tags endpoints"
+		},
+		{
+			"name": "Drip",
+			"url": "https://www.drip.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "E-commerce email marketing and automation platform",
+			"notes": "REST API, subscribers/campaigns/workflows/events endpoints"
+		},
+		{
+			"name": "ActiveCampaign",
+			"url": "https://www.activecampaign.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Marketing automation and CRM platform",
+			"notes": "REST API v3, contacts/deals/automations/campaigns endpoints"
+		},
+		{
+			"name": "Unbounce",
+			"url": "https://app.unbounce.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "AI-powered landing page builder for marketers",
+			"notes": "REST API, pages/leads/page-groups endpoints"
+		},
+		{
+			"name": "Hootsuite",
+			"url": "https://hootsuite.com",
+			"category": "marketing",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Social media management and scheduling platform",
+			"notes": "REST API, messages/social-profiles/media endpoints"
+		},
+		{
+			"name": "Ahrefs",
+			"url": "https://app.ahrefs.com",
+			"category": "marketing",
+			"difficulty": "hard",
+			"priority": 8,
+			"description": "SEO toolset for backlinks, keywords, and site audits",
+			"notes": "API available but complex SPA, heavy data visualization"
+		},
+		{
+			"name": "SEMrush",
+			"url": "https://www.semrush.com",
+			"category": "marketing",
+			"difficulty": "hard",
+			"priority": 9,
+			"description": "All-in-one SEO, content, and competitive analysis toolkit",
+			"notes": "API available but complex auth and anti-bot measures"
+		},
+		{
+			"name": "Canva",
+			"url": "https://www.canva.com",
+			"category": "marketing",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Visual design platform for graphics, presentations, and social media",
+			"notes": "Very complex SPA with canvas rendering, Connect API available"
+		},
+		{
+			"name": "Gumroad",
+			"url": "https://gumroad.com",
+			"apiUrl": "https://api.gumroad.com",
+			"category": "ecommerce",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Simple platform for selling digital products",
+			"notes": "Clean REST API, products/sales/subscribers endpoints"
+		},
+		{
+			"name": "LemonSqueezy",
+			"url": "https://app.lemonsqueezy.com",
+			"apiUrl": "https://api.lemonsqueezy.com",
+			"category": "ecommerce",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "All-in-one payments and subscriptions for digital products",
+			"notes": "Modern REST API, products/orders/subscriptions/checkouts endpoints"
+		},
+		{
+			"name": "Snipcart",
+			"url": "https://app.snipcart.com",
+			"apiUrl": "https://app.snipcart.com/api",
+			"category": "ecommerce",
+			"difficulty": "easy",
+			"priority": 3,
+			"description": "Developer-first shopping cart for any website",
+			"notes": "REST API, orders/products/customers/discounts endpoints"
+		},
+		{
+			"name": "Medusa",
+			"url": "https://medusajs.com",
+			"category": "ecommerce",
+			"difficulty": "easy",
+			"priority": 4,
+			"description": "Open-source headless commerce engine",
+			"notes": "REST + JS SDK, products/orders/carts/customers endpoints"
+		},
+		{
+			"name": "Shopify",
+			"url": "https://admin.shopify.com",
+			"category": "ecommerce",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Leading e-commerce platform for online stores",
+			"notes": "REST + GraphQL APIs, products/orders/customers/inventory endpoints"
+		},
+		{
+			"name": "BigCommerce",
+			"url": "https://www.bigcommerce.com",
+			"category": "ecommerce",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "E-commerce platform for growing businesses",
+			"notes": "REST API v3, catalog/orders/customers/storefront endpoints"
+		},
+		{
+			"name": "Paddle",
+			"url": "https://vendors.paddle.com",
+			"category": "ecommerce",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Complete payments and subscription billing for SaaS",
+			"notes": "REST API, products/prices/transactions/subscriptions endpoints"
+		},
+		{
+			"name": "Chargebee",
+			"url": "https://app.chargebee.com",
+			"category": "ecommerce",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Subscription billing and revenue management platform",
+			"notes": "REST API, subscriptions/customers/invoices/plans endpoints"
+		},
+		{
+			"name": "Square",
+			"url": "https://squareup.com",
+			"category": "ecommerce",
+			"difficulty": "medium",
+			"priority": 9,
+			"description": "Payment processing and point-of-sale commerce platform",
+			"notes": "REST API, payments/orders/catalog/customers endpoints"
+		},
+		{
+			"name": "Stripe Dashboard",
+			"url": "https://dashboard.stripe.com",
+			"apiUrl": "https://api.stripe.com",
+			"category": "ecommerce",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Payment infrastructure platform for the internet",
+			"notes": "Extensive REST API but dashboard has heavy auth, charges/customers/subscriptions endpoints"
+		},
+		{
+			"name": "Cloudinary",
+			"url": "https://cloudinary.com",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "Cloud-based media management and optimization platform",
+			"notes": "REST API, upload/transform/admin endpoints, generous free tier"
+		},
+		{
+			"name": "Uploadcare",
+			"url": "https://uploadcare.com",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "File uploading, processing, and CDN delivery platform",
+			"notes": "REST API, files/groups/webhooks endpoints"
+		},
+		{
+			"name": "ImageKit",
+			"url": "https://imagekit.io",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 3,
+			"description": "Real-time image and video optimization and CDN",
+			"notes": "REST API, upload/media-library/transformations endpoints"
+		},
+		{
+			"name": "Imgix",
+			"url": "https://dashboard.imgix.com",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 4,
+			"description": "Real-time image processing and CDN platform",
+			"notes": "REST API, sources/assets endpoints, URL-based transforms"
+		},
+		{
+			"name": "Filestack",
+			"url": "https://www.filestack.com",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 5,
+			"description": "File upload, transformation, and delivery API",
+			"notes": "REST API, upload/process/deliver endpoints"
+		},
+		{
+			"name": "Sanity",
+			"url": "https://www.sanity.io",
+			"category": "storage",
+			"difficulty": "easy",
+			"priority": 6,
+			"description": "Headless CMS with structured content and asset management",
+			"notes": "REST + GROQ APIs, documents/assets/datasets endpoints"
+		},
+		{
+			"name": "Dropbox",
+			"url": "https://www.dropbox.com",
+			"apiUrl": "https://api.dropboxapi.com",
+			"category": "storage",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Cloud file storage and synchronization platform",
+			"notes": "REST API v2, files/sharing/users endpoints, OAuth required"
+		},
+		{
+			"name": "Box",
+			"url": "https://app.box.com",
+			"apiUrl": "https://api.box.com",
+			"category": "storage",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "Enterprise cloud content management and collaboration",
+			"notes": "REST API, files/folders/users/collaborations endpoints"
+		},
+		{
+			"name": "Wasabi",
+			"url": "https://console.wasabi.com",
+			"category": "storage",
+			"difficulty": "medium",
+			"priority": 9,
+			"description": "S3-compatible hot cloud storage at lower cost",
+			"notes": "S3-compatible API, buckets/objects management"
+		},
+		{
+			"name": "Backblaze",
+			"url": "https://www.backblaze.com",
+			"category": "storage",
+			"difficulty": "medium",
+			"priority": 10,
+			"description": "Cloud backup and B2 object storage platform",
+			"notes": "B2 REST API, buckets/files/keys endpoints"
+		},
+		{
+			"name": "Deel",
+			"url": "https://app.deel.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 1,
+			"description": "Global payroll and compliance platform for remote teams",
+			"notes": "REST API, contracts/invoices/people endpoints"
+		},
+		{
+			"name": "Remote",
+			"url": "https://remote.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 2,
+			"description": "Global HR platform for distributed teams",
+			"notes": "REST API, employments/countries/incentives endpoints"
+		},
+		{
+			"name": "BambooHR",
+			"url": "https://www.bamboohr.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 3,
+			"description": "HR software for small and medium businesses",
+			"notes": "REST API, employees/time-off/reports endpoints"
+		},
+		{
+			"name": "Lattice",
+			"url": "https://lattice.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 4,
+			"description": "People management platform for performance and engagement",
+			"notes": "REST API, users/reviews/goals/feedback endpoints"
+		},
+		{
+			"name": "15Five",
+			"url": "https://app.15five.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 5,
+			"description": "Performance management and employee engagement platform",
+			"notes": "REST API, check-ins/objectives/reviews endpoints"
+		},
+		{
+			"name": "Bob",
+			"url": "https://app.hibob.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 6,
+			"description": "Modern HR platform for mid-size companies",
+			"notes": "REST API, people/time-off/payroll/reports endpoints"
+		},
+		{
+			"name": "Gusto",
+			"url": "https://app.gusto.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 7,
+			"description": "Payroll, benefits, and HR platform for small businesses",
+			"notes": "REST API, employees/payrolls/benefits/companies endpoints"
+		},
+		{
+			"name": "Personio",
+			"url": "https://app.personio.com",
+			"category": "hr",
+			"difficulty": "medium",
+			"priority": 8,
+			"description": "All-in-one HR management platform for SMBs",
+			"notes": "REST API, employees/absences/attendances endpoints"
+		},
+		{
+			"name": "Rippling",
+			"url": "https://app.rippling.com",
+			"category": "hr",
+			"difficulty": "hard",
+			"priority": 9,
+			"description": "Unified workforce management for HR, IT, and finance",
+			"notes": "Complex SPA, REST API for employees/payroll/devices"
+		},
+		{
+			"name": "Workday",
+			"url": "https://www.workday.com",
+			"category": "hr",
+			"difficulty": "hard",
+			"priority": 10,
+			"description": "Enterprise HR and financial management platform",
+			"notes": "Very complex enterprise SPA, SOAP + REST APIs"
+		},
+		{
+			"name": "OpenAI",
+			"url": "https://platform.openai.com",
+			"apiUrl": "https://api.openai.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 1,
+			"description": "AI platform for GPT models, DALL-E, and Whisper",
+			"notes": "REST API, chat/completions/embeddings/images/audio endpoints"
+		},
+		{
+			"name": "Anthropic",
+			"url": "https://console.anthropic.com",
+			"apiUrl": "https://api.anthropic.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 2,
+			"description": "AI safety company building Claude language models",
+			"notes": "REST API, messages/completions endpoints, clean dashboard"
+		},
+		{
+			"name": "Replicate",
+			"url": "https://replicate.com",
+			"apiUrl": "https://api.replicate.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 3,
+			"description": "Platform for running open-source ML models via API",
+			"notes": "REST API, predictions/models/deployments endpoints"
+		},
+		{
+			"name": "Hugging Face",
+			"url": "https://huggingface.co",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 4,
+			"description": "ML model hub with inference API and model hosting",
+			"notes": "REST API, models/datasets/spaces/inference endpoints"
+		},
+		{
+			"name": "ElevenLabs",
+			"url": "https://elevenlabs.io",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 5,
+			"description": "AI voice synthesis and cloning platform",
+			"notes": "REST API, text-to-speech/voices/history endpoints"
+		},
+		{
+			"name": "Deepgram",
+			"url": "https://console.deepgram.com",
+			"apiUrl": "https://api.deepgram.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 6,
+			"description": "AI speech-to-text and audio intelligence platform",
+			"notes": "REST + WebSocket APIs, transcription/analytics endpoints"
+		},
+		{
+			"name": "AssemblyAI",
+			"url": "https://www.assemblyai.com",
+			"apiUrl": "https://api.assemblyai.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 7,
+			"description": "AI audio transcription and understanding platform",
+			"notes": "REST API, transcripts/realtime/lemur endpoints"
+		},
+		{
+			"name": "Cohere",
+			"url": "https://dashboard.cohere.com",
+			"apiUrl": "https://api.cohere.com",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 8,
+			"description": "NLP platform for text generation, classification, and embeddings",
+			"notes": "REST API, generate/embed/classify/rerank endpoints"
+		},
+		{
+			"name": "Stability AI",
+			"url": "https://platform.stability.ai",
+			"apiUrl": "https://api.stability.ai",
+			"category": "ai",
+			"difficulty": "easy",
+			"priority": 9,
+			"description": "AI image generation platform powering Stable Diffusion",
+			"notes": "REST API, generation/upscale/edit endpoints"
+		},
+		{
+			"name": "Runway",
+			"url": "https://app.runwayml.com",
+			"category": "ai",
+			"difficulty": "medium",
+			"priority": 10,
+			"description": "AI-powered video generation and editing platform",
+			"notes": "Complex SPA with heavy media processing, API for video generation"
+		}
+	]
+}
