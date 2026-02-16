@@ -1,0 +1,139 @@
+---
+import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
+
+const frontmatter = {
+  title: 'API Directory',
+  description: 'Browse and search the community directory of typed APIs',
+};
+---
+
+<StarlightPage frontmatter={frontmatter}>
+  <div class="directory-page">
+    <p class="tagline">Community directory of APIs for sites that never had them</p>
+    
+    <div class="stats-row">
+      <div class="stat-item"><span class="stat-num" id="stat-apis">—</span><span class="stat-lbl">Sites</span></div>
+      <div class="stat-item"><span class="stat-num" id="stat-endpoints">—</span><span class="stat-lbl">Endpoints</span></div>
+    </div>
+
+    <form class="search-form" id="search-form">
+      <input type="text" id="search-input" placeholder="Search APIs..." />
+      <button type="submit">Search</button>
+    </form>
+    
+    <p class="legend">
+      <span class="tag-public">🔓 Public</span> Works standalone · 
+      <span class="tag-auth">🔐 Auth</span> Pair with <a href="https://inbox.dog">inbox.dog</a>
+    </p>
+
+    <div id="results"></div>
+
+    <div class="contribute-box">
+      <h3>Contribute an API</h3>
+      <code>npx unsurf scout https://example.com --publish</code>
+    </div>
+  </div>
+
+  <div class="modal-bg" id="modal">
+    <div class="modal-box">
+      <div class="modal-head"><h3 id="modal-title">—</h3><button id="modal-close">×</button></div>
+      <div id="modal-body"></div>
+    </div>
+  </div>
+</StarlightPage>
+
+<style>
+  .directory-page { max-width: 900px; margin: 0 auto; }
+  .tagline { text-align: center; color: var(--sl-color-gray-3); margin-bottom: 1.5rem; }
+  .stats-row { display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; }
+  .stat-item { text-align: center; }
+  .stat-num { display: block; font-size: 2rem; font-weight: 700; color: var(--sl-color-accent); }
+  .stat-lbl { font-size: 0.875rem; color: var(--sl-color-gray-3); }
+  .search-form { display: flex; gap: 0.5rem; max-width: 400px; margin: 0 auto 1rem; }
+  .search-form input { flex: 1; padding: 0.5rem; border: 1px solid var(--sl-color-gray-5); border-radius: 4px; background: var(--sl-color-bg); color: var(--sl-color-text); }
+  .search-form button { padding: 0.5rem 1rem; background: var(--sl-color-accent); color: var(--sl-color-black); border: none; border-radius: 4px; cursor: pointer; }
+  .legend { text-align: center; font-size: 0.875rem; color: var(--sl-color-gray-3); margin-bottom: 2rem; }
+  .tag-public { color: #22c55e; }
+  .tag-auth { color: #f59e0b; }
+  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
+  .api-card { background: var(--sl-color-bg-nav); border: 1px solid var(--sl-color-gray-5); border-radius: 8px; padding: 1rem; cursor: pointer; }
+  .api-card:hover { border-color: var(--sl-color-accent); }
+  .api-name { font-weight: 600; margin-bottom: 0.25rem; }
+  .api-info { font-size: 0.8rem; color: var(--sl-color-gray-3); }
+  .contribute-box { margin-top: 2rem; padding: 1rem; background: var(--sl-color-bg-nav); border-radius: 8px; text-align: center; }
+  .contribute-box h3 { margin: 0 0 0.5rem; }
+  .contribute-box code { font-size: 0.875rem; }
+  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-bg.active { display: flex; }
+  .modal-box { background: var(--sl-color-bg); border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow: auto; padding: 1rem; }
+  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
+  .modal-head h3 { margin: 0; }
+  .modal-head button { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--sl-color-gray-3); }
+  .ep-list { list-style: none; padding: 0; }
+  .ep-item { padding: 0.5rem 0; border-bottom: 1px solid var(--sl-color-gray-6); font-family: var(--sl-font-mono); font-size: 0.875rem; }
+</style>
+
+<script>
+  const API = 'https://unsurf-api.coey.dev';
+  
+  async function load() {
+    try {
+      const r = await fetch(API + '/d/?limit=50');
+      const d = await r.json();
+      render(d.fingerprints || []);
+    } catch(e) {
+      document.getElementById('results').innerHTML = '<p>Failed to load</p>';
+    }
+  }
+  
+  function render(fps) {
+    document.getElementById('stat-apis').textContent = fps.length;
+    document.getElementById('stat-endpoints').textContent = fps.reduce((s,f) => s + (f.endpoints||0), 0);
+    if (!fps.length) {
+      document.getElementById('results').innerHTML = '<p>No APIs yet</p>';
+      return;
+    }
+    document.getElementById('results').innerHTML = '<div class="results-grid">' + fps.map(f => 
+      '<div class="api-card" data-d="' + f.domain + '"><div class="api-name">' + f.domain + '</div><div class="api-info">' + f.endpoints + ' endpoints</div></div>'
+    ).join('') + '</div>';
+    document.querySelectorAll('.api-card').forEach(c => c.addEventListener('click', () => showModal(c.dataset.d)));
+  }
+  
+  async function showModal(domain) {
+    const m = document.getElementById('modal');
+    document.getElementById('modal-title').textContent = domain;
+    document.getElementById('modal-body').innerHTML = 'Loading...';
+    m.classList.add('active');
+    try {
+      const r = await fetch(API + '/d/' + domain);
+      const f = await r.json();
+      let eps = [];
+      for (const c of (f.capabilities || [])) {
+        try { const cr = await fetch(API + '/d/' + domain + '/' + c); const s = await cr.json(); eps = eps.concat(s.endpoints || []); } catch(e) {}
+      }
+      document.getElementById('modal-body').innerHTML = 
+        '<p><a href="' + f.url + '" target="_blank">' + f.url + '</a></p>' +
+        '<ul class="ep-list">' + eps.map(e => '<li class="ep-item">' + e.method + ' ' + e.path + '</li>').join('') + '</ul>' +
+        '<p><a href="' + API + '/d/' + domain + '/spec" target="_blank">Download OpenAPI →</a></p>';
+    } catch(e) { document.getElementById('modal-body').innerHTML = 'Error'; }
+  }
+  
+  document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal').classList.remove('active'));
+  document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') e.target.classList.remove('active'); });
+  document.getElementById('search-form').addEventListener('submit', async e => {
+    e.preventDefault();
+    const q = document.getElementById('search-input').value.trim();
+    if (!q) { load(); return; }
+    try {
+      const r = await fetch(API + '/search?q=' + encodeURIComponent(q));
+      const d = await r.json();
+      if (d.results?.length) {
+        const doms = [...new Set(d.results.map(x => x.domain))];
+        const fps = (await Promise.all(doms.slice(0,10).map(async x => { try { return await (await fetch(API + '/d/' + x)).json(); } catch(e) { return null; } }))).filter(Boolean);
+        render(fps);
+      } else { render([]); }
+    } catch(e) { render([]); }
+  });
+  
+  load();
+</script>

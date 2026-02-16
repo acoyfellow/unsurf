@@ -24,6 +24,12 @@ export default defineConfig({
       },
       sidebar: [
         {
+          label: 'Directory',
+          items: [
+            { label: 'Browse APIs', link: '/directory' },
+          ],
+        },
+        {
           label: 'Start',
           items: [
             { label: 'Introduction', slug: '' },
