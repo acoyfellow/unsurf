@@ -58,13 +58,24 @@ function buildLayer(env: Env) {
 	const storeService = makeD1Store(createDb(env.DB), env.STORAGE);
 	const kvCache = env.CACHE ? makeKvCache(env.CACHE) : undefined;
 
-	return Layer.mergeAll(
+	const baseLayers = [
 		StoreD1Live(env.DB, env.STORAGE),
 		BrowserCfLive(env.BROWSER),
 		Layer.succeed(SchemaInferrer, makeSchemaInferrer()),
 		Layer.succeed(OpenApiGenerator, makeOpenApiGenerator()),
 		Layer.succeed(Gallery, makeD1Gallery(env.DB, storeService, kvCache)),
-	);
+	] as const;
+
+	// Include Directory service when VECTORS + AI bindings are available
+	// so that scout with publish:true auto-publishes to the directory
+	if (env.VECTORS && env.AI) {
+		return Layer.mergeAll(
+			...baseLayers,
+			Layer.succeed(Directory, makeD1Directory(env.DB, env.STORAGE, env.VECTORS, env.AI)),
+		);
+	}
+
+	return Layer.mergeAll(...baseLayers);
 }
 
 // ==================== Gallery Helpers ====================

@@ -404,6 +404,14 @@ export function makeD1Directory(
 					yield* tryD1(() => vectors.insert(vectorsToInsert));
 				}
 
+				// Copy the OpenAPI spec from scout storage to directory storage
+				const scoutSpecKey = `specs/${siteId}/openapi.json`;
+				const specObj = yield* tryD1(() => storage.get(scoutSpecKey));
+				if (specObj) {
+					const specBody = yield* tryD1(() => specObj.arrayBuffer());
+					yield* tryD1(() => storage.put(specKey, specBody));
+				}
+
 				return {
 					domain,
 					url,
