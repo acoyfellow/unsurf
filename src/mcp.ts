@@ -112,15 +112,19 @@ export function createMcpServer(env: Env): McpServer {
 		{
 			title: "Worker",
 			description:
-				"Replay a scouted API path directly — no browser needed. Pass the pathId from a scout result.",
+				"Replay a scouted API path directly — no browser needed. Pass the pathId from a scout result. Include headers for authenticated endpoints.",
 			inputSchema: {
 				pathId: z.string().describe("The path ID from a scout result"),
 				data: z.record(z.string(), z.unknown()).optional().describe("Data to pass to the endpoint"),
+				headers: z
+					.record(z.string(), z.string())
+					.optional()
+					.describe("Custom headers (Authorization, Cookie, etc.) for authenticated endpoints"),
 			},
 		},
-		async ({ pathId, data }) => {
+		async ({ pathId, data, headers }) => {
 			const result = await Effect.runPromise(
-				worker({ pathId, data }).pipe(Effect.provide(buildWorkerLayer(env))),
+				worker({ pathId, data, headers }).pipe(Effect.provide(buildWorkerLayer(env))),
 			);
 			return {
 				content: [

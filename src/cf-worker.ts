@@ -143,7 +143,11 @@ async function handleScout(body: unknown, env: Env): Promise<Response> {
 }
 
 async function handleWorker(body: unknown, env: Env): Promise<Response> {
-	const { pathId, data } = body as { pathId: string; data?: Record<string, unknown> };
+	const { pathId, data, headers } = body as {
+		pathId: string;
+		data?: Record<string, unknown>;
+		headers?: Record<string, string>;
+	};
 	if (!pathId) {
 		return errorResponse("Missing 'pathId' in request body", 400);
 	}
@@ -154,7 +158,9 @@ async function handleWorker(body: unknown, env: Env): Promise<Response> {
 		Layer.succeed(OpenApiGenerator, makeOpenApiGenerator()),
 	);
 
-	const result = await Effect.runPromise(worker({ pathId, data }).pipe(Effect.provide(layer)));
+	const result = await Effect.runPromise(
+		worker({ pathId, data, headers }).pipe(Effect.provide(layer)),
+	);
 
 	return jsonResponse(result);
 }

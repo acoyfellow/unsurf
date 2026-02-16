@@ -8,6 +8,7 @@ import { Store } from "../services/Store.js";
 export interface WorkerInput {
 	readonly pathId: string;
 	readonly data?: Record<string, unknown> | undefined;
+	readonly headers?: Record<string, string> | undefined;
 }
 
 export interface WorkerResult {
@@ -43,6 +44,7 @@ function resolveUrl(pattern: string, data: Record<string, unknown> | undefined):
 const replayEndpoint = (
 	endpoint: CapturedEndpoint,
 	data: Record<string, unknown> | undefined,
+	customHeaders: Record<string, string> | undefined,
 ): Effect.Effect<unknown, NetworkError> =>
 	Effect.gen(function* () {
 		const url = resolveUrl(endpoint.pathPattern, data);
@@ -51,6 +53,7 @@ const replayEndpoint = (
 		const hasBody = ["POST", "PUT", "PATCH"].includes(method);
 		const headers: Record<string, string> = {
 			Accept: "application/json",
+			...customHeaders, // Merge custom headers (auth, cookies, etc.)
 		};
 
 		const init: RequestInit = { method, headers };
@@ -144,7 +147,7 @@ export const worker = (
 		}
 
 		// 4. Replay the endpoint
-		const response = yield* replayEndpoint(endpoint, input.data);
+		const response = yield* replayEndpoint(endpoint, input.data, input.headers);
 
 		// 5. Save run history
 		yield* saveWorkerRun(input.pathId, true, input.data, response);
