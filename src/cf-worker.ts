@@ -209,6 +209,42 @@ export default {
 		}
 
 		// Directory routes (/d/:domain, /d/:domain/:capability, /d/:domain/:method/:path, /d/:domain/spec)
+		// Validate endpoints for a domain (must be before general /d/ handler)
+		if (url.pathname === "/d/validate" && request.method === "POST") {
+			try {
+				const { validateSite } = await import("./lib/validate.js");
+				const body = (await request.json()) as {
+					domain: string;
+					endpoints: Array<{ method: string; path: string }>;
+				};
+				if (!body.domain || !body.endpoints) {
+					return errorResponse("Missing 'domain' or 'endpoints' in body", 400);
+				}
+				const result = await validateSite(body.domain, body.endpoints);
+				return jsonResponse(result);
+			} catch (e) {
+				const message = e instanceof Error ? e.message : String(e);
+				return errorResponse(message);
+			}
+		}
+
+		// Publish to directory (must be before general /d/ handler)
+		if (url.pathname === "/d/publish" && request.method === "POST") {
+			try {
+				if (!env.VECTORS || !env.AI) {
+					return errorResponse("Directory not configured (requires VECTORS + AI bindings)", 503);
+				}
+				const body = (await request.json()) as { siteId: string; contributor?: string };
+				if (!body.siteId) return errorResponse("Missing 'siteId' in body", 400);
+				const directory = buildDirectoryService(env);
+				const fp = await Effect.runPromise(directory.publish(body.siteId, body.contributor));
+				return jsonResponse(fp);
+			} catch (e) {
+				const message = e instanceof Error ? e.message : String(e);
+				return errorResponse(message);
+			}
+		}
+
 		if (url.pathname.startsWith("/d/")) {
 			try {
 				if (!env.VECTORS || !env.AI) {
@@ -274,42 +310,6 @@ export default {
 				const directory = buildDirectoryService(env);
 				const results = await Effect.runPromise(directory.search(q, limit));
 				return jsonResponse({ results, total: results.length });
-			} catch (e) {
-				const message = e instanceof Error ? e.message : String(e);
-				return errorResponse(message);
-			}
-		}
-
-		// Validate endpoints for a domain
-		if (url.pathname === "/d/validate" && request.method === "POST") {
-			try {
-				const { validateSite } = await import("./lib/validate.js");
-				const body = (await request.json()) as {
-					domain: string;
-					endpoints: Array<{ method: string; path: string }>;
-				};
-				if (!body.domain || !body.endpoints) {
-					return errorResponse("Missing 'domain' or 'endpoints' in body", 400);
-				}
-				const result = await validateSite(body.domain, body.endpoints);
-				return jsonResponse(result);
-			} catch (e) {
-				const message = e instanceof Error ? e.message : String(e);
-				return errorResponse(message);
-			}
-		}
-
-		// Publish to directory
-		if (url.pathname === "/d/publish" && request.method === "POST") {
-			try {
-				if (!env.VECTORS || !env.AI) {
-					return errorResponse("Directory not configured (requires VECTORS + AI bindings)", 503);
-				}
-				const body = (await request.json()) as { siteId: string; contributor?: string };
-				if (!body.siteId) return errorResponse("Missing 'siteId' in body", 400);
-				const directory = buildDirectoryService(env);
-				const fp = await Effect.runPromise(directory.publish(body.siteId, body.contributor));
-				return jsonResponse(fp);
 			} catch (e) {
 				const message = e instanceof Error ? e.message : String(e);
 				return errorResponse(message);
