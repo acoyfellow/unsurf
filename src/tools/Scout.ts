@@ -2,6 +2,7 @@ import { Effect, Option } from "effect";
 import { CapturedEndpoint } from "../domain/Endpoint.js";
 import type { BrowserError } from "../domain/Errors.js";
 import type { StoreError } from "../domain/Errors.js";
+import { ValidationError } from "../domain/Errors.js";
 import type { NetworkEvent } from "../domain/NetworkEvent.js";
 import { isApiRequest } from "../domain/NetworkEvent.js";
 import { PathStep, ScoutedPath } from "../domain/Path.js";
@@ -308,7 +309,18 @@ export const scout = (
 				yield* Effect.serviceOption(Directory).pipe(
 					Effect.flatMap((dirOpt) => {
 						if (Option.isNone(dirOpt)) return Effect.void;
-						return dirOpt.value.publish(siteId).pipe(Effect.catchAll(() => Effect.void));
+						return dirOpt.value.publish(siteId).pipe(
+							Effect.catchTag("ValidationError", (e) => {
+								console.error(
+									`[Scout] Directory publish validation failed: ${e.field} - ${e.message}`,
+								);
+								return Effect.fail(e);
+							}),
+							Effect.catchAll((e) => {
+								console.error(`[Scout] Directory publish failed: ${e}`);
+								return Effect.void;
+							}),
+						);
 					}),
 				);
 			}
@@ -381,7 +393,18 @@ export const scout = (
 			yield* Effect.serviceOption(Directory).pipe(
 				Effect.flatMap((dirOpt) => {
 					if (Option.isNone(dirOpt)) return Effect.void;
-					return dirOpt.value.publish(siteId).pipe(Effect.catchAll(() => Effect.void));
+					return dirOpt.value.publish(siteId).pipe(
+						Effect.catchTag("ValidationError", (e) => {
+							console.error(
+								`[Scout] Directory publish validation failed: ${e.field} - ${e.message}`,
+							);
+							return Effect.fail(e);
+						}),
+						Effect.catchAll((e) => {
+							console.error(`[Scout] Directory publish failed: ${e}`);
+							return Effect.void;
+						}),
+					);
 				}),
 			);
 		}
