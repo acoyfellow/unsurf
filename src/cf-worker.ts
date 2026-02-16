@@ -238,6 +238,51 @@ export default {
 			}
 		}
 
+		// Invoke endpoint (dogfooding — try an API call from directory UI)
+		if (url.pathname === "/d/invoke" && request.method === "POST") {
+			try {
+				const body = (await request.json()) as {
+					domain: string;
+					method: string;
+					path: string;
+					body?: unknown;
+				};
+				if (!body.domain || !body.method || !body.path) {
+					return errorResponse("Missing domain, method, or path", 400);
+				}
+				// Resolve path params (:id or {id} → 1) for demo
+				const resolvedPath = body.path.replace(/\/:[\w-]+/g, "/1").replace(/\/\{[\w-]+\}/g, "/1");
+				const targetUrl = `https://${body.domain}${resolvedPath}`;
+				const init: RequestInit = {
+					method: body.method,
+					headers: { Accept: "application/json" },
+				};
+				if (body.body && ["POST", "PUT", "PATCH"].includes(body.method.toUpperCase())) {
+					init.headers = {
+						...init.headers,
+						"Content-Type": "application/json",
+					} as HeadersInit;
+					init.body = JSON.stringify(body.body);
+				}
+				const res = await fetch(targetUrl, init);
+				const text = await res.text();
+				let json: unknown;
+				try {
+					json = JSON.parse(text);
+				} catch {
+					json = text;
+				}
+				return jsonResponse({
+					status: res.status,
+					ok: res.ok,
+					body: json,
+				});
+			} catch (e) {
+				const message = e instanceof Error ? e.message : String(e);
+				return errorResponse(message);
+			}
+		}
+
 		// Publish to directory (must be before general /d/ handler)
 		if (url.pathname === "/d/publish" && request.method === "POST") {
 			try {
@@ -256,6 +301,10 @@ export default {
 		}
 
 		if (url.pathname.startsWith("/d/")) {
+			// Directory lookup routes are GET-only (POST /d/invoke, /d/publish, etc. handled above)
+			if (request.method !== "GET" && request.method !== "DELETE") {
+				return errorResponse("Not found", 404);
+			}
 			try {
 				if (!env.VECTORS || !env.AI) {
 					return errorResponse("Directory not configured (requires VECTORS + AI bindings)", 503);

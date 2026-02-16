@@ -1,0 +1,72 @@
+# unsurf
+
+> Turn any website into a typed API
+
+unsurf turns any website into a typed API. Scout captures network traffic via headless browser, infers JSON schemas, outputs OpenAPI 3.1. Worker replays endpoints directly (no browser). Heal re-scouts when paths break.
+
+## Key Links
+
+- Docs: https://unsurf.coey.dev
+- API (REST): https://unsurf-api.coey.dev
+- MCP: https://unsurf-api.coey.dev/mcp
+- Directory: https://unsurf.coey.dev/directory
+- NPM: https://www.npmjs.com/package/unsurf
+- Repo: https://github.com/acoyfellow/unsurf
+
+## REST API (unsurf-api.coey.dev)
+
+The worker is pure REST. No frontend. All responses are JSON.
+
+### Discovery
+- GET / — API info (name, version, endpoints, tools, docs link)
+- GET /api — Same as /
+
+### Tools (POST)
+- POST /tools/scout — `{ url, task, publish?, force? }` — Scout a site, capture API calls, return OpenAPI + pathId
+- POST /tools/worker — `{ pathId, data?, headers? }` — Replay a scouted path without browser
+- POST /tools/heal — `{ pathId, error? }` — Re-scout, diff, patch, retry when path breaks
+
+### Directory (requires VECTORS + AI bindings)
+- GET /d/ — List fingerprints
+- GET /d/:domain — Domain fingerprint
+- GET /d/:domain/:capability — Endpoints by capability
+- GET /d/:domain/:method/:path — Single endpoint
+- GET /d/:domain/spec — Full OpenAPI
+- GET /search?q=... — Semantic search
+- POST /d/invoke — `{ domain, method, path, body? }` — Try endpoint (dogfooding from directory UI)
+- POST /d/publish — `{ siteId, contributor? }` — Publish scouted site
+- POST /d/validate — Validate before publish
+- DELETE /d/:domain — Remove from directory
+
+### Gallery (legacy, still supported)
+- GET /gallery?q=...&domain=...&limit=...
+- GET /gallery/:id/spec
+- POST /gallery/publish
+
+### MCP
+- POST /mcp — Streamable HTTP transport. Tools: scout, worker, heal, directory.
+
+## Stack
+
+Effect, Alchemy, Drizzle, Cloudflare Workers, Cloudflare Browser Rendering, D1, R2, Vectorize (for directory search).
+
+## Package
+
+```bash
+npm install unsurf
+```
+
+```typescript
+import { scout, worker, heal } from "unsurf";
+```
+
+## Architecture
+
+- src/cf-worker.ts — Worker entry
+- src/mcp.ts — MCP server
+- src/tools/ — Scout, Worker, Heal
+- src/services/ — Browser, Store, SchemaInferrer, OpenApiGenerator, Gallery, Directory
+- src/ai/ — LLM Scout Agent (ScoutAgent)
+- docs/ — Astro/Starlight site (homepage, directory UI, all docs)
+
+Frontend lives in docs/. Worker is REST only.

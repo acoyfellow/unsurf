@@ -28,8 +28,7 @@ src/
 ├── db/                       # Drizzle schema + queries  
 ├── services/                 # Browser, Store, SchemaInferrer, OpenApiGenerator, Gallery, Directory
 ├── tools/                    # Scout, Worker, Heal
-├── ai/                       # LLM Scout Agent (ScoutAgent, AnthropicProvider)
-└── ui/                       # HTML generators (directory page)
+└── ai/                       # LLM Scout Agent (ScoutAgent, AnthropicProvider)
 ```
 
 ## Directory

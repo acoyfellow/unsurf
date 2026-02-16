@@ -70,15 +70,6 @@ const frontmatter = {
   .sl-markdown-content {
     max-width: none;
   }
-  main.sl-container {
-    max-width: var(--un-content-max);
-    margin: 0 auto;
-  }
-
-  /* Directory: align nav bar with content, no extra padding */
-  :root:has(#directory) .main-frame {
-    padding-inline-start: var(--sl-nav-pad-x);
-  }
 
   /* Variables */
   .directory {
@@ -101,7 +92,7 @@ const frontmatter = {
   .directory {
     font-family: system-ui, -apple-system, sans-serif;
     color: var(--text);
-    padding: 2rem 1rem;
+    padding: 2rem 0; /* horizontal padding from .sl-container */
   }
 
   /* Header */
@@ -318,10 +309,45 @@ const frontmatter = {
   }
   .endpoint-item {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0;
     border-bottom: 1px solid var(--border);
+  }
+  .endpoint-play {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.4rem;
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    background: var(--bg);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .endpoint-play:hover:not(:disabled) {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+  }
+  .endpoint-play:disabled {
+    cursor: not-allowed;
+    opacity: 0.7;
+  }
+  .endpoint-result {
+    width: 100%;
+    margin-top: 0.5rem;
+    padding: 0.5rem;
+    font-family: ui-monospace, monospace;
+    font-size: 0.75rem;
+    max-height: 150px;
+    overflow: auto;
+    background: var(--bg-hover);
+    border-radius: 4px;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+  .endpoint-result.error {
+    color: #991b1b;
   }
   .endpoint-item:last-child {
     border-bottom: none;
@@ -438,13 +464,45 @@ const frontmatter = {
         modalBody.innerHTML = `
           <div class="endpoint-list">
             ${endpoints.map(e => `
-              <div class="endpoint-item">
+              <div class="endpoint-item" data-method="${e.method}" data-path="${e.path}">
+                <button class="endpoint-play" title="Try endpoint">Play</button>
                 <span class="endpoint-method ${e.method.toLowerCase()}">${e.method}</span>
                 <span class="endpoint-path">${e.path}</span>
+                <div class="endpoint-result"></div>
               </div>
             `).join('')}
           </div>
         `;
+        modalBody.querySelectorAll('.endpoint-play').forEach(btn => {
+          btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const item = btn.closest('.endpoint-item');
+            const resultEl = item.querySelector('.endpoint-result');
+            const method = item.dataset.method;
+            const path = item.dataset.path;
+            btn.disabled = true;
+            btn.textContent = '…';
+            resultEl.textContent = '';
+            resultEl.classList.remove('error');
+            try {
+              const res = await fetch(`${API}/d/invoke`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ domain, method, path })
+              });
+              const data = await res.json();
+              if (data.error) throw new Error(data.error);
+              resultEl.textContent = JSON.stringify(data.body, null, 2);
+              if (!data.ok) resultEl.classList.add('error');
+            } catch (err) {
+              resultEl.textContent = err instanceof Error ? err.message : String(err);
+              resultEl.classList.add('error');
+            } finally {
+              btn.disabled = false;
+              btn.textContent = 'Play';
+            }
+          });
+        });
       }
 
       modalFooter.innerHTML = `

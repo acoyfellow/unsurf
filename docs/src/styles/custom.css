@@ -91,6 +91,21 @@ header.header .nav-inner {
   height: 100%;
 }
 
+/* Site-wide: one content column width for nav + all pages */
+.sl-container {
+  max-width: var(--un-content-max) !important;
+}
+
+/* Directory: align content with nav (same padding as nav-inner) */
+:root:has(#directory) main .content-panel {
+  padding-inline: 0 !important;
+  padding-block: 1.5rem;
+}
+:root:has(#directory) .sl-container {
+  padding-inline: var(--sl-nav-pad-x) !important;
+  margin-inline: auto;
+}
+
 /* sharp corners everywhere */
 pre {
   border: 1px solid var(--sl-color-hairline) !important;
@@ -260,7 +275,6 @@ nav.sidebar {
 :root[data-has-hero] .sl-container {
   position: relative;
   z-index: 1;
-  max-width: var(--un-content-max);
 }
 
 /* ── HERO ── */
