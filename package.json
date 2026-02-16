@@ -55,7 +55,7 @@
 		"effect": "^3.19.16"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^1.9.4",
+		"@biomejs/biome": "^2.4.1",
 		"@cloudflare/workers-types": "^4.20250129.0",
 		"@effect/vitest": "^0.27.0",
 		"@types/node": "^25.2.2",
