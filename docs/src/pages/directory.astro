@@ -2,138 +2,891 @@
 import StarlightPage from '@astrojs/starlight/components/StarlightPage.astro';
 
 const frontmatter = {
-  title: 'API Directory',
-  description: 'Browse and search the community directory of typed APIs',
+  title: 'Directory',
+  description: 'Community-discovered APIs',
+  template: 'splash',
 };
 ---
 
 <StarlightPage frontmatter={frontmatter}>
-  <div class="directory-page">
-    <p class="tagline">Community directory of APIs for sites that never had them</p>
+  <div class="directory" id="directory">
     
-    <div class="stats-row">
-      <div class="stat-item"><span class="stat-num" id="stat-apis">—</span><span class="stat-lbl">Sites</span></div>
-      <div class="stat-item"><span class="stat-num" id="stat-endpoints">—</span><span class="stat-lbl">Endpoints</span></div>
+    <!-- BOOT SEQUENCE -->
+    <div class="boot" id="boot">
+      <div class="boot-inner">
+        <div class="boot-logo">
+          <span class="boot-glyph">◈</span>
+        </div>
+        <div class="boot-status" id="boot-status">INITIALIZING</div>
+        <div class="boot-bar">
+          <div class="boot-fill" id="boot-fill"></div>
+        </div>
+        <div class="boot-count" id="boot-count">0</div>
+      </div>
     </div>
 
-    <form class="search-form" id="search-form">
-      <input type="text" id="search-input" placeholder="Search APIs..." />
-      <button type="submit">Search</button>
-    </form>
-    
-    <p class="legend">
-      <span class="tag-public">🔓 Public</span> Works standalone · 
-      <span class="tag-auth">🔐 Auth</span> Pair with <a href="https://inbox.dog">inbox.dog</a>
-    </p>
+    <!-- MAIN CONTENT (hidden until boot completes) -->
+    <div class="main" id="main">
+      
+      <!-- TITLE CARD -->
+      <header class="hero">
+        <div class="hero-badge">COMMUNITY REGISTRY</div>
+        <h1 class="hero-title">
+          <span class="hero-count" id="hero-count">0</span>
+          <span class="hero-label">APIs Discovered</span>
+        </h1>
+        <p class="hero-sub">
+          <span id="hero-endpoints">0</span> endpoints · no docs required
+        </p>
+      </header>
 
-    <div id="results"></div>
+      <!-- SEARCH -->
+      <div class="search-wrap">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input type="text" id="search" placeholder="Search APIs..." autocomplete="off" />
+          <kbd class="search-kbd">/</kbd>
+        </div>
+      </div>
 
-    <div class="contribute-box">
-      <h3>Contribute an API</h3>
-      <code>npx unsurf scout https://example.com --publish</code>
+      <!-- GRID -->
+      <div class="grid" id="grid"></div>
+
+      <!-- EMPTY STATE -->
+      <div class="empty" id="empty">
+        <div class="empty-icon">∅</div>
+        <p>No APIs found</p>
+      </div>
+
+      <!-- CONTRIBUTE -->
+      <footer class="contribute">
+        <div class="contribute-inner">
+          <span class="contribute-label">Add yours</span>
+          <code>npx unsurf scout https://… --publish</code>
+        </div>
+      </footer>
     </div>
-  </div>
 
-  <div class="modal-bg" id="modal">
-    <div class="modal-box">
-      <div class="modal-head"><h3 id="modal-title">—</h3><button id="modal-close">×</button></div>
-      <div id="modal-body"></div>
+    <!-- MODAL -->
+    <div class="modal-overlay" id="modal-overlay">
+      <div class="modal" id="modal">
+        <button class="modal-close" id="modal-close">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M18 6 6 18M6 6l12 12"/>
+          </svg>
+        </button>
+        <div class="modal-header">
+          <div class="modal-icon" id="modal-icon">◈</div>
+          <div class="modal-title" id="modal-title">—</div>
+          <div class="modal-meta" id="modal-meta"></div>
+        </div>
+        <div class="modal-body" id="modal-body"></div>
+        <div class="modal-footer" id="modal-footer"></div>
+      </div>
     </div>
+
   </div>
 </StarlightPage>
 
-<style>
-  .directory-page { max-width: 900px; margin: 0 auto; }
-  .tagline { text-align: center; color: var(--sl-color-gray-3); margin-bottom: 1.5rem; }
-  .stats-row { display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; }
-  .stat-item { text-align: center; }
-  .stat-num { display: block; font-size: 2rem; font-weight: 700; color: var(--sl-color-accent); }
-  .stat-lbl { font-size: 0.875rem; color: var(--sl-color-gray-3); }
-  .search-form { display: flex; gap: 0.5rem; max-width: 400px; margin: 0 auto 1rem; }
-  .search-form input { flex: 1; padding: 0.5rem; border: 1px solid var(--sl-color-gray-5); border-radius: 4px; background: var(--sl-color-bg); color: var(--sl-color-text); }
-  .search-form button { padding: 0.5rem 1rem; background: var(--sl-color-accent); color: var(--sl-color-black); border: none; border-radius: 4px; cursor: pointer; }
-  .legend { text-align: center; font-size: 0.875rem; color: var(--sl-color-gray-3); margin-bottom: 2rem; }
-  .tag-public { color: #22c55e; }
-  .tag-auth { color: #f59e0b; }
-  .results-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; }
-  .api-card { background: var(--sl-color-bg-nav); border: 1px solid var(--sl-color-gray-5); border-radius: 8px; padding: 1rem; cursor: pointer; }
-  .api-card:hover { border-color: var(--sl-color-accent); }
-  .api-name { font-weight: 600; margin-bottom: 0.25rem; }
-  .api-info { font-size: 0.8rem; color: var(--sl-color-gray-3); }
-  .contribute-box { margin-top: 2rem; padding: 1rem; background: var(--sl-color-bg-nav); border-radius: 8px; text-align: center; }
-  .contribute-box h3 { margin: 0 0 0.5rem; }
-  .contribute-box code { font-size: 0.875rem; }
-  .modal-bg { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 1000; align-items: center; justify-content: center; }
-  .modal-bg.active { display: flex; }
-  .modal-box { background: var(--sl-color-bg); border-radius: 8px; max-width: 500px; width: 90%; max-height: 80vh; overflow: auto; padding: 1rem; }
-  .modal-head { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; }
-  .modal-head h3 { margin: 0; }
-  .modal-head button { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: var(--sl-color-gray-3); }
-  .ep-list { list-style: none; padding: 0; }
-  .ep-item { padding: 0.5rem 0; border-bottom: 1px solid var(--sl-color-gray-6); font-family: var(--sl-font-mono); font-size: 0.875rem; }
+<style is:global>
+  /* Reset starlight defaults for this page */
+  .directory {
+    --accent: #8b5cf6;
+    --accent-glow: rgba(139, 92, 246, 0.3);
+    --surface: rgba(0, 0, 0, 0.04);
+    --surface-hover: rgba(0, 0, 0, 0.07);
+    --border: rgba(0, 0, 0, 0.12);
+    --border-hover: rgba(0, 0, 0, 0.25);
+    --text-1: rgba(0, 0, 0, 0.9);
+    --text-2: rgba(0, 0, 0, 0.6);
+    --text-3: rgba(0, 0, 0, 0.4);
+    --bg-boot: #fafafa;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.12);
+    
+    min-height: 100vh;
+    position: relative;
+  }
+  
+  :root[data-theme='dark'] .directory {
+    --surface: rgba(255, 255, 255, 0.04);
+    --surface-hover: rgba(255, 255, 255, 0.07);
+    --border: rgba(255, 255, 255, 0.1);
+    --border-hover: rgba(255, 255, 255, 0.2);
+    --text-1: rgba(255, 255, 255, 0.95);
+    --text-2: rgba(255, 255, 255, 0.6);
+    --text-3: rgba(255, 255, 255, 0.4);
+    --bg-boot: #0f0f0f;
+    --card-shadow: 0 1px 3px rgba(0,0,0,0.3);
+    --card-shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.5);
+  }
+
+  /* Hide the redundant page title from Starlight */
+  .sl-container > h1#_top {
+    display: none !important;
+  }
+
+  /* ===== BOOT SEQUENCE ===== */
+  .boot {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--bg-boot);
+    transition: opacity 0.6s ease, visibility 0.6s ease;
+  }
+  .boot.done {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+  .boot-inner {
+    text-align: center;
+  }
+  .boot-logo {
+    margin-bottom: 2rem;
+  }
+  .boot-glyph {
+    font-size: 3rem;
+    color: var(--accent);
+    animation: pulse 1.5s ease-in-out infinite;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.4; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.1); }
+  }
+  .boot-status {
+    font-size: 0.75rem;
+    letter-spacing: 0.2em;
+    color: var(--text-3);
+    margin-bottom: 1.5rem;
+    font-family: var(--sl-font-mono);
+  }
+  .boot-bar {
+    width: 200px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 1px;
+    overflow: hidden;
+    margin: 0 auto 1rem;
+  }
+  .boot-fill {
+    height: 100%;
+    width: 0%;
+    background: var(--accent);
+    transition: width 0.1s ease-out;
+  }
+  .boot-count {
+    font-size: 2.5rem;
+    font-weight: 600;
+    color: var(--text-1);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ===== MAIN ===== */
+  .main {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+    padding: 0 1.5rem 4rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  .main.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ===== HERO ===== */
+  .hero {
+    text-align: center;
+    padding: 3rem 0 2rem;
+  }
+  .hero-badge {
+    display: inline-block;
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    background: rgba(139, 92, 246, 0.1);
+    padding: 0.4rem 0.8rem;
+    border-radius: 100px;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(139, 92, 246, 0.2);
+  }
+  .hero-title {
+    margin: 0;
+    line-height: 1;
+  }
+  .hero-count {
+    display: block;
+    font-size: clamp(4rem, 15vw, 8rem);
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--text-1) 0%, var(--text-2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-label {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 500;
+    color: var(--text-2);
+    margin-top: 0.5rem;
+    letter-spacing: -0.02em;
+    line-height: 1.3;
+    -webkit-text-fill-color: currentColor;
+    background: none;
+  }
+  .hero-sub {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+    color: var(--text-3);
+  }
+
+  /* ===== SEARCH ===== */
+  .search-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 3rem;
+  }
+  .search-box {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+  }
+  .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 18px;
+    height: 18px;
+    color: var(--text-3);
+    pointer-events: none;
+  }
+  .search-box input {
+    width: 100%;
+    padding: 0.875rem 3rem 0.875rem 2.75rem;
+    font-size: 0.95rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: var(--text-1);
+    outline: none;
+    transition: all 0.2s ease;
+  }
+  .search-box input::placeholder {
+    color: var(--text-3);
+  }
+  .search-box input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-glow);
+  }
+  .search-kbd {
+    position: absolute;
+    right: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-3);
+    font-family: var(--sl-font-mono);
+    pointer-events: none;
+  }
+
+  /* ===== GRID ===== */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1rem;
+  }
+
+  /* ===== CARD ===== */
+  .card {
+    position: relative;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    cursor: pointer;
+    transition: all 0.25s ease;
+    overflow: hidden;
+    box-shadow: var(--card-shadow);
+  }
+  .card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, transparent 0%, rgba(139, 92, 246, 0.03) 100%);
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .card:hover {
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+  }
+  .card:hover::before {
+    opacity: 1;
+  }
+  .card-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    margin-bottom: 1rem;
+    position: relative;
+  }
+  .card-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    color: white;
+    flex-shrink: 0;
+    font-weight: 600;
+  }
+  .card-info {
+    flex: 1;
+    min-width: 0;
+  }
+  .card-domain {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-1);
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-url {
+    font-size: 0.75rem;
+    color: var(--text-3);
+    margin-top: 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .card-stats {
+    display: flex;
+    gap: 1.5rem;
+  }
+  .card-stat {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .card-stat-num {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+  .card-stat-label {
+    font-size: 0.75rem;
+    color: var(--text-3);
+  }
+  .card-arrow {
+    position: absolute;
+    right: 0;
+    top: 50%;
+    transform: translateY(-50%) translateX(10px);
+    opacity: 0;
+    color: var(--accent);
+    transition: all 0.25s ease;
+  }
+  .card:hover .card-arrow {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+
+  /* ===== EMPTY ===== */
+  .empty {
+    display: none;
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-3);
+  }
+  .empty.visible {
+    display: block;
+  }
+  .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+    opacity: 0.3;
+  }
+
+  /* ===== CONTRIBUTE ===== */
+  .contribute {
+    margin-top: 4rem;
+    text-align: center;
+  }
+  .contribute-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+  }
+  .contribute-label {
+    font-size: 0.8rem;
+    color: var(--text-3);
+  }
+  .contribute code {
+    font-size: 0.85rem;
+    color: var(--accent);
+    background: none;
+    padding: 0;
+  }
+
+  /* ===== MODAL ===== */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 2000;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+  }
+  .modal-overlay.open {
+    opacity: 1;
+    visibility: visible;
+  }
+  .modal {
+    position: relative;
+    width: 100%;
+    max-width: 500px;
+    max-height: 80vh;
+    background: var(--sl-color-bg);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    transform: scale(0.95) translateY(20px);
+    transition: transform 0.3s ease;
+  }
+  .modal-overlay.open .modal {
+    transform: scale(1) translateY(0);
+  }
+  .modal-close {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 1;
+  }
+  .modal-close:hover {
+    background: var(--surface-hover);
+    color: var(--text-1);
+  }
+  .modal-close svg {
+    width: 16px;
+    height: 16px;
+  }
+  .modal-header {
+    padding: 2rem 2rem 1.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, var(--accent) 0%, #6366f1 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    color: white;
+    margin: 0 auto 1rem;
+    font-weight: 600;
+  }
+  .modal-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-1);
+  }
+  .modal-meta {
+    font-size: 0.8rem;
+    color: var(--text-3);
+    margin-top: 0.5rem;
+  }
+  .modal-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 2rem;
+  }
+  .modal-section {
+    margin-bottom: 1.5rem;
+  }
+  .modal-section:last-child {
+    margin-bottom: 0;
+  }
+  .modal-section-title {
+    font-size: 0.7rem;
+    letter-spacing: 0.1em;
+    color: var(--text-3);
+    margin-bottom: 0.75rem;
+    text-transform: uppercase;
+  }
+  .endpoint-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  .endpoint-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--surface);
+    border-radius: 8px;
+    font-family: var(--sl-font-mono);
+    font-size: 0.85rem;
+  }
+  .endpoint-method {
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    background: rgba(34, 197, 94, 0.15);
+    color: #22c55e;
+  }
+  .endpoint-method.post { background: rgba(59, 130, 246, 0.15); color: #3b82f6; }
+  .endpoint-method.put { background: rgba(249, 115, 22, 0.15); color: #f97316; }
+  .endpoint-method.delete { background: rgba(239, 68, 68, 0.15); color: #ef4444; }
+  .endpoint-path {
+    color: var(--text-2);
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .modal-footer {
+    padding: 1.5rem 2rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+  }
+  .modal-btn {
+    flex: 1;
+    padding: 0.875rem 1.25rem;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    text-align: center;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .modal-btn-secondary {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text-2);
+  }
+  .modal-btn-secondary:hover {
+    background: var(--surface-hover);
+    color: var(--text-1);
+  }
+  .modal-btn-primary {
+    background: var(--accent);
+    border: none;
+    color: white;
+  }
+  .modal-btn-primary:hover {
+    background: #7c3aed;
+  }
+
+  /* ===== RESPONSIVE ===== */
+  @media (max-width: 600px) {
+    .hero-count { font-size: 4rem; }
+    .card { padding: 1.25rem; }
+    .modal { border-radius: 16px; }
+    .modal-header, .modal-body, .modal-footer { padding-left: 1.5rem; padding-right: 1.5rem; }
+  }
 </style>
 
 <script>
   const API = 'https://unsurf-api.coey.dev';
   
-  async function load() {
+  let allApis = [];
+  let currentDomain = null;
+  
+  // Elements
+  const boot = document.getElementById('boot');
+  const bootStatus = document.getElementById('boot-status');
+  const bootFill = document.getElementById('boot-fill');
+  const bootCount = document.getElementById('boot-count');
+  const main = document.getElementById('main');
+  const heroCount = document.getElementById('hero-count');
+  const heroEndpoints = document.getElementById('hero-endpoints');
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+  const search = document.getElementById('search');
+  const modalOverlay = document.getElementById('modal-overlay');
+  const modalIcon = document.getElementById('modal-icon');
+  const modalTitle = document.getElementById('modal-title');
+  const modalMeta = document.getElementById('modal-meta');
+  const modalBody = document.getElementById('modal-body');
+  const modalFooter = document.getElementById('modal-footer');
+  const modalClose = document.getElementById('modal-close');
+  
+  // Boot sequence
+  async function bootSequence() {
+    bootStatus.textContent = 'CONNECTING';
+    await delay(300);
+    
+    bootStatus.textContent = 'FETCHING REGISTRY';
+    bootFill.style.width = '20%';
+    
     try {
-      const r = await fetch(API + '/d/?limit=50');
-      const d = await r.json();
-      render(d.fingerprints || []);
-    } catch(e) {
-      document.getElementById('results').innerHTML = '<p>Failed to load</p>';
+      const res = await fetch(`${API}/d/?limit=100`);
+      const data = await res.json();
+      allApis = data.fingerprints || [];
+      
+      bootFill.style.width = '60%';
+      bootStatus.textContent = 'INDEXING';
+      await delay(200);
+      
+      // Animate count up
+      const total = allApis.length;
+      const totalEndpoints = allApis.reduce((s, f) => s + (f.endpoints || 0), 0);
+      let current = 0;
+      const step = Math.ceil(total / 20);
+      
+      while (current < total) {
+        current = Math.min(current + step, total);
+        bootCount.textContent = current;
+        bootFill.style.width = `${60 + (current / total) * 35}%`;
+        await delay(50);
+      }
+      
+      bootFill.style.width = '100%';
+      bootStatus.textContent = 'READY';
+      await delay(400);
+      
+      // Reveal
+      boot.classList.add('done');
+      await delay(100);
+      main.classList.add('visible');
+      
+      // Animate hero numbers
+      animateNumber(heroCount, total, 600);
+      animateNumber(heroEndpoints, totalEndpoints, 600);
+      
+      // Render grid
+      renderGrid(allApis);
+      
+    } catch (err) {
+      bootStatus.textContent = 'CONNECTION FAILED';
+      bootFill.style.background = '#ef4444';
+      await delay(1500);
+      boot.classList.add('done');
+      main.classList.add('visible');
+      empty.classList.add('visible');
     }
   }
   
-  function render(fps) {
-    document.getElementById('stat-apis').textContent = fps.length;
-    document.getElementById('stat-endpoints').textContent = fps.reduce((s,f) => s + (f.endpoints||0), 0);
-    if (!fps.length) {
-      document.getElementById('results').innerHTML = '<p>No APIs yet</p>';
+  function delay(ms) {
+    return new Promise(r => setTimeout(r, ms));
+  }
+  
+  function animateNumber(el, target, duration) {
+    const start = parseInt(el.textContent) || 0;
+    const startTime = performance.now();
+    
+    function update(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+      el.textContent = Math.round(start + (target - start) * eased);
+      if (progress < 1) requestAnimationFrame(update);
+    }
+    requestAnimationFrame(update);
+  }
+  
+  function getInitial(domain) {
+    return domain.replace(/^(api\.|www\.)/i, '').charAt(0).toUpperCase();
+  }
+  
+  function renderGrid(apis) {
+    if (!apis.length) {
+      grid.innerHTML = '';
+      empty.classList.add('visible');
       return;
     }
-    document.getElementById('results').innerHTML = '<div class="results-grid">' + fps.map(f => 
-      '<div class="api-card" data-d="' + f.domain + '"><div class="api-name">' + f.domain + '</div><div class="api-info">' + f.endpoints + ' endpoints</div></div>'
-    ).join('') + '</div>';
-    document.querySelectorAll('.api-card').forEach(c => c.addEventListener('click', () => showModal(c.dataset.d)));
+    
+    empty.classList.remove('visible');
+    grid.innerHTML = apis.map(api => `
+      <div class="card" data-domain="${api.domain}">
+        <div class="card-header">
+          <div class="card-icon">${getInitial(api.domain)}</div>
+          <div class="card-info">
+            <div class="card-domain">${api.domain}</div>
+            <div class="card-url">${api.url || `https://${api.domain}`}</div>
+          </div>
+          <svg class="card-arrow" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </div>
+        <div class="card-stats">
+          <div class="card-stat">
+            <span class="card-stat-num">${api.endpoints || 0}</span>
+            <span class="card-stat-label">endpoints</span>
+          </div>
+        </div>
+      </div>
+    `).join('');
+    
+    // Attach click handlers
+    grid.querySelectorAll('.card').forEach(card => {
+      card.addEventListener('click', () => openModal(card.dataset.domain));
+    });
   }
   
-  async function showModal(domain) {
-    const m = document.getElementById('modal');
-    document.getElementById('modal-title').textContent = domain;
-    document.getElementById('modal-body').innerHTML = 'Loading...';
-    m.classList.add('active');
+  async function openModal(domain) {
+    currentDomain = domain;
+    const api = allApis.find(a => a.domain === domain);
+    if (!api) return;
+    
+    modalIcon.textContent = getInitial(domain);
+    modalTitle.textContent = domain;
+    modalMeta.textContent = 'Loading...';
+    modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-3)">Loading endpoints...</div>';
+    modalFooter.innerHTML = '';
+    
+    modalOverlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    
     try {
-      const r = await fetch(API + '/d/' + domain);
-      const f = await r.json();
-      let eps = [];
-      for (const c of (f.capabilities || [])) {
-        try { const cr = await fetch(API + '/d/' + domain + '/' + c); const s = await cr.json(); eps = eps.concat(s.endpoints || []); } catch(e) {}
+      // Fetch domain info
+      const infoRes = await fetch(`${API}/d/${domain}`);
+      const info = await infoRes.json();
+      
+      modalMeta.textContent = `${info.capabilities?.length || 0} capabilities`;
+      
+      // Fetch endpoints from all capabilities
+      let endpoints = [];
+      for (const cap of (info.capabilities || [])) {
+        try {
+          const capRes = await fetch(`${API}/d/${domain}/${cap}`);
+          const capData = await capRes.json();
+          endpoints = endpoints.concat((capData.endpoints || []).map(e => ({ ...e, capability: cap })));
+        } catch (e) {}
       }
-      document.getElementById('modal-body').innerHTML = 
-        '<p><a href="' + f.url + '" target="_blank">' + f.url + '</a></p>' +
-        '<ul class="ep-list">' + eps.map(e => '<li class="ep-item">' + e.method + ' ' + e.path + '</li>').join('') + '</ul>' +
-        '<p><a href="' + API + '/d/' + domain + '/spec" target="_blank">Download OpenAPI →</a></p>';
-    } catch(e) { document.getElementById('modal-body').innerHTML = 'Error'; }
+      
+      if (endpoints.length) {
+        modalBody.innerHTML = `
+          <div class="modal-section">
+            <div class="modal-section-title">Endpoints</div>
+            <div class="endpoint-list">
+              ${endpoints.map(e => `
+                <div class="endpoint-item">
+                  <span class="endpoint-method ${(e.method || 'GET').toLowerCase()}">${e.method || 'GET'}</span>
+                  <span class="endpoint-path">${e.path}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else {
+        modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:var(--text-3)">No endpoints found</div>';
+      }
+      
+      modalFooter.innerHTML = `
+        <a class="modal-btn modal-btn-secondary" href="${info.url || `https://${domain}`}" target="_blank">
+          Visit Site
+        </a>
+        <a class="modal-btn modal-btn-primary" href="${API}/d/${domain}/spec" target="_blank">
+          Download OpenAPI
+        </a>
+      `;
+      
+    } catch (err) {
+      modalBody.innerHTML = '<div style="text-align:center;padding:2rem;color:#ef4444">Failed to load</div>';
+    }
   }
   
-  document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal').classList.remove('active'));
-  document.getElementById('modal').addEventListener('click', e => { if (e.target.id === 'modal') e.target.classList.remove('active'); });
-  document.getElementById('search-form').addEventListener('submit', async e => {
-    e.preventDefault();
-    const q = document.getElementById('search-input').value.trim();
-    if (!q) { load(); return; }
-    try {
-      const r = await fetch(API + '/search?q=' + encodeURIComponent(q));
-      const d = await r.json();
-      if (d.results?.length) {
-        const doms = [...new Set(d.results.map(x => x.domain))];
-        const fps = (await Promise.all(doms.slice(0,10).map(async x => { try { return await (await fetch(API + '/d/' + x)).json(); } catch(e) { return null; } }))).filter(Boolean);
-        render(fps);
-      } else { render([]); }
-    } catch(e) { render([]); }
+  function closeModal() {
+    modalOverlay.classList.remove('open');
+    document.body.style.overflow = '';
+    currentDomain = null;
+  }
+  
+  // Search
+  let searchTimeout;
+  search.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      const q = search.value.trim().toLowerCase();
+      if (!q) {
+        renderGrid(allApis);
+        return;
+      }
+      const filtered = allApis.filter(a => 
+        a.domain.toLowerCase().includes(q) ||
+        (a.url || '').toLowerCase().includes(q)
+      );
+      renderGrid(filtered);
+    }, 150);
   });
   
-  load();
+  // Keyboard shortcuts
+  document.addEventListener('keydown', (e) => {
+    if (e.key === '/' && document.activeElement !== search) {
+      e.preventDefault();
+      search.focus();
+    }
+    if (e.key === 'Escape') {
+      if (modalOverlay.classList.contains('open')) {
+        closeModal();
+      } else if (document.activeElement === search) {
+        search.blur();
+        search.value = '';
+        renderGrid(allApis);
+      }
+    }
+  });
+  
+  // Modal close handlers
+  modalClose.addEventListener('click', closeModal);
+  modalOverlay.addEventListener('click', (e) => {
+    if (e.target === modalOverlay) closeModal();
+  });
+  
+  // Init
+  bootSequence();
 </script>
