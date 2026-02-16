@@ -1,0 +1,51 @@
+url,category,success,endpointCount,error,durationMs,timestamp,siteId,pathId,fromGallery
+https://api.open-meteo.com,weather,true,4,,5647,2026-02-16T21:48:21.955Z,site_mlpphhwj_2odgxh1m,path_mlpphhwj_hdj7y2ee,true
+https://api.sunrise-sunset.org,weather,false,0,Navigate to https://api.sunrise-sunset.org failed: TimeoutError: Navigation timeout of 30000 ms exceeded,31634,2026-02-16T21:48:59.591Z,,,false
+https://restcountries.com,reference,true,1,,4211,2026-02-16T21:49:09.804Z,site_mlppij4q_5ok7ahbz,path_mlppij4q_a6p5tlc3,true
+https://universities.hipolabs.com,reference,false,0,Navigate to https://universities.hipolabs.com failed: TimeoutError: Navigation timeout of 30000 ms exceeded,31628,2026-02-16T21:49:47.432Z,,,false
+https://world.openfoodfacts.org,reference,false,0,Navigate to https://world.openfoodfacts.org failed: TimeoutError: Navigation timeout of 30000 ms exceeded,31652,2026-02-16T21:50:25.086Z,,,false
+https://api.coingecko.com,finance,true,8,,4002,2026-02-16T21:50:35.088Z,site_mlppkc3a_hcztyf8g,path_mlppkc3a_sf6zf2h3,true
+https://api.frankfurter.app,finance,true,1,,3275,2026-02-16T21:50:44.364Z,site_mlppkk2u_lme0lxa8,path_mlppkk2u_hyf1kcg4,true
+https://pokeapi.co,entertainment,true,10,,4191,2026-02-16T21:50:54.555Z,site_mlppkr4k_ekaxe1dg,path_mlppkr4k_5d2pz6kc,true
+https://rickandmortyapi.com,entertainment,true,6,,4317,2026-02-16T21:51:04.872Z,site_mlppkz72_zpmt7zed,path_mlppkz72_ogsn0oj9,true
+https://swapi.dev,entertainment,true,4,,3665,2026-02-16T21:51:14.537Z,site_mlppl72v_qkcq82h2,path_mlppl72v_wo0euwfm,true
+https://api.tvmaze.com,entertainment,true,5,,7121,2026-02-16T21:51:27.660Z,site_mlppldod_e80nyj9o,path_mlpplgvt_4wnzldo6,false
+https://openlibrary.org,entertainment,true,3,,9194,2026-02-16T21:51:42.855Z,site_mlpplov4_36i3cjcl,path_mlpplssc_uajdxtju,false
+https://collectionapi.metmuseum.org,entertainment,true,1,,4811,2026-02-16T21:51:53.667Z,site_mlpplzla_hl0ain8k,path_mlppm1di_98lpk7ow,false
+https://api.chess.com,games,true,1,,4298,2026-02-16T21:52:03.965Z,site_mlppm83q_dzne28xs,path_mlppm99a_tmnabiwh,false
+https://api.scryfall.com,games,true,1,,4381,2026-02-16T21:52:14.347Z,site_mlppmfx3_oyy4ua9y,path_mlppmh1j_dpoei9ni,false
+https://api.github.com,developer,true,12,,4067,2026-02-16T21:52:24.414Z,site_mlppmobj_oi8v2hrm,path_mlppmobj_2fd7lm3u,true
+https://api.npms.io,developer,true,2,,4575,2026-02-16T21:52:34.989Z,site_mlppmvt2_bzy3lcjr,path_mlppmx3d_x8u8y25j,false
+https://httpbin.org,developer,true,2,,3472,2026-02-16T21:52:44.462Z,site_mlppn4ny_clxqfgj3,path_mlppn4ny_qkglp405,true
+https://jsonplaceholder.typicode.com,developer,true,1,,2568,2026-02-16T21:52:53.030Z,site_mlppnbeg_hhl3l1gu,path_mlppnbeg_i8vgg9s7,true
+https://dummyjson.com,developer,true,8,,6907,2026-02-16T21:53:05.937Z,site_mlppnhvz_1zbxw4yc,path_mlppnkg8_3eg0roqc,false
+https://randomuser.me,developer,false,0,Navigate to https://randomuser.me failed: Error: Navigating frame was detached,3226,2026-02-16T21:53:15.164Z,,,false
+https://dog.ceo,fun,true,5,,3659,2026-02-16T21:53:24.824Z,site_mlppnzjs_xj647tib,path_mlppnzjs_6brp78cy,true
+https://catfact.ninja,fun,true,1,,2641,2026-02-16T21:53:33.465Z,site_mlppo6l9_xya8ithp,path_mlppo6l9_k282thuu,true
+https://api.chucknorris.io,fun,true,1,,3419,2026-02-16T21:53:42.887Z,site_mlppodv5_tt12gvh3,path_mlppodv5_g53p08vc,true
+https://icanhazdadjoke.com,fun,true,10,,4042,2026-02-16T21:53:52.929Z,site_mlppokrm_remwo9rg,path_mlppokrm_9v46x2ti,true
+https://www.themealdb.com,food,true,1,,2785,2026-02-16T21:54:01.716Z,site_mlpposdr_w1mrlsjk,path_mlpposdr_67pqvaw0,true
+https://www.thecocktaildb.com,food,true,1,,2973,2026-02-16T21:54:10.689Z,site_mlppozbb_e2s0swke,path_mlppozbb_c7r22hjf,true
+https://api.openbrewerydb.org,food,true,1,,3839,2026-02-16T21:54:20.528Z,site_mlppp5mx_qwna6dab,path_mlppp6o2_nrdvqiv7,false
+https://api.nasa.gov,science,true,1,,4740,2026-02-16T21:54:31.269Z,site_mlpppf5v_ce4oi0x4,path_mlpppf5v_ku9ckapu,true
+https://hacker-news.firebaseio.com,news,true,8,,3843,2026-02-16T21:54:41.114Z,site_mlpppm5m_2su6fji4,path_mlpppm5m_vq35x26g,true
+https://en.wikipedia.org/w/api.php,news,true,1,,3879,2026-02-16T21:54:50.995Z,site_mlpppuey_iw1bc935,path_mlpppuey_eqc58yap,true
+https://nominatim.openstreetmap.org,location,true,4,,5638,2026-02-16T21:55:02.634Z,site_mlppq0oo_uf174amv,path_mlppq2s2_ri04zcpf,false
+https://api.dictionaryapi.dev,language,true,1,,3065,2026-02-16T21:55:11.702Z,site_mlppqad5_txrrmwck,path_mlppqad5_6s511qam,true
+https://worldtimeapi.org,time,true,1,,8891,2026-02-16T21:55:26.594Z,site_mlppqgx0_k4ien8w2,path_mlppqlm3_s8qodgti,false
+https://date.nager.at,time,true,4,,4499,2026-02-16T21:55:37.094Z,site_mlppqs7f_fftuc5qy,path_mlppqtd3_ya9ln4iu,false
+https://news.ycombinator.com,saas_hard,true,1,,5891,2026-02-16T21:55:48.986Z,site_mlppr0lt_4ez6iyzo,path_mlppr2vv_gdpceszt,false
+https://www.producthunt.com,saas_hard,true,6,,8885,2026-02-16T21:56:03.873Z,site_mlppr9q9_q63i3r9m,path_mlpprdw1_xb846dtp,false
+https://stripe.com/docs/api,saas_hard,false,0,Navigate to https://stripe.com/docs/api failed: TimeoutError: Navigation timeout of 30000 ms exceeded,31518,2026-02-16T21:56:41.394Z,,,false
+https://www.craigslist.org,ecommerce_hard,true,4,,7575,2026-02-16T21:56:54.969Z,site_mlppsezg_fz4yvgpp,path_mlppshj2_aumq7iv3,false
+https://www.etsy.com,ecommerce_hard,true,17,,11735,2026-02-16T21:57:12.704Z,site_mlppsp1w_le8tu9r3,path_mlppsu0t_9fcewdk4,false
+https://www.imdb.com,content_hard,true,3,,6351,2026-02-16T21:57:25.055Z,site_mlppt2cq_p77kylg8,path_mlppt4v7_srm36n0r,false
+https://www.goodreads.com,content_hard,true,1,,5043,2026-02-16T21:57:36.098Z,site_mlpptbq5_ubd8fedo,path_mlpptdkp_lqi3x0db,false
+https://arxiv.org,content_hard,true,2,,4717,2026-02-16T21:57:46.816Z,site_mlpptkkd_t8nbu1q3,path_mlpptlot_t17if61x,false
+https://www.npmjs.com,developer_hard,true,5,,8995,2026-02-16T21:58:01.812Z,site_mlpptspd_qecv4zy6,path_mlpptx0h_i6owobub,false
+https://crates.io,developer_hard,true,4,,6749,2026-02-16T21:58:14.561Z,site_mlppu4bx_7ob8isx4,path_mlppu6xv_7svnsq0f,false
+https://pypi.org,developer_hard,true,4,,5866,2026-02-16T21:58:26.430Z,site_mlppueh5_red1g4ad,path_mlppufzs_zqur2whz,false
+https://hub.docker.com,developer_hard,true,29,,16064,2026-02-16T21:58:48.494Z,site_mlppuo78_srzqf3er,path_mlppuumb_rny3vg7e,false
+https://www.zillow.com,ecommerce_hard,true,8,,9604,2026-02-16T21:59:04.098Z,site_mlppv4lk_14was95g,path_mlppv8rb_y6z3v46z,false
+https://www.espn.com,content_hard,true,63,,33617,2026-02-16T21:59:43.715Z,site_mlppvgpw_w13jzh6f,path_mlppvxd1_twn5ylep,false
+https://www.weather.com,content_hard,false,0,Navigate to https://www.weather.com failed: TimeoutError: Navigation timeout of 30000 ms exceeded,34491,2026-02-16T22:00:24.206Z,,,false
