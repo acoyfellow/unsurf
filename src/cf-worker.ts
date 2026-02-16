@@ -130,13 +130,18 @@ async function handleGalleryPublish(body: unknown, env: Env): Promise<Response> 
 // ==================== Route Handlers ====================
 
 async function handleScout(body: unknown, env: Env): Promise<Response> {
-	const { url, task, publish } = body as { url: string; task: string; publish?: boolean };
+	const { url, task, publish, force } = body as {
+		url: string;
+		task: string;
+		publish?: boolean;
+		force?: boolean;
+	};
 	if (!url || !task) {
 		return errorResponse("Missing 'url' and 'task' in request body", 400);
 	}
 
 	const result = await Effect.runPromise(
-		scout({ url, task, publish }).pipe(Effect.provide(buildLayer(env))),
+		scout({ url, task, publish, force }).pipe(Effect.provide(buildLayer(env))),
 	);
 
 	return jsonResponse(result);

@@ -21,6 +21,8 @@ export interface ScoutInput {
 	readonly url: string;
 	readonly task: string;
 	readonly publish?: boolean | undefined;
+	/** Skip gallery cache and force fresh browser scout */
+	readonly force?: boolean | undefined;
 }
 
 export interface ScoutResult {
@@ -203,23 +205,25 @@ export const scout = (
 		const now = nowISO();
 		const domain = extractDomain(input.url);
 
-		// Check gallery for cached spec (optional — skip if Gallery isn't in layer)
-		const galleryResult = yield* Effect.serviceOption(Gallery).pipe(
-			Effect.flatMap((galleryOpt) => {
-				if (Option.isNone(galleryOpt)) return Effect.succeed(null);
-				const gallery = galleryOpt.value;
-				return gallery.getByDomain(domain).pipe(
-					Effect.flatMap((entry) => {
-						if (!entry) return Effect.succeed(null);
-						return gallery.getSpec(entry.id).pipe(
-							Effect.map((spec) => ({ entry, spec })),
+		// Check gallery for cached spec (optional — skip if Gallery isn't in layer or force=true)
+		const galleryResult = input.force
+			? null
+			: yield* Effect.serviceOption(Gallery).pipe(
+					Effect.flatMap((galleryOpt) => {
+						if (Option.isNone(galleryOpt)) return Effect.succeed(null);
+						const gallery = galleryOpt.value;
+						return gallery.getByDomain(domain).pipe(
+							Effect.flatMap((entry) => {
+								if (!entry) return Effect.succeed(null);
+								return gallery.getSpec(entry.id).pipe(
+									Effect.map((spec) => ({ entry, spec })),
+									Effect.catchAll(() => Effect.succeed(null)),
+								);
+							}),
 							Effect.catchAll(() => Effect.succeed(null)),
 						);
 					}),
-					Effect.catchAll(() => Effect.succeed(null)),
 				);
-			}),
-		);
 
 		if (galleryResult) {
 			// Return cached spec from gallery
