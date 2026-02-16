@@ -75,6 +75,11 @@ const frontmatter = {
     margin: 0 auto;
   }
 
+  /* Directory: align nav bar with content, no extra padding */
+  :root:has(#directory) .main-frame {
+    padding-inline-start: var(--sl-nav-pad-x);
+  }
+
   /* Variables */
   .directory {
     --text: #1a1a1a;

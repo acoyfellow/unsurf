@@ -190,6 +190,11 @@ nav.sidebar {
   border-bottom: 1px solid var(--sp-nav-border) !important;
 }
 
+/* directory page: nav padding — no sidebar, content is full-width */
+:root:has(#directory) header.header {
+  padding-inline: var(--sl-nav-pad-x) !important;
+}
+
 /* ── background: breathing grid ── */
 :root[data-has-hero] main {
   background:

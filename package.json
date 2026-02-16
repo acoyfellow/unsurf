@@ -32,8 +32,8 @@
 	},
 	"homepage": "https://unsurf.coey.dev",
 	"scripts": {
-		"dev": "bun run alchemy.run.ts",
-		"deploy": "bun run alchemy.run.ts",
+		"dev": "bunx alchemy dev",
+		"deploy": "bunx alchemy deploy",
 		"build": "tsup",
 		"prepublishOnly": "bun run check && bun run typecheck && bun run test && bun run build",
 		"generate": "bunx drizzle-kit generate",

@@ -21,14 +21,9 @@ export default defineConfig({
       customCss: ['./src/styles/custom.css'],
       components: {
         Head: './src/components/Head.astro',
+        Header: './src/components/Header.astro',
       },
       sidebar: [
-        {
-          label: 'Directory',
-          items: [
-            { label: 'Browse APIs', link: '/directory' },
-          ],
-        },
         {
           label: 'Start',
           items: [
@@ -44,7 +39,6 @@ export default defineConfig({
             { label: 'Heal a broken path', slug: 'guides/heal' },
             { label: 'Agent integration', slug: 'guides/agent-integration' },
             { label: 'MCP Server', slug: 'guides/mcp' },
-            { label: 'API Gallery', slug: 'guides/gallery' },
           ],
         },
         {

@@ -16,8 +16,6 @@ import { Store, StoreD1Live, makeD1Store } from "./services/Store.js";
 import { heal } from "./tools/Heal.js";
 import { scout } from "./tools/Scout.js";
 import { worker } from "./tools/Worker.js";
-import { directoryHtml } from "./ui/directoryHtml.js";
-
 interface Env {
 	DB: D1Database;
 	STORAGE: R2Bucket;
@@ -195,18 +193,8 @@ export default {
 			return new Response(null, { headers: corsHeaders() });
 		}
 
-		// Directory UI (homepage)
-		if (url.pathname === "/" || url.pathname === "/directory") {
-			return new Response(directoryHtml, {
-				headers: {
-					"Content-Type": "text/html; charset=utf-8",
-					...corsHeaders(),
-				},
-			});
-		}
-
-		// API info endpoint
-		if (url.pathname === "/api") {
+		// Root + /api: REST discovery
+		if (url.pathname === "/" || url.pathname === "/api") {
 			return jsonResponse({
 				name: "unsurf",
 				version: "0.3.0",
@@ -225,7 +213,7 @@ export default {
 			});
 		}
 
-		// MCP endpoint
+		// MCP
 		if (url.pathname === "/mcp") {
 			return handleMcpRequest(request, env);
 		}
