@@ -1,0 +1,264 @@
+{
+  "_meta": {
+    "description": "Curated list of public APIs to seed the unsurf directory",
+    "criteria": "No auth required OR simple API key, stable endpoints, useful for developers/agents"
+  },
+  "apis": [
+    {
+      "category": "Weather & Environment",
+      "sites": [
+        { "url": "https://api.open-meteo.com", "task": "get weather forecast for a location" },
+        { "url": "https://api.weather.gov", "task": "get weather alerts and forecasts for US locations" },
+        { "url": "https://api.sunrise-sunset.org", "task": "get sunrise and sunset times" },
+        { "url": "https://api.openweathermap.org", "task": "get current weather data" },
+        { "url": "https://air-quality-api.open-meteo.com", "task": "get air quality data" },
+        { "url": "https://flood-api.open-meteo.com", "task": "get flood forecast data" },
+        { "url": "https://marine-api.open-meteo.com", "task": "get marine weather forecast" },
+        { "url": "https://climate-api.open-meteo.com", "task": "get historical climate data" }
+      ]
+    },
+    {
+      "category": "Data & Reference",
+      "sites": [
+        { "url": "https://restcountries.com", "task": "get information about countries" },
+        { "url": "https://api.genderize.io", "task": "predict gender from a name" },
+        { "url": "https://api.nationalize.io", "task": "predict nationality from a name" },
+        { "url": "https://api.agify.io", "task": "predict age from a name" },
+        { "url": "https://api.zippopotam.us", "task": "get location info from zip code" },
+        { "url": "https://universities.hipolabs.com", "task": "search universities worldwide" },
+        { "url": "https://api.fda.gov", "task": "search FDA drug and food data" },
+        { "url": "https://world.openfoodfacts.org", "task": "get food product information" },
+        { "url": "https://api.fiscaldata.treasury.gov", "task": "get US treasury fiscal data" },
+        { "url": "https://datausa.io/api", "task": "get US census and demographic data" }
+      ]
+    },
+    {
+      "category": "Finance & Crypto",
+      "sites": [
+        { "url": "https://api.coingecko.com", "task": "get cryptocurrency prices and market data" },
+        { "url": "https://api.coinbase.com", "task": "get crypto exchange rates" },
+        { "url": "https://api.coindesk.com", "task": "get bitcoin price index" },
+        { "url": "https://api.coinpaprika.com", "task": "get crypto market data" },
+        { "url": "https://api.exchangerate-api.com", "task": "get currency exchange rates" },
+        { "url": "https://api.frankfurter.app", "task": "get ECB exchange rates" },
+        { "url": "https://api.metalpriceapi.com", "task": "get precious metal prices" },
+        { "url": "https://api.vatcomply.com", "task": "validate VAT numbers and get rates" }
+      ]
+    },
+    {
+      "category": "Entertainment & Media",
+      "sites": [
+        { "url": "https://pokeapi.co", "task": "get Pokemon data" },
+        { "url": "https://rickandmortyapi.com", "task": "get Rick and Morty characters and episodes" },
+        { "url": "https://swapi.dev", "task": "get Star Wars data" },
+        { "url": "https://api.jikan.moe", "task": "get anime and manga data from MyAnimeList" },
+        { "url": "https://api.tvmaze.com", "task": "get TV show information" },
+        { "url": "https://api.deezer.com", "task": "search music and artists" },
+        { "url": "https://itunes.apple.com", "task": "search iTunes store" },
+        { "url": "https://openlibrary.org", "task": "search books and get book data" },
+        { "url": "https://gutendex.com", "task": "search Project Gutenberg books" },
+        { "url": "https://api.artic.edu/api", "task": "get art collection data from Art Institute of Chicago" },
+        { "url": "https://collectionapi.metmuseum.org", "task": "get art from Metropolitan Museum" },
+        { "url": "https://api.disneyapi.dev", "task": "get Disney character data" },
+        { "url": "https://superheroapi.com", "task": "get superhero data" },
+        { "url": "https://anapioficeandfire.com", "task": "get Game of Thrones data" },
+        { "url": "https://api.potterdb.com", "task": "get Harry Potter data" },
+        { "url": "https://the-one-api.dev", "task": "get Lord of the Rings data" }
+      ]
+    },
+    {
+      "category": "Games & Gaming",
+      "sites": [
+        { "url": "https://api.rawg.io", "task": "get video game data" },
+        { "url": "https://www.cheapshark.com/api", "task": "get video game deals and prices" },
+        { "url": "https://api.chess.com", "task": "get chess player stats and games" },
+        { "url": "https://api.magicthegathering.io", "task": "get Magic: The Gathering cards" },
+        { "url": "https://db.ygoprodeck.com/api", "task": "get Yu-Gi-Oh cards" },
+        { "url": "https://api.scryfall.com", "task": "search Magic: The Gathering cards" },
+        { "url": "https://deckofcardsapi.com", "task": "shuffle and draw from a deck of cards" },
+        { "url": "https://api.open5e.com", "task": "get D&D 5e game data" }
+      ]
+    },
+    {
+      "category": "Developer Tools",
+      "sites": [
+        { "url": "https://api.github.com", "task": "get GitHub repository and user data" },
+        { "url": "https://api.npms.io", "task": "search and analyze npm packages" },
+        { "url": "https://registry.npmjs.org", "task": "get npm package metadata" },
+        { "url": "https://httpbin.org", "task": "test HTTP requests" },
+        { "url": "https://jsonplaceholder.typicode.com", "task": "get fake JSON data for testing" },
+        { "url": "https://dummyjson.com", "task": "get dummy JSON data" },
+        { "url": "https://fakerapi.it", "task": "generate fake data" },
+        { "url": "https://randomuser.me", "task": "generate random user data" },
+        { "url": "https://api.publicapis.org", "task": "search public APIs" },
+        { "url": "https://icanhazip.com", "task": "get your public IP address" },
+        { "url": "https://api.ipify.org", "task": "get your public IP address" },
+        { "url": "https://ipinfo.io", "task": "get IP geolocation data" },
+        { "url": "https://ip-api.com", "task": "get IP geolocation data" }
+      ]
+    },
+    {
+      "category": "Fun & Random",
+      "sites": [
+        { "url": "https://dog.ceo", "task": "get random dog images" },
+        { "url": "https://api.thecatapi.com", "task": "get random cat images" },
+        { "url": "https://api.thedogapi.com", "task": "get dog breed information" },
+        { "url": "https://randomfox.ca", "task": "get random fox images" },
+        { "url": "https://random.dog", "task": "get random dog images" },
+        { "url": "https://catfact.ninja", "task": "get random cat facts" },
+        { "url": "https://api.chucknorris.io", "task": "get Chuck Norris jokes" },
+        { "url": "https://official-joke-api.appspot.com", "task": "get random jokes" },
+        { "url": "https://icanhazdadjoke.com", "task": "get dad jokes" },
+        { "url": "https://api.quotable.io", "task": "get random quotes" },
+        { "url": "https://zenquotes.io", "task": "get inspirational quotes" },
+        { "url": "https://api.adviceslip.com", "task": "get random advice" },
+        { "url": "https://uselessfacts.jsph.pl", "task": "get random useless facts" },
+        { "url": "https://numbersapi.com", "task": "get facts about numbers" },
+        { "url": "https://api.fungenerators.com", "task": "generate fun content" },
+        { "url": "https://api.kanye.rest", "task": "get Kanye West quotes" },
+        { "url": "https://ron-swanson-quotes.herokuapp.com", "task": "get Ron Swanson quotes" },
+        { "url": "https://api.forismatic.com", "task": "get inspirational quotes" },
+        { "url": "https://www.boredapi.com", "task": "get random activity suggestions" },
+        { "url": "https://www.affirmations.dev", "task": "get positive affirmations" }
+      ]
+    },
+    {
+      "category": "Food & Drink",
+      "sites": [
+        { "url": "https://www.themealdb.com", "task": "search recipes and meals" },
+        { "url": "https://www.thecocktaildb.com", "task": "search cocktail recipes" },
+        { "url": "https://api.spoonacular.com", "task": "search recipes and food data" },
+        { "url": "https://api.edamam.com", "task": "get recipe and nutrition data" },
+        { "url": "https://api.punkapi.com", "task": "get craft beer data from BrewDog" },
+        { "url": "https://api.openbrewerydb.org", "task": "search breweries" },
+        { "url": "https://coffee.alexflipnote.dev", "task": "get random coffee images" }
+      ]
+    },
+    {
+      "category": "Science & Space",
+      "sites": [
+        { "url": "https://api.nasa.gov", "task": "get NASA space data and images" },
+        { "url": "https://api.spacexdata.com", "task": "get SpaceX launch data" },
+        { "url": "https://ll.thespacedevs.com", "task": "get space launch data" },
+        { "url": "https://api.le-systeme-solaire.net", "task": "get solar system data" },
+        { "url": "https://api.gbif.org", "task": "get biodiversity data" },
+        { "url": "https://eutils.ncbi.nlm.nih.gov", "task": "search PubMed biomedical literature" },
+        { "url": "https://api.crossref.org", "task": "search scholarly publications" },
+        { "url": "https://api.semanticscholar.org", "task": "search academic papers" }
+      ]
+    },
+    {
+      "category": "News & Content",
+      "sites": [
+        { "url": "https://hacker-news.firebaseio.com", "task": "get Hacker News stories and comments" },
+        { "url": "https://www.reddit.com", "task": "get Reddit posts and comments" },
+        { "url": "https://en.wikipedia.org/w/api.php", "task": "search Wikipedia articles" },
+        { "url": "https://api.wikimedia.org", "task": "get Wikimedia content" },
+        { "url": "https://export.arxiv.org/api", "task": "search arXiv papers" },
+        { "url": "https://api.stackexchange.com", "task": "search Stack Overflow questions" }
+      ]
+    },
+    {
+      "category": "Location & Maps",
+      "sites": [
+        { "url": "https://nominatim.openstreetmap.org", "task": "geocode addresses and search places" },
+        { "url": "https://overpass-api.de", "task": "query OpenStreetMap data" },
+        { "url": "https://api.teleport.org", "task": "get city quality of life data" },
+        { "url": "https://geocode.maps.co", "task": "geocode addresses" },
+        { "url": "https://api.postcodes.io", "task": "lookup UK postcodes" },
+        { "url": "https://api.wheretheiss.at", "task": "track ISS location" },
+        { "url": "https://api.open-elevation.com", "task": "get elevation data" }
+      ]
+    },
+    {
+      "category": "Text & Language",
+      "sites": [
+        { "url": "https://api.dictionaryapi.dev", "task": "get word definitions" },
+        { "url": "https://api.datamuse.com", "task": "find related words and rhymes" },
+        { "url": "https://api.wordnik.com", "task": "get word definitions and examples" },
+        { "url": "https://libretranslate.com", "task": "translate text between languages" },
+        { "url": "https://api.languagetool.org", "task": "check grammar and spelling" },
+        { "url": "https://api.urbandictionary.com", "task": "get slang definitions" }
+      ]
+    },
+    {
+      "category": "Images & Media",
+      "sites": [
+        { "url": "https://api.unsplash.com", "task": "search stock photos" },
+        { "url": "https://api.pexels.com", "task": "search stock photos and videos" },
+        { "url": "https://pixabay.com/api", "task": "search free images" },
+        { "url": "https://picsum.photos", "task": "get random placeholder images" },
+        { "url": "https://placekitten.com", "task": "get kitten placeholder images" },
+        { "url": "https://source.unsplash.com", "task": "get random photos" },
+        { "url": "https://api.giphy.com", "task": "search GIFs" },
+        { "url": "https://api.imgflip.com", "task": "get meme templates" },
+        { "url": "https://xkcd.com", "task": "get XKCD comics" }
+      ]
+    },
+    {
+      "category": "Government & Public Data",
+      "sites": [
+        { "url": "https://api.fbi.gov", "task": "get FBI wanted list and crime data" },
+        { "url": "https://api.data.gov", "task": "search US government datasets" },
+        { "url": "https://api.regulations.gov", "task": "search US federal regulations" },
+        { "url": "https://api.census.gov", "task": "get US census data" },
+        { "url": "https://api.usaspending.gov", "task": "get US federal spending data" },
+        { "url": "https://api.congress.gov", "task": "get US Congress bills and members" },
+        { "url": "https://api.open.fec.gov", "task": "get US campaign finance data" },
+        { "url": "https://data.sec.gov", "task": "get SEC filings data" },
+        { "url": "https://api.nhtsa.gov", "task": "get vehicle safety data" },
+        { "url": "https://api.eia.gov", "task": "get US energy data" }
+      ]
+    },
+    {
+      "category": "Time & Calendars",
+      "sites": [
+        { "url": "https://worldtimeapi.org", "task": "get current time in any timezone" },
+        { "url": "https://date.nager.at", "task": "get public holidays by country" },
+        { "url": "https://calendarific.com/api", "task": "get holidays and observances" },
+        { "url": "https://api.aladhan.com", "task": "get Islamic prayer times" },
+        { "url": "https://www.hebcal.com/hebcal", "task": "get Jewish calendar data" }
+      ]
+    },
+    {
+      "category": "Sports",
+      "sites": [
+        { "url": "https://www.thesportsdb.com/api", "task": "get sports data and schedules" },
+        { "url": "https://api.football-data.org", "task": "get soccer/football data" },
+        { "url": "https://api-nba-v1.p.rapidapi.com", "task": "get NBA basketball data" },
+        { "url": "https://api.balldontlie.io", "task": "get NBA stats" },
+        { "url": "https://ergast.com/api", "task": "get Formula 1 racing data" },
+        { "url": "https://api.openligadb.de", "task": "get German soccer league data" }
+      ]
+    },
+    {
+      "category": "Transportation",
+      "sites": [
+        { "url": "https://api.transitchicago.com", "task": "get Chicago transit data" },
+        { "url": "https://api.bart.gov", "task": "get BART transit data" },
+        { "url": "https://api.wmata.com", "task": "get DC Metro transit data" },
+        { "url": "https://api.511.org", "task": "get SF Bay Area transit data" },
+        { "url": "https://api.navitia.io", "task": "get public transit routing" }
+      ]
+    },
+    {
+      "category": "Security & Validation",
+      "sites": [
+        { "url": "https://haveibeenpwned.com/api", "task": "check if email was in data breach" },
+        { "url": "https://emailrep.io", "task": "get email reputation data" },
+        { "url": "https://api.hunter.io", "task": "verify email addresses" },
+        { "url": "https://api.mailboxvalidator.com", "task": "validate email addresses" },
+        { "url": "https://pwnedpasswords.com/api", "task": "check if password was leaked" }
+      ]
+    },
+    {
+      "category": "Business & Commerce",
+      "sites": [
+        { "url": "https://api.yelp.com", "task": "search local businesses" },
+        { "url": "https://api.company-information.service.gov.uk", "task": "get UK company data" },
+        { "url": "https://api.clearbit.com", "task": "get company information" },
+        { "url": "https://api.crunchbase.com", "task": "get startup and company data" }
+      ]
+    }
+  ]
+}
