@@ -12,7 +12,7 @@ import { makeAnthropicProvider } from "./ai/AnthropicProvider.js";
 import { runScoutAgent } from "./ai/ScoutAgent.js";
 import { createDb } from "./db/queries.js";
 import { BrowserCfLive, makeCfBrowser } from "./services/Browser.js";
-import { Directory, makeD1Directory } from "./services/Directory.js";
+import { makeD1Directory } from "./services/Directory.js";
 import { Gallery, makeD1Gallery, makeKvCache } from "./services/Gallery.js";
 import { makeOpenApiGenerator, OpenApiGenerator } from "./services/OpenApiGenerator.js";
 import { makeSchemaInferrer, SchemaInferrer } from "./services/SchemaInferrer.js";
@@ -157,7 +157,7 @@ export function createMcpServer(env: Env): McpServer {
 					.optional()
 					.describe(
 						"Must be true to execute unsafe or destructive endpoints (DELETE, billing mutations, account changes). " +
-						"The worker will block these by default and return the safety classification so you can review before confirming.",
+							"The worker will block these by default and return the safety classification so you can review before confirming.",
 					),
 			},
 		},

@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import type { CapturedEndpoint } from "../domain/Endpoint.js";
 import {
 	type BlockedDomainError,
@@ -7,10 +7,9 @@ import {
 	type StoreError,
 } from "../domain/Errors.js";
 import {
-	type RiskLevel,
-	type SafetyClassification,
 	classifyEndpoint,
 	requiresConfirmation,
+	type SafetyClassification,
 } from "../lib/safety.js";
 import { Store } from "../services/Store.js";
 
@@ -173,9 +172,7 @@ export const worker = (
 		const safety = classifyEndpoint(endpoint.method, endpoint.pathPattern);
 
 		if (requiresConfirmation(safety.level) && !input.confirmUnsafe) {
-			const msg =
-				`Blocked: ${safety.reason}. ` +
-				"Pass confirmUnsafe: true to execute this endpoint.";
+			const msg = `Blocked: ${safety.reason}. Pass confirmUnsafe: true to execute this endpoint.`;
 			yield* saveWorkerRun(input.pathId, false, input.data, null, msg);
 			return { success: false, response: msg, safety };
 		}
