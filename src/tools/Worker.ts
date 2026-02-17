@@ -1,6 +1,11 @@
 import { Effect, Option } from "effect";
 import type { CapturedEndpoint } from "../domain/Endpoint.js";
-import { NetworkError, type NotFoundError, type StoreError } from "../domain/Errors.js";
+import {
+	type BlockedDomainError,
+	NetworkError,
+	type NotFoundError,
+	type StoreError,
+} from "../domain/Errors.js";
 import { Store } from "../services/Store.js";
 
 // ==================== Types ====================
@@ -122,7 +127,11 @@ const saveWorkerRun = (
 
 export const worker = (
 	input: WorkerInput,
-): Effect.Effect<WorkerResult, NotFoundError | NetworkError | StoreError, Store> =>
+): Effect.Effect<
+	WorkerResult,
+	BlockedDomainError | NotFoundError | NetworkError | StoreError,
+	Store
+> =>
 	Effect.gen(function* () {
 		const store = yield* Store;
 

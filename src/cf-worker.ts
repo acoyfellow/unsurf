@@ -162,11 +162,17 @@ async function handleWorker(body: unknown, env: Env): Promise<Response> {
 		Layer.succeed(OpenApiGenerator, makeOpenApiGenerator()),
 	);
 
-	const result = await Effect.runPromise(
-		worker({ pathId, data, headers }).pipe(Effect.provide(layer)),
-	);
-
-	return jsonResponse(result);
+	try {
+		const result = await Effect.runPromise(
+			worker({ pathId, data, headers }).pipe(Effect.provide(layer)),
+		);
+		return jsonResponse(result);
+	} catch (e) {
+		const message = e instanceof Error ? e.message : String(e);
+		if (message.includes('"resource"')) return errorResponse(message, 404);
+		if (message.includes("BlockedDomainError")) return errorResponse(message, 403);
+		return errorResponse(message);
+	}
 }
 
 async function handleHeal(body: unknown, env: Env): Promise<Response> {
@@ -175,11 +181,17 @@ async function handleHeal(body: unknown, env: Env): Promise<Response> {
 		return errorResponse("Missing 'pathId' in request body", 400);
 	}
 
-	const result = await Effect.runPromise(
-		heal({ pathId, error }).pipe(Effect.provide(buildLayer(env))),
-	);
-
-	return jsonResponse(result);
+	try {
+		const result = await Effect.runPromise(
+			heal({ pathId, error }).pipe(Effect.provide(buildLayer(env))),
+		);
+		return jsonResponse(result);
+	} catch (e) {
+		const message = e instanceof Error ? e.message : String(e);
+		if (message.includes('"resource"')) return errorResponse(message, 404);
+		if (message.includes("BlockedDomainError")) return errorResponse(message, 403);
+		return errorResponse(message);
+	}
 }
 
 // ==================== Entry Point ====================

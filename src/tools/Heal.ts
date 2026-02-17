@@ -1,5 +1,10 @@
 import { Effect, Option, Schedule } from "effect";
-import type { BrowserError, NotFoundError, StoreError } from "../domain/Errors.js";
+import type {
+	BlockedDomainError,
+	BrowserError,
+	NotFoundError,
+	StoreError,
+} from "../domain/Errors.js";
 import type { Browser } from "../services/Browser.js";
 import type { OpenApiGenerator } from "../services/OpenApiGenerator.js";
 import type { SchemaInferrer } from "../services/SchemaInferrer.js";
@@ -69,7 +74,7 @@ const rescoutAndRetry = (
 	pathId: string,
 ): Effect.Effect<
 	HealResult,
-	BrowserError | StoreError | NotFoundError,
+	BlockedDomainError | BrowserError | StoreError | NotFoundError,
 	Browser | Store | SchemaInferrer | OpenApiGenerator
 > =>
 	Effect.gen(function* () {
@@ -126,7 +131,7 @@ export const heal = (
 	input: HealInput,
 ): Effect.Effect<
 	HealResult,
-	BrowserError | StoreError | NotFoundError,
+	BlockedDomainError | BrowserError | StoreError | NotFoundError,
 	Browser | Store | SchemaInferrer | OpenApiGenerator
 > =>
 	Effect.gen(function* () {
