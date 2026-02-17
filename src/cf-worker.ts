@@ -360,7 +360,7 @@ export default {
 				return errorResponse("Invalid directory path", 400);
 			} catch (e) {
 				const message = e instanceof Error ? e.message : String(e);
-				if (message.includes("NotFoundError")) return errorResponse(message, 404);
+				if (message.includes('"resource"')) return errorResponse(message, 404);
 				return errorResponse(message);
 			}
 		}
