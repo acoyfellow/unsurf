@@ -41,6 +41,12 @@ export { PathStep, ScoutedPath } from "./domain/Path.js";
 export { Site } from "./domain/Site.js";
 // Codegen
 export { generateClient } from "./lib/codegen.js";
+// Safety
+export type { RiskLevel, SafetyClassification } from "./lib/safety.js";
+export {
+	classifyEndpoint as classifySafety,
+	requiresConfirmation,
+} from "./lib/safety.js";
 // Utilities
 export { extractDomain, normalizeUrlPattern } from "./lib/url.js";
 export type { SiteValidation, ValidationResult } from "./lib/validate.js";

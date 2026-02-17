@@ -130,6 +130,9 @@ export function createMcpServer(env: Env): McpServer {
 				"Use to execute a previously scouted API endpoint directly — no browser needed. " +
 				"Looks up the pathId from a scout result, finds the matching endpoint, and replays the HTTP request. " +
 				"Returns the API response. Requires a pathId from a previous scout result. " +
+				"SAFETY: Endpoints are classified by risk level (safe/moderate/unsafe/destructive). " +
+				"Unsafe and destructive endpoints (DELETE, billing mutations, account changes) are blocked by default — " +
+				"pass confirmUnsafe: true only after reviewing the endpoint and confirming the action is intended. " +
 				"If it fails, use 'heal' to fix the broken path.",
 			inputSchema: {
 				pathId: z
@@ -149,11 +152,20 @@ export function createMcpServer(env: Env): McpServer {
 					.describe(
 						"Custom HTTP headers. Use for authenticated endpoints: {'Authorization': 'Bearer <token>'} or {'Cookie': 'session=abc'}.",
 					),
+				confirmUnsafe: z
+					.boolean()
+					.optional()
+					.describe(
+						"Must be true to execute unsafe or destructive endpoints (DELETE, billing mutations, account changes). " +
+						"The worker will block these by default and return the safety classification so you can review before confirming.",
+					),
 			},
 		},
-		async ({ pathId, data, headers }) => {
+		async ({ pathId, data, headers, confirmUnsafe }) => {
 			const result = await Effect.runPromise(
-				worker({ pathId, data, headers }).pipe(Effect.provide(buildWorkerLayer(env))),
+				worker({ pathId, data, headers, confirmUnsafe }).pipe(
+					Effect.provide(buildWorkerLayer(env)),
+				),
 			);
 			return {
 				content: [

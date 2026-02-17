@@ -147,10 +147,11 @@ async function handleScout(body: unknown, env: Env): Promise<Response> {
 }
 
 async function handleWorker(body: unknown, env: Env): Promise<Response> {
-	const { pathId, data, headers } = body as {
+	const { pathId, data, headers, confirmUnsafe } = body as {
 		pathId: string;
 		data?: Record<string, unknown>;
 		headers?: Record<string, string>;
+		confirmUnsafe?: boolean;
 	};
 	if (!pathId) {
 		return errorResponse("Missing 'pathId' in request body", 400);
@@ -164,7 +165,7 @@ async function handleWorker(body: unknown, env: Env): Promise<Response> {
 
 	try {
 		const result = await Effect.runPromise(
-			worker({ pathId, data, headers }).pipe(Effect.provide(layer)),
+			worker({ pathId, data, headers, confirmUnsafe }).pipe(Effect.provide(layer)),
 		);
 		return jsonResponse(result);
 	} catch (e) {
