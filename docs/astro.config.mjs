@@ -54,6 +54,7 @@ export default defineConfig({
           items: [
             { label: 'How unsurf works', slug: 'concepts/how-it-works' },
             { label: 'Agent patterns', slug: 'concepts/agent-patterns' },
+            { label: 'Agent safety guardrails', slug: 'concepts/safety' },
           ],
         },
       ],

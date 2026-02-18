@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import type { CapturedEndpoint } from "../domain/Endpoint.js";
 import {
 	type BlockedDomainError,
@@ -6,6 +6,11 @@ import {
 	type NotFoundError,
 	type StoreError,
 } from "../domain/Errors.js";
+import {
+	classifyEndpoint,
+	requiresConfirmation,
+	type SafetyClassification,
+} from "../lib/safety.js";
 import { Store } from "../services/Store.js";
 
 // ==================== Types ====================
@@ -14,11 +19,15 @@ export interface WorkerInput {
 	readonly pathId: string;
 	readonly data?: Record<string, unknown> | undefined;
 	readonly headers?: Record<string, string> | undefined;
+	/** Must be true to execute unsafe or destructive endpoints (DELETE, billing mutations, etc.) */
+	readonly confirmUnsafe?: boolean | undefined;
 }
 
 export interface WorkerResult {
 	readonly success: boolean;
 	readonly response?: unknown;
+	/** Present when the endpoint has a non-safe risk level */
+	readonly safety?: SafetyClassification | undefined;
 }
 
 type HttpMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH" | "HEAD" | "OPTIONS";
@@ -159,11 +168,25 @@ export const worker = (
 			return { success: false, response: "No matching endpoint" };
 		}
 
+		// 4. Safety classification
+		const safety = classifyEndpoint(endpoint.method, endpoint.pathPattern);
+
+		if (requiresConfirmation(safety.level) && !input.confirmUnsafe) {
+			const msg = `Blocked: ${safety.reason}. Pass confirmUnsafe: true to execute this endpoint.`;
+			yield* saveWorkerRun(input.pathId, false, input.data, null, msg);
+			return { success: false, response: msg, safety };
+		}
+
 		const site = yield* store.getSite(path.siteId);
 		const response = yield* replayEndpoint(endpoint, site.url, input.data, input.headers);
 
 		// 5. Save run history
 		yield* saveWorkerRun(input.pathId, true, input.data, response);
+
+		// Include safety info for non-safe endpoints so the caller is aware
+		if (safety.level !== "safe") {
+			return { success: true, response, safety };
+		}
 
 		return { success: true, response };
 	});
