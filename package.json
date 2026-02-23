@@ -63,7 +63,7 @@
 		"@cloudflare/workers-types": "^4.20260217.0",
 		"@effect/vitest": "^0.27.0",
 		"@types/node": "^25.2.3",
-		"alchemy": "^0.84.0",
+		"alchemy": "^0.85.1",
 		"drizzle-kit": "^0.31.9",
 		"tsup": "^8.5.1",
 		"typescript": "^5.9.3",
