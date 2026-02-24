@@ -1,0 +1,279 @@
+---
+title: Cloudflare Worker Loaders
+description: Execute unsurf-generated typed clients in Cloudflare Worker Loaders for sandboxed, edge-native API consumption.
+---
+
+import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+
+unsurf turns websites into typed APIs. Cloudflare Worker Loaders turn typed APIs into sandboxed, executable code at the edge. Together, they form a pipeline: **discover → generate → execute**.
+
+This guide covers two complementary patterns:
+
+1. **Dynamic Worker Loaders** — spawn isolated V8 isolates at runtime with unsurf-generated code
+2. **React Router loaders** — use unsurf-generated clients as server-side data fetchers in a full-stack app
+
+## Why Worker Loaders?
+
+The `generateClient()` function produces a TypeScript string — typed fetch functions derived from a scouted OpenAPI spec. That string is just code. The question is where to run it.
+
+| Approach | Isolation | Latency | Use case |
+|---|---|---|---|
+| Dynamic Worker Loader | Full sandbox (network-isolated) | ~1ms cold start | Agent code execution, untrusted APIs, multi-tenant |
+| React Router loader | Same Worker process | Zero overhead | Full-stack apps, SSR, dashboards |
+| Client-side | Browser | Network RTT | SPAs (not covered here) |
+
+## Dynamic Worker Loaders
+
+<Aside type="note">
+  Dynamic Worker Loaders are currently in closed beta on Cloudflare. They work locally via Wrangler and workerd.
+</Aside>
+
+Dynamic Worker Loaders let your Worker spawn additional isolates at runtime with arbitrary code. Each isolate starts in milliseconds, runs in its own V8 sandbox, and can be network-isolated.
+
+### The pipeline
+
+<Steps>
+
+1. **Scout** a website to discover its API.
+
+   ```typescript
+   const result = await scout({
+     url: "https://store.example.com",
+     task: "find product search endpoints",
+   });
+   ```
+
+2. **Generate** a typed TypeScript client.
+
+   ```typescript
+   import { generateClient } from "unsurf";
+
+   const clientCode = generateClient(result.openApiSpec);
+   // → typed fetch functions: getProducts(), getProductsById(id), etc.
+   ```
+
+3. **Load** the generated code into a Worker Loader sandbox.
+
+   ```typescript
+   const sandbox = env.LOADER.get("store-api", async () => ({
+     compatibilityDate: "2025-06-01",
+     mainModule: "client.js",
+     modules: {
+       "client.js": `
+         ${clientCode}
+
+         export default {
+           async fetch(request) {
+             const url = new URL(request.url);
+             const query = url.searchParams.get("q") || "";
+             const products = await getSearch({ q: query });
+             return Response.json(products);
+           }
+         };
+       `,
+     },
+     globalOutbound: null, // block all network except target API
+   }));
+   ```
+
+4. **Execute** in the sandbox.
+
+   ```typescript
+   const entrypoint = sandbox.getEntrypoint();
+   const res = await entrypoint.fetch("http://sandbox/search?q=headphones");
+   const products = await res.json();
+   // products is typed from the scouted spec
+   ```
+
+</Steps>
+
+### Configuration
+
+Add the Worker Loader binding to your `wrangler.toml`:
+
+```toml
+[[worker_loaders]]
+binding = "LOADER"
+```
+
+### Network isolation
+
+The `globalOutbound` property controls what the sandbox can reach:
+
+```typescript
+// Block all outbound network access
+globalOutbound: null
+
+// Allow access through a proxy worker (for allowlisting)
+globalOutbound: env.OUTBOUND_PROXY
+
+// Allow unrestricted access (use with caution)
+// globalOutbound is omitted
+```
+
+For unsurf-generated clients, you typically want to restrict outbound to only the target API's domain. This prevents data exfiltration when executing code that was generated from untrusted websites.
+
+### Multi-site pipeline
+
+The real power is running multiple sandboxes in parallel — each one generated from a different scouted site, each isolated from the others:
+
+```typescript
+// Scout multiple stores → generate clients → load sandboxes
+const stores = ["store-a.com", "store-b.com", "store-c.com"];
+
+const sandboxes = await Promise.all(
+  stores.map(async (domain) => {
+    const result = await scout({ url: `https://${domain}`, task: "find product search" });
+    const code = generateClient(result.openApiSpec);
+    return env.LOADER.get(domain, async () => ({
+      compatibilityDate: "2025-06-01",
+      mainModule: "client.js",
+      modules: { "client.js": wrapAsHandler(code) },
+      globalOutbound: null,
+    }));
+  })
+);
+
+// Query all stores in parallel, merge results
+const results = await Promise.all(
+  sandboxes.map(s =>
+    s.getEntrypoint()
+     .fetch("http://sandbox/search?q=headphones")
+     .then(r => r.json())
+  )
+);
+
+const merged = results.flat().sort((a, b) => a.price - b.price);
+```
+
+<Aside type="tip">
+  Each sandbox is cached by its ID. Calling `env.LOADER.get("store-a.com", ...)` a second time reuses the existing isolate — no cold start penalty.
+</Aside>
+
+See `examples/worker-loader-pipeline.ts` for a full runnable example.
+
+## React Router loaders
+
+React Router v7 on Cloudflare Workers uses `loader` functions for server-side data fetching. unsurf-generated clients slot directly into this pattern.
+
+### Setup
+
+<Steps>
+
+1. **Scout and generate** a client (at build time or from the gallery).
+
+   ```typescript
+   import { generateClient } from "unsurf";
+
+   // From a previous scout, or fetched from the gallery
+   const spec = await fetch("https://unsurf-api.coey.dev/gallery/weather-api/spec")
+     .then(r => r.json());
+
+   const client = generateClient(spec);
+   // Save to app/.server/weather-api.ts
+   ```
+
+2. **Use in a route loader.**
+
+   ```typescript
+   // app/routes/weather.$city.tsx
+   import type { Route } from "./+types/weather.$city";
+   import { getForecast, getAlerts } from "../.server/weather-api";
+
+   export async function loader({ params }: Route.LoaderArgs) {
+     const [forecast, alerts] = await Promise.all([
+       getForecast(params.city),
+       getAlerts({ region: params.city }),
+     ]);
+     return { forecast, alerts };
+   }
+
+   export default function Weather({ loaderData }: Route.ComponentProps) {
+     const { forecast, alerts } = loaderData;
+     return (
+       <div>
+         <h1>{forecast.city}: {forecast.tempF}°F</h1>
+         <p>{forecast.condition}, {forecast.humidity}% humidity</p>
+         {alerts.map((a, i) => (
+           <div key={i} data-severity={a.severity}>{a.message}</div>
+         ))}
+       </div>
+     );
+   }
+   ```
+
+3. **Deploy.**
+
+   The loader runs on the Cloudflare Worker. The generated fetch functions execute at the edge, close to both the user and the upstream API. The component receives fully typed `loaderData` with no manual type assertions.
+
+</Steps>
+
+### Accessing Cloudflare bindings
+
+If you need to combine unsurf-generated API calls with Cloudflare bindings (D1, KV, R2), access them through `context.cloudflare`:
+
+```typescript
+export async function loader({ params, context }: Route.LoaderArgs) {
+  const env = context.cloudflare.env;
+
+  // unsurf-generated client call
+  const forecast = await getForecast(params.city);
+
+  // Cloudflare binding call
+  await env.WEATHER_CACHE.put(
+    `forecast:${params.city}`,
+    JSON.stringify(forecast),
+    { expirationTtl: 300 },
+  );
+
+  return { forecast };
+}
+```
+
+### Workers entry point
+
+The `workers/app.ts` file passes Cloudflare context to React Router:
+
+```typescript
+import { createRequestHandler } from "react-router";
+
+const requestHandler = createRequestHandler(
+  () => import("virtual:react-router/server-build"),
+  import.meta.env.MODE,
+);
+
+export default {
+  async fetch(request, env, ctx) {
+    return requestHandler(request, {
+      cloudflare: { env, ctx },
+    });
+  },
+} satisfies ExportedHandler<CloudflareEnvironment>;
+```
+
+## When to use which
+
+| Scenario | Pattern |
+|---|---|
+| Agent executing discovered APIs at runtime | Dynamic Worker Loader |
+| Multi-tenant: each tenant's API runs in isolation | Dynamic Worker Loader |
+| Executing code generated from untrusted sources | Dynamic Worker Loader (with `globalOutbound: null`) |
+| Full-stack app with server-rendered pages | React Router loader |
+| Dashboard that aggregates multiple known APIs | React Router loader |
+| Pre-scouted APIs with stable specs | React Router loader |
+
+## Examples
+
+Three runnable examples are included in the repository:
+
+| File | Pattern | What it demonstrates |
+|---|---|---|
+| `examples/worker-loader-sandbox.ts` | Dynamic Worker Loader | Scout → codegen → sandbox execution |
+| `examples/react-router-loader.ts` | React Router loader | Typed client in route loaders |
+| `examples/worker-loader-pipeline.ts` | Dynamic Worker Loader | Multi-site parallel pipeline |
+
+Run any example with:
+
+```bash
+bun run examples/worker-loader-sandbox.ts
+```
