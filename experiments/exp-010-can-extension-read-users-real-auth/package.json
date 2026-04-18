@@ -1,0 +1,13 @@
+{
+  "name": "exp-010-can-extension-read-users-real-auth",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "playwright": "^1.59.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

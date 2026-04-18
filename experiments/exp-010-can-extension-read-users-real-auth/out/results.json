@@ -1,0 +1,103 @@
+[
+  {
+    "slug": "midjourney",
+    "url": "https://www.midjourney.com/explore",
+    "probe": {
+      "href": "https://www.midjourney.com/explore?tab=video_top",
+      "origin": "https://www.midjourney.com",
+      "probes": {
+        "authFetch": {
+          "ok": false,
+          "status": 401,
+          "target": "midjourney app-config",
+          "user_email_present": false,
+          "user_id_present": false
+        },
+        "cookie": {
+          "contains_secure": false,
+          "hasContent": true,
+          "ok": true,
+          "pair_count": 4
+        },
+        "localStorage": {
+          "contains_auth": true,
+          "key_count": 9,
+          "keys": [
+            "aiPrompt-claude-temperature",
+            "aiPrompt-claude-version",
+            "lastCheckedUpdates",
+            "aiPrompt-claude-systemPrompt",
+            "aiPrompt-claude-model",
+            "aiPrompt-claude-maxTokens",
+            "EXP_client-4sJ_DEFAULT_USER_PROVIDER",
+            "AMP_unsent_437c42b22c",
+            "EXP_unsent_$default_instance"
+          ],
+          "ok": true
+        }
+      },
+      "timestamp": "2026-04-18T12:22:52.366Z"
+    }
+  },
+  {
+    "slug": "coey-dev",
+    "url": "https://coey.dev/",
+    "probe": {
+      "href": "https://coey.dev/",
+      "origin": "https://coey.dev",
+      "probes": {
+        "authFetch": {
+          "ok": true,
+          "status": 200,
+          "target": "https://coey.dev/"
+        },
+        "cookie": {
+          "contains_secure": false,
+          "hasContent": false,
+          "ok": true,
+          "pair_count": 0
+        },
+        "localStorage": {
+          "contains_auth": false,
+          "key_count": 0,
+          "keys": [],
+          "ok": true
+        }
+      },
+      "timestamp": "2026-04-18T12:22:55.320Z"
+    }
+  },
+  {
+    "slug": "jordancoeyman",
+    "url": "https://jordancoeyman.com/",
+    "probe": {
+      "href": "https://jordancoeyman.com/",
+      "origin": "https://jordancoeyman.com",
+      "probes": {
+        "authFetch": {
+          "ok": true,
+          "status": 200,
+          "target": "https://jordancoeyman.com/"
+        },
+        "cookie": {
+          "contains_secure": false,
+          "hasContent": false,
+          "ok": true,
+          "pair_count": 0
+        },
+        "localStorage": {
+          "contains_auth": false,
+          "key_count": 0,
+          "keys": [],
+          "ok": true
+        }
+      },
+      "timestamp": "2026-04-18T12:22:56.853Z"
+    }
+  },
+  {
+    "slug": "negative-control",
+    "url": "chrome://version",
+    "correctly_blocked": true
+  }
+]
