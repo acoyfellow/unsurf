@@ -1,0 +1,24 @@
+{
+  "slug": "example-com",
+  "url": "https://example.com/",
+  "latency_ms": 1048,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 0,
+    "nontrivial": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://example.com/",
+    "tools": [],
+    "synthesizer": {
+      "name": "exp-002b",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:db14533f2acf53c0cd1a1376dc40a0384f4341ad90203dd82d0c748871f37e23"
+    },
+    "fingerprint": "sha256:c43dedb2b1f7aae5e47355af34db9fedb88de9b5faf7114c150ff9a1606c7131",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T12:03:23.426Z"
+  }
+}

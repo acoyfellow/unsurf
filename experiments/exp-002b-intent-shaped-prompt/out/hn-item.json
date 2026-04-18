@@ -1,0 +1,104 @@
+{
+  "slug": "hn-item",
+  "url": "https://news.ycombinator.com/item?id=1",
+  "latency_ms": 14468,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 3,
+    "nontrivial": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://news.ycombinator.com/item?id=1",
+    "tools": [
+      {
+        "name": "upvote_post",
+        "description": "Upvote the main post on the page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "upvote"
+            }
+          },
+          {
+            "op": "read",
+            "target": {
+              "role": "span",
+              "name": "score"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "upvote_comment",
+        "description": "Upvote a specific comment by its ID.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "upvote"
+            }
+          },
+          {
+            "op": "read",
+            "target": {
+              "role": "span",
+              "name": "score"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "search_hacker_news",
+        "description": "Search Hacker News for a specific query.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Search:"
+            },
+            "value": "{{query}}"
+          },
+          {
+            "op": "submit",
+            "target": {
+              "role": "form",
+              "name": "Search"
+            }
+          }
+        ],
+        "risk": "high"
+      }
+    ],
+    "synthesizer": {
+      "name": "exp-002b",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:db14533f2acf53c0cd1a1376dc40a0384f4341ad90203dd82d0c748871f37e23"
+    },
+    "fingerprint": "sha256:28084adf567370f84b9d988e4f6350956471c27d1234811779d801cfbdd66701",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T12:03:38.339Z"
+  }
+}

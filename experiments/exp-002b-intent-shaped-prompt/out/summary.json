@@ -1,0 +1,10 @@
+{
+  "ran_at": "2026-04-18T12:03:48.249Z",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "n_urls": 6,
+  "total_tools": 6,
+  "total_nontrivial": 2,
+  "valid_count": 6,
+  "mean_latency_ms": 7993,
+  "verdict": "AMBIGUOUS"
+}
