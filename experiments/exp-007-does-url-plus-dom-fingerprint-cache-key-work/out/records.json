@@ -1,0 +1,342 @@
+[
+  {
+    "slug": "jordancoeyman-home",
+    "url": "https://jordancoeyman.com/",
+    "byte_deltas": {
+      "m1": 6,
+      "m2": -176,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true
+      },
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "example-com",
+    "url": "https://example.com/",
+    "byte_deltas": {
+      "m1": 6,
+      "m2": -57,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "hn-submit",
+    "url": "https://news.ycombinator.com/submit",
+    "byte_deltas": {
+      "m1": 6,
+      "m2": -340,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true
+      },
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "coey-projects",
+    "url": "https://coey.dev/projects",
+    "byte_deltas": {
+      "m1": -133,
+      "m2": -415,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "mdn-fetch",
+    "url": "https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API",
+    "byte_deltas": {
+      "m1": -86,
+      "m2": -109,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "mdn-index",
+    "url": "https://developer.mozilla.org/en-US/",
+    "byte_deltas": {
+      "m1": -86,
+      "m2": -109,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "midjourney-explore",
+    "url": "https://www.midjourney.com/explore",
+    "byte_deltas": {
+      "m1": 0,
+      "m2": 0,
+      "m3": 68
+    },
+    "m1_changed": false,
+    "m2_changed": false,
+    "pairs": {
+      "T0_T1": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true
+      },
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": true
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "httpbin-forms-post",
+    "url": "https://httpbin.org/forms/post",
+    "byte_deltas": {
+      "m1": 6,
+      "m2": -1148,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "hn-main",
+    "url": "https://news.ycombinator.com/",
+    "byte_deltas": {
+      "m1": 6,
+      "m2": -176,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": false,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  },
+  {
+    "slug": "wikipedia-webmcp",
+    "url": "https://en.wikipedia.org/wiki/Accessibility",
+    "byte_deltas": {
+      "m1": -128,
+      "m2": -742,
+      "m3": 68
+    },
+    "m1_changed": true,
+    "m2_changed": true,
+    "pairs": {
+      "T0_T1": null,
+      "T0_M1": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": true
+      },
+      "T0_M2": {
+        "F1": true,
+        "F2": true,
+        "F3": false,
+        "F4": false
+      },
+      "T0_M3": {
+        "F1": true,
+        "F2": true,
+        "F3": true,
+        "F4": false
+      }
+    }
+  }
+]

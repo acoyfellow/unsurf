@@ -1,0 +1,31 @@
+{
+  "ran_at": "2026-04-18T12:10:47.193Z",
+  "n_urls": 10,
+  "records_with_T1": 4,
+  "strategies": {
+    "F1": {
+      "T0_T1_hit": "4/4",
+      "T0_M1_false_match_rate": "10/10",
+      "T0_M2_false_match_rate": "10/10",
+      "T0_M3_hit_rate": "10/10"
+    },
+    "F2": {
+      "T0_T1_hit": "3/4",
+      "T0_M1_false_match_rate": "10/10",
+      "T0_M2_false_match_rate": "8/10",
+      "T0_M3_hit_rate": "10/10"
+    },
+    "F3": {
+      "T0_T1_hit": "3/4",
+      "T0_M1_false_match_rate": "1/10",
+      "T0_M2_false_match_rate": "4/10",
+      "T0_M3_hit_rate": "10/10"
+    },
+    "F4": {
+      "T0_T1_hit": "3/4",
+      "T0_M1_false_match_rate": "10/10",
+      "T0_M2_false_match_rate": "1/10",
+      "T0_M3_hit_rate": "0/10"
+    }
+  }
+}
