@@ -1,0 +1,315 @@
+{
+  "slug": "httpbin-forms-post",
+  "url": "https://httpbin.org/forms/post",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "classic HTML form baseline",
+  "latency_ms": 43208,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 11,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://httpbin.org/forms/post",
+    "tools": [
+      {
+        "name": "fill_customer_name",
+        "description": "Fill the customer name field.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "customer_name": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "customer_name"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Customer name:"
+            },
+            "value": "{{customer_name}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "fill_telephone",
+        "description": "Fill the telephone field.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "telephone": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "telephone"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Telephone:"
+            },
+            "value": "{{telephone}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "fill_email_address",
+        "description": "Fill the e-mail address field.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "email_address": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "email_address"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "E-mail address:"
+            },
+            "value": "{{email_address}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "select_pizza_size",
+        "description": "Select the pizza size.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "pizza_size": {
+              "type": "string",
+              "enum": [
+                "small",
+                "medium",
+                "large"
+              ]
+            }
+          },
+          "required": [
+            "pizza_size"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "select",
+            "target": {
+              "role": "radio",
+              "name": "{{pizza_size}}"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "check_topping_bacon",
+        "description": "Check the bacon topping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "checked"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Bacon"
+            },
+            "value": "{{checked}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "check_topping_cheese",
+        "description": "Check the extra cheese topping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "checked"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Extra Cheese"
+            },
+            "value": "{{checked}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "check_topping_onion",
+        "description": "Check the onion topping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "checked"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Onion"
+            },
+            "value": "{{checked}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "check_topping_mushroom",
+        "description": "Check the mushroom topping.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "checked": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "checked"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Mushroom"
+            },
+            "value": "{{checked}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "fill_delivery_time",
+        "description": "Fill the preferred delivery time field.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "delivery_time": {
+              "type": "string",
+              "pattern": "^([01]\\d|2[0-3]):([0-5]\\d)$"
+            }
+          },
+          "required": [
+            "delivery_time"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Preferred delivery time:"
+            },
+            "value": "{{delivery_time}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "fill_delivery_instructions",
+        "description": "Fill the delivery instructions field.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "delivery_instructions": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "delivery_instructions"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Delivery instructions:"
+            },
+            "value": "{{delivery_instructions}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "submit_order",
+        "description": "Submit the order form.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "submit",
+            "target": {
+              "role": "button",
+              "name": "Submit order"
+            }
+          }
+        ],
+        "risk": "high"
+      }
+    ],
+    "fingerprint": "sha256:8af036a8373dd62c4053fc8c606116501f0749dc80dd7676d93515fc8cedd782",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:50:31.278Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 1397,
+  "cleaned_bytes": 1209
+}

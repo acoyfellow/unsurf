@@ -1,0 +1,21 @@
+{
+  "slug": "hn-item",
+  "url": "https://news.ycombinator.com/item?id=1",
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "note": "comment form, server-rendered",
+  "latency_ms": 180009,
+  "status": 0,
+  "ok": false,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "not an object"
+    ],
+    "tool_count": 0,
+    "nontrivial_count": 0
+  },
+  "spec": null,
+  "err": "The operation was aborted.",
+  "fetch_bytes": 46737,
+  "cleaned_bytes": 8200
+}

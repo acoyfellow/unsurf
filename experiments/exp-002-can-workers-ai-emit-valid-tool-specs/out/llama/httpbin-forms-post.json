@@ -1,0 +1,21 @@
+{
+  "slug": "httpbin-forms-post",
+  "url": "https://httpbin.org/forms/post",
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "note": "classic HTML form baseline",
+  "latency_ms": 164741,
+  "status": 500,
+  "ok": false,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "not an object"
+    ],
+    "tool_count": 0,
+    "nontrivial_count": 0
+  },
+  "spec": null,
+  "synth_err": "5024: JSON Model couldn't be met",
+  "fetch_bytes": 1397,
+  "cleaned_bytes": 1209
+}

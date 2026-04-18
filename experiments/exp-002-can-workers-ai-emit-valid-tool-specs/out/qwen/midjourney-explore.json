@@ -1,0 +1,30 @@
+{
+  "slug": "midjourney-explore",
+  "url": "https://www.midjourney.com/explore",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "AMD-005: SaaS feed (no login on unauth fetch, app shell only)",
+  "latency_ms": 1408,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 0,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://www.midjourney.com/explore",
+    "tools": [],
+    "fingerprint": "sha256:8c67fb387efcd5834ac62b6d91349871ffe15a68139ae89198c5bc450e69c909",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:51:24.475Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 3919,
+  "cleaned_bytes": 2706
+}

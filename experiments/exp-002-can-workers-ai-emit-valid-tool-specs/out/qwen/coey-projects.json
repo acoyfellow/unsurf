@@ -1,0 +1,324 @@
+{
+  "slug": "coey-projects",
+  "url": "https://coey.dev/projects",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "AMD-005: personal site",
+  "latency_ms": 50467,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "t2.dsl[0].role option",
+      "t3.dsl[0].role option",
+      "t4.dsl[0].role option",
+      "t5.dsl[0].role option"
+    ],
+    "tool_count": 16,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://coey.dev/projects",
+    "tools": [
+      {
+        "name": "open_search_dialog",
+        "description": "Opens the search dialog on the page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "button",
+              "name": "Open search (⌘K)"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "close_search_dialog",
+        "description": "Closes the search dialog on the page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "button",
+              "name": "Close search"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "navigate_to_home",
+        "description": "Navigates to the home page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "option",
+              "name": "Home"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "navigate_to_blog",
+        "description": "Navigates to the blog page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "option",
+              "name": "Blog"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "navigate_to_resources",
+        "description": "Navigates to the resources page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "option",
+              "name": "Resources"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "navigate_to_about",
+        "description": "Navigates to the about page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "option",
+              "name": "About"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_lab_project",
+        "description": "Visits the Lab project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Lab"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_filepath_project",
+        "description": "Visits the Filepath project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Filepath"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_cloudshell_project",
+        "description": "Visits the Cloudshell project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Cloudshell"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_gateproof_project",
+        "description": "Visits the gateproof project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "gateproof"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_deja_project",
+        "description": "Visits the Deja project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Deja"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_inbox_dog_project",
+        "description": "Visits the inbox.dog project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "inbox.dog"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_anytool_project",
+        "description": "Visits the Anytool project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Anytool"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_unsurf_project",
+        "description": "Visits the unsurf project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "unsurf"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_t2t_now_project",
+        "description": "Visits the t2t.now project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "t2t.now"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "visit_formdrift_project",
+        "description": "Visits the FormDrift project page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "FormDrift"
+            }
+          }
+        ],
+        "risk": "medium"
+      }
+    ],
+    "fingerprint": "sha256:6b354f2dbb5a2011f262e9397f69fcb528627dec95562b3a8f357f3cdb9bf77b",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:52:16.216Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 539643,
+  "cleaned_bytes": 24019
+}

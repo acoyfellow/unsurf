@@ -1,0 +1,21 @@
+{
+  "slug": "example-com",
+  "url": "https://example.com/",
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "note": "static control",
+  "latency_ms": 43524,
+  "status": 500,
+  "ok": false,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "not an object"
+    ],
+    "tool_count": 0,
+    "nontrivial_count": 0
+  },
+  "spec": null,
+  "synth_err": "5024: JSON Model couldn't be met",
+  "fetch_bytes": 528,
+  "cleaned_bytes": 368
+}
