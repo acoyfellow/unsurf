@@ -90,3 +90,28 @@ BRIEFs remain unchanged on disk. Execution reads BOTH the BRIEF AND this amendme
 > `Amendments applied: AMD-001, AMD-003, ...` (or `none`)
 
 This keeps the original framing auditable and makes every deviation explicit rather than silent.
+
+---
+
+## AMD-006 (exp-012) — benchmark deviations from BRIEF
+
+**Amends:** `exp-012-benchmark-webmcp-path-vs-agent-browser-path/BRIEF.md`
+**Date:** 2026-04-18, pre-execution
+**Reason:** The BRIEF specified:
+- 2 fixtures (httpbin + a realistic logged-in fixture)
+- n=20 runs per path per fixture (120 runs total)
+- Path A = Claude Sonnet via Anthropic API driving CDP
+- Path B & C = Claude Desktop as the MCP client
+
+Reality-driven deviations:
+1. **No Anthropic API key available.** Path A substitutes Claude Sonnet with Qwen 2.5 Coder 32B via Workers AI driving CDP. Same pattern (remote LLM ↔ CDP snapshots ↔ action selection), different model. This means the "cost" column on Path A is Workers AI tokens, not Anthropic tokens. Absolute cost comparisons are not apples-to-apples; relative cost per path with the same model is.
+2. **n=5 per path per fixture**, not n=20. Wall-clock budget: 20 runs × 3 paths × ~30s/run ≈ 30 minutes per fixture; 5 runs × 3 paths × ~30s = 7.5 minutes. Statistical power is much weaker. The RESULT will note this explicitly and mark verdict as "preliminary" when n is small.
+3. **httpbin only** as the realistic task in this run. The "logged-in SaaS" fixture is deferred — a fresh headless Chrome has no Midjourney session (confirmed by exp-010), so "mark a notification read" isn't doable autonomously.
+4. **Path B and Path C use the same headless-MCP-client from exp-004 (AMD-002)**, not Claude Desktop. Already disclosed in AMD-002.
+
+**Effect:** The BRIEF's Pass criteria cannot be evaluated as written (n too small, Anthropic model absent). The RESULT provides:
+- A 3-row comparison table with the observed numbers
+- A marker `n=5; preliminary` in every cell
+- A qualitative verdict based on effect size (did Path C roughly 2× outperform Path A on the cheap metric?), not p-values
+
+**THESIS.md impact:** exp-012 under AMD-006 cannot deliver a clean Pass by the original Green criteria. At best it delivers a **qualitative "Path C is cheaper and faster" signal** which lands the branch in Yellow (ship v0 with documented gaps + plan for a proper n=20 benchmark on a real Anthropic key). If Path C is slower or more expensive, Yellow becomes Red.

@@ -1,0 +1,17 @@
+{
+  "name": "exp-012-benchmark-webmcp-path-vs-agent-browser-path",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@mcp-b/webmcp-local-relay": "^2.2.1",
+    "@mcp-b/webmcp-polyfill": "^2.2.0",
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "@types/bun": "latest",
+    "playwright": "^1.59.1",
+    "ws": "^8.20.0"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

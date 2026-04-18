@@ -1,0 +1,32 @@
+{
+  "ran_at": "2026-04-18T12:41:52.338Z",
+  "amendments_applied": [
+    "AMD-002",
+    "AMD-006"
+  ],
+  "n_per_path": 5,
+  "A": {
+    "n": 5,
+    "passes": 5,
+    "median_wall_clock_ms": 12253,
+    "mean_wall_clock_ms": 12237,
+    "mean_total_tokens": 5662,
+    "mean_llm_calls": 10
+  },
+  "B": {
+    "n": 5,
+    "passes": 5,
+    "median_wall_clock_ms": 6332,
+    "mean_wall_clock_ms": 6617,
+    "mean_total_tokens": 0,
+    "mean_llm_calls": 0
+  },
+  "C": {
+    "n": 5,
+    "passes": 0,
+    "median_wall_clock_ms": 5801,
+    "mean_wall_clock_ms": 5967,
+    "mean_total_tokens": 0,
+    "mean_llm_calls": 0
+  }
+}
