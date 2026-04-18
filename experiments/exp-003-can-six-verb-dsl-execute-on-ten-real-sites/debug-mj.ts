@@ -1,0 +1,11 @@
+import { chromium } from "playwright";
+const pb = await chromium.launch({ headless: true });
+const ctx = await pb.newContext();
+const p = await ctx.newPage();
+await p.goto("https://www.midjourney.com/explore", { waitUntil: "domcontentloaded" });
+await p.waitForLoadState("networkidle", { timeout: 6000 }).catch(() => {});
+console.log("exact count:", await p.getByRole("link", { name: "Explore", exact: true }).count());
+console.log("loose count:", await p.getByRole("link", { name: "Explore" }).count());
+const links = await p.evaluate(() => Array.from(document.querySelectorAll("a")).slice(0, 15).map(a => ({ text: a.textContent?.trim().slice(0,60), aria: a.getAttribute("aria-label"), href: a.href?.slice(0,80) })));
+console.log("first links:", JSON.stringify(links, null, 2));
+await pb.close();
