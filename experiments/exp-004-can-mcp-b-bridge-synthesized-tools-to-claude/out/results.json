@@ -1,0 +1,72 @@
+{
+  "stages": [
+    {
+      "stage": "static_server",
+      "ok": true,
+      "port": 8891
+    },
+    {
+      "stage": "page_loaded",
+      "ok": true,
+      "status": "tools registered: ?"
+    },
+    {
+      "stage": "tools_list",
+      "ok": true,
+      "tool_names": [
+        "add_numbers",
+        "get_page_title",
+        "webmcp_call_tool",
+        "webmcp_list_sources",
+        "webmcp_list_tools",
+        "webmcp_open_page"
+      ]
+    },
+    {
+      "stage": "webmcp_list_sources",
+      "ok": true,
+      "sources": {
+        "count": 1,
+        "sources": [
+          {
+            "sourceId": "12a1becf-b040-499f-ac62-104a9d19754f",
+            "tabId": "84e492e6-8086-4929-9952-61a77694b5b7",
+            "origin": "http://127.0.0.1:8891",
+            "url": "http://127.0.0.1:8891/",
+            "title": "exp-004 test page",
+            "connectedAt": 1776515340741,
+            "lastSeenAt": 1776515340742,
+            "toolCount": 2
+          }
+        ]
+      }
+    },
+    {
+      "stage": "page_tools_discoverable",
+      "ok": true,
+      "has_get_page_title": true,
+      "has_add_numbers": true
+    },
+    {
+      "stage": "call_get_page_title",
+      "ok": true,
+      "returned_text": "exp-004 test page"
+    },
+    {
+      "stage": "call_add_numbers",
+      "ok": true,
+      "returned_text": "5"
+    }
+  ],
+  "final": {
+    "pass": true,
+    "summary": {
+      "static_server": true,
+      "page_registered_tools": true,
+      "mcp_client_connected": true,
+      "tools_list_returned_our_tools": true,
+      "call_get_page_title": true,
+      "call_add_numbers": true
+    }
+  }
+}
