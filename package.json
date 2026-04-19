@@ -13,11 +13,15 @@
 		}
 	},
 	"bin": {
-		"unsurf": "./dist/cli.js"
+		"unsurf": "./dist/cli.js",
+		"unsurf-daemon": "./examples/webmcp-daemon/daemon.ts"
 	},
 	"files": [
 		"dist",
 		"src",
+		"examples/webmcp-daemon/daemon.ts",
+		"examples/webmcp-daemon/README.md",
+		"examples/webmcp-daemon/example-catalog.json",
 		"!src/cf-worker.ts"
 	],
 	"keywords": [

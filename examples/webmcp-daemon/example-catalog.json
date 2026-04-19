@@ -1,0 +1,37 @@
+{
+	"version": "v0",
+	"url": "https://coey.dev/",
+	"fingerprint": "sha256:hand-written-example",
+	"fingerprintStrategy": "manual",
+	"synthesizedAt": "2026-04-19T00:00:00.000Z",
+	"synthesizer": { "name": "hand-written", "model": "none", "promptHash": "sha256:0" },
+	"tools": [
+		{
+			"name": "open_search",
+			"description": "Open the site's command palette search (press ⌘K).",
+			"inputSchema": { "type": "object", "properties": {}, "required": [] },
+			"dsl": [
+				{ "op": "click", "target": { "role": "button", "name": "Open search (⌘K)" } }
+			],
+			"risk": "medium"
+		},
+		{
+			"name": "read_headline",
+			"description": "Read the main headline on the homepage.",
+			"inputSchema": { "type": "object", "properties": {}, "required": [] },
+			"dsl": [
+				{ "op": "read", "target": { "role": "heading", "name": "hello new world" }, "as": "text" }
+			],
+			"risk": "low"
+		},
+		{
+			"name": "read_latest_post_title",
+			"description": "Read the most recent post title (first H2 in Latest Posts).",
+			"inputSchema": { "type": "object", "properties": {}, "required": [] },
+			"dsl": [
+				{ "op": "read", "target": { "role": "heading", "name": "Worker Loaders as a Place" }, "as": "text" }
+			],
+			"risk": "low"
+		}
+	]
+}
