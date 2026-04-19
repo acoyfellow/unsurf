@@ -1,0 +1,114 @@
+{
+  "ran_at": "2026-04-18T12:04:43.771Z",
+  "totals": {
+    "n_urls": 6,
+    "total_tools": 6,
+    "strict_total": 2,
+    "intent_shaped_total": 2,
+    "trivial_total": 2,
+    "any_intent_total": 4,
+    "urls_with_any_intent": 4
+  },
+  "rows": [
+    {
+      "slug": "midjourney-explore",
+      "url": "https://www.midjourney.com/explore",
+      "latency_ms": 1593,
+      "tool_count": 0,
+      "strict": 0,
+      "intent_shaped": 0,
+      "trivial": 0,
+      "examples": []
+    },
+    {
+      "slug": "httpbin-forms-post",
+      "url": "https://httpbin.org/forms/post",
+      "latency_ms": 14578,
+      "tool_count": 1,
+      "strict": 0,
+      "intent_shaped": 1,
+      "trivial": 0,
+      "examples": [
+        {
+          "tag": "intent",
+          "name": "submit_order_form",
+          "ops": 8,
+          "risk": "high",
+          "issue": "inputSchema-malformed"
+        }
+      ]
+    },
+    {
+      "slug": "hn-item",
+      "url": "https://news.ycombinator.com/item?id=1",
+      "latency_ms": 14468,
+      "tool_count": 3,
+      "strict": 0,
+      "intent_shaped": 1,
+      "trivial": 2,
+      "examples": [
+        {
+          "tag": "trivial",
+          "name": "upvote_post",
+          "ops": 2
+        },
+        {
+          "tag": "trivial",
+          "name": "upvote_comment",
+          "ops": 2
+        },
+        {
+          "tag": "intent",
+          "name": "search_hacker_news",
+          "ops": 2,
+          "risk": "high",
+          "issue": "inputSchema-malformed"
+        }
+      ]
+    },
+    {
+      "slug": "duckduckgo",
+      "url": "https://duckduckgo.com/",
+      "latency_ms": 8722,
+      "tool_count": 1,
+      "strict": 1,
+      "intent_shaped": 0,
+      "trivial": 0,
+      "examples": [
+        {
+          "tag": "strict",
+          "name": "search",
+          "ops": 2,
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "slug": "coey-projects",
+      "url": "https://coey.dev/projects",
+      "latency_ms": 7548,
+      "tool_count": 1,
+      "strict": 1,
+      "intent_shaped": 0,
+      "trivial": 0,
+      "examples": [
+        {
+          "tag": "strict",
+          "name": "search_projects",
+          "ops": 2,
+          "risk": "medium"
+        }
+      ]
+    },
+    {
+      "slug": "example-com",
+      "url": "https://example.com/",
+      "latency_ms": 1048,
+      "tool_count": 0,
+      "strict": 0,
+      "intent_shaped": 0,
+      "trivial": 0,
+      "examples": []
+    }
+  ]
+}

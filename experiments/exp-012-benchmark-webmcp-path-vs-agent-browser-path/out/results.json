@@ -1,0 +1,637 @@
+[
+  {
+    "path": "A",
+    "run_idx": 0,
+    "wall_clock_ms": 12365,
+    "total_input_tokens": 5125,
+    "total_output_tokens": 537,
+    "total_tokens": 5662,
+    "llm_calls": 10,
+    "iterations": 10,
+    "result": "pass",
+    "actions": [
+      {
+        "iter": 1,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Customer name:",
+          "value": "Unsurf Bench"
+        }
+      },
+      {
+        "iter": 2,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Telephone:",
+          "value": "555-0100"
+        }
+      },
+      {
+        "iter": 3,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "E-mail address:",
+          "value": "bench@unsurf.dev"
+        }
+      },
+      {
+        "iter": 4,
+        "action": {
+          "op": "check",
+          "role": "radio",
+          "name": "Medium",
+          "value": ""
+        }
+      },
+      {
+        "iter": 5,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Bacon",
+          "value": ""
+        }
+      },
+      {
+        "iter": 6,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Extra Cheese",
+          "value": ""
+        }
+      },
+      {
+        "iter": 7,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Preferred delivery time:",
+          "value": "20:00"
+        }
+      },
+      {
+        "iter": 8,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Delivery instructions:",
+          "value": "benchmark run"
+        }
+      },
+      {
+        "iter": 9,
+        "action": {
+          "op": "click",
+          "role": "button",
+          "name": "Submit order",
+          "value": ""
+        }
+      },
+      {
+        "iter": 10,
+        "action": {
+          "op": "done",
+          "role": "",
+          "name": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  {
+    "path": "A",
+    "run_idx": 1,
+    "wall_clock_ms": 12173,
+    "total_input_tokens": 5125,
+    "total_output_tokens": 537,
+    "total_tokens": 5662,
+    "llm_calls": 10,
+    "iterations": 10,
+    "result": "pass",
+    "actions": [
+      {
+        "iter": 1,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Customer name:",
+          "value": "Unsurf Bench"
+        }
+      },
+      {
+        "iter": 2,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Telephone:",
+          "value": "555-0100"
+        }
+      },
+      {
+        "iter": 3,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "E-mail address:",
+          "value": "bench@unsurf.dev"
+        }
+      },
+      {
+        "iter": 4,
+        "action": {
+          "op": "check",
+          "role": "radio",
+          "name": "Medium",
+          "value": ""
+        }
+      },
+      {
+        "iter": 5,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Bacon",
+          "value": ""
+        }
+      },
+      {
+        "iter": 6,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Extra Cheese",
+          "value": ""
+        }
+      },
+      {
+        "iter": 7,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Preferred delivery time:",
+          "value": "20:00"
+        }
+      },
+      {
+        "iter": 8,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Delivery instructions:",
+          "value": "benchmark run"
+        }
+      },
+      {
+        "iter": 9,
+        "action": {
+          "op": "click",
+          "role": "button",
+          "name": "Submit order",
+          "value": ""
+        }
+      },
+      {
+        "iter": 10,
+        "action": {
+          "op": "done",
+          "role": "",
+          "name": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  {
+    "path": "A",
+    "run_idx": 2,
+    "wall_clock_ms": 12253,
+    "total_input_tokens": 5125,
+    "total_output_tokens": 537,
+    "total_tokens": 5662,
+    "llm_calls": 10,
+    "iterations": 10,
+    "result": "pass",
+    "actions": [
+      {
+        "iter": 1,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Customer name:",
+          "value": "Unsurf Bench"
+        }
+      },
+      {
+        "iter": 2,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Telephone:",
+          "value": "555-0100"
+        }
+      },
+      {
+        "iter": 3,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "E-mail address:",
+          "value": "bench@unsurf.dev"
+        }
+      },
+      {
+        "iter": 4,
+        "action": {
+          "op": "check",
+          "role": "radio",
+          "name": "Medium",
+          "value": ""
+        }
+      },
+      {
+        "iter": 5,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Bacon",
+          "value": ""
+        }
+      },
+      {
+        "iter": 6,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Extra Cheese",
+          "value": ""
+        }
+      },
+      {
+        "iter": 7,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Preferred delivery time:",
+          "value": "20:00"
+        }
+      },
+      {
+        "iter": 8,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Delivery instructions:",
+          "value": "benchmark run"
+        }
+      },
+      {
+        "iter": 9,
+        "action": {
+          "op": "click",
+          "role": "button",
+          "name": "Submit order",
+          "value": ""
+        }
+      },
+      {
+        "iter": 10,
+        "action": {
+          "op": "done",
+          "role": "",
+          "name": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  {
+    "path": "A",
+    "run_idx": 3,
+    "wall_clock_ms": 12327,
+    "total_input_tokens": 5125,
+    "total_output_tokens": 537,
+    "total_tokens": 5662,
+    "llm_calls": 10,
+    "iterations": 10,
+    "result": "pass",
+    "actions": [
+      {
+        "iter": 1,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Customer name:",
+          "value": "Unsurf Bench"
+        }
+      },
+      {
+        "iter": 2,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Telephone:",
+          "value": "555-0100"
+        }
+      },
+      {
+        "iter": 3,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "E-mail address:",
+          "value": "bench@unsurf.dev"
+        }
+      },
+      {
+        "iter": 4,
+        "action": {
+          "op": "check",
+          "role": "radio",
+          "name": "Medium",
+          "value": ""
+        }
+      },
+      {
+        "iter": 5,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Bacon",
+          "value": ""
+        }
+      },
+      {
+        "iter": 6,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Extra Cheese",
+          "value": ""
+        }
+      },
+      {
+        "iter": 7,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Preferred delivery time:",
+          "value": "20:00"
+        }
+      },
+      {
+        "iter": 8,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Delivery instructions:",
+          "value": "benchmark run"
+        }
+      },
+      {
+        "iter": 9,
+        "action": {
+          "op": "click",
+          "role": "button",
+          "name": "Submit order",
+          "value": ""
+        }
+      },
+      {
+        "iter": 10,
+        "action": {
+          "op": "done",
+          "role": "",
+          "name": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  {
+    "path": "A",
+    "run_idx": 4,
+    "wall_clock_ms": 12066,
+    "total_input_tokens": 5125,
+    "total_output_tokens": 537,
+    "total_tokens": 5662,
+    "llm_calls": 10,
+    "iterations": 10,
+    "result": "pass",
+    "actions": [
+      {
+        "iter": 1,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Customer name:",
+          "value": "Unsurf Bench"
+        }
+      },
+      {
+        "iter": 2,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Telephone:",
+          "value": "555-0100"
+        }
+      },
+      {
+        "iter": 3,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "E-mail address:",
+          "value": "bench@unsurf.dev"
+        }
+      },
+      {
+        "iter": 4,
+        "action": {
+          "op": "check",
+          "role": "radio",
+          "name": "Medium",
+          "value": ""
+        }
+      },
+      {
+        "iter": 5,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Bacon",
+          "value": ""
+        }
+      },
+      {
+        "iter": 6,
+        "action": {
+          "op": "check",
+          "role": "checkbox",
+          "name": "Extra Cheese",
+          "value": ""
+        }
+      },
+      {
+        "iter": 7,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Preferred delivery time:",
+          "value": "20:00"
+        }
+      },
+      {
+        "iter": 8,
+        "action": {
+          "op": "fill",
+          "role": "textbox",
+          "name": "Delivery instructions:",
+          "value": "benchmark run"
+        }
+      },
+      {
+        "iter": 9,
+        "action": {
+          "op": "click",
+          "role": "button",
+          "name": "Submit order",
+          "value": ""
+        }
+      },
+      {
+        "iter": 10,
+        "action": {
+          "op": "done",
+          "role": "",
+          "name": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  {
+    "path": "B",
+    "run_idx": 0,
+    "wall_clock_ms": 6322,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "pass",
+    "note": "Path B: hand-written tool, deterministic MCP call, no LLM planner.",
+    "mcp_call_ms": 2414
+  },
+  {
+    "path": "B",
+    "run_idx": 1,
+    "wall_clock_ms": 6564,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "pass",
+    "note": "Path B: hand-written tool, deterministic MCP call, no LLM planner.",
+    "mcp_call_ms": 2224
+  },
+  {
+    "path": "B",
+    "run_idx": 2,
+    "wall_clock_ms": 6332,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "pass",
+    "note": "Path B: hand-written tool, deterministic MCP call, no LLM planner.",
+    "mcp_call_ms": 2309
+  },
+  {
+    "path": "B",
+    "run_idx": 3,
+    "wall_clock_ms": 6038,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "pass",
+    "note": "Path B: hand-written tool, deterministic MCP call, no LLM planner.",
+    "mcp_call_ms": 2232
+  },
+  {
+    "path": "B",
+    "run_idx": 4,
+    "wall_clock_ms": 7828,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "pass",
+    "note": "Path B: hand-written tool, deterministic MCP call, no LLM planner.",
+    "mcp_call_ms": 3778
+  },
+  {
+    "path": "C",
+    "run_idx": 0,
+    "wall_clock_ms": 5787,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "fail",
+    "synth_tool_name": "submit_order_form",
+    "note": "Path C: synthesized spec (w/ repair), deterministic MCP call."
+  },
+  {
+    "path": "C",
+    "run_idx": 1,
+    "wall_clock_ms": 6366,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "fail",
+    "synth_tool_name": "submit_order_form",
+    "note": "Path C: synthesized spec (w/ repair), deterministic MCP call."
+  },
+  {
+    "path": "C",
+    "run_idx": 2,
+    "wall_clock_ms": 6094,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "fail",
+    "synth_tool_name": "submit_order_form",
+    "note": "Path C: synthesized spec (w/ repair), deterministic MCP call."
+  },
+  {
+    "path": "C",
+    "run_idx": 3,
+    "wall_clock_ms": 5789,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "fail",
+    "synth_tool_name": "submit_order_form",
+    "note": "Path C: synthesized spec (w/ repair), deterministic MCP call."
+  },
+  {
+    "path": "C",
+    "run_idx": 4,
+    "wall_clock_ms": 5801,
+    "total_input_tokens": 0,
+    "total_output_tokens": 0,
+    "total_tokens": 0,
+    "llm_calls": 0,
+    "result": "fail",
+    "synth_tool_name": "submit_order_form",
+    "note": "Path C: synthesized spec (w/ repair), deterministic MCP call."
+  }
+]

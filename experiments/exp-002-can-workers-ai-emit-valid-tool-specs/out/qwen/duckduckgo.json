@@ -1,0 +1,95 @@
+{
+  "slug": "duckduckgo",
+  "url": "https://duckduckgo.com/",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "search form",
+  "latency_ms": 14967,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 3,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://duckduckgo.com/",
+    "tools": [
+      {
+        "name": "search_query",
+        "description": "Enter a search query into the DuckDuckGo search bar.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Search"
+            },
+            "value": "{{query}}"
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "perform_search",
+        "description": "Submit the search query to DuckDuckGo.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "submit",
+            "target": {
+              "role": "form",
+              "name": "Search Form"
+            }
+          }
+        ],
+        "risk": "high"
+      },
+      {
+        "name": "learn_about_duckduckgo",
+        "description": "Click to learn more about DuckDuckGo.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": []
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Learn about DuckDuckGo"
+            }
+          }
+        ],
+        "risk": "medium"
+      }
+    ],
+    "fingerprint": "sha256:ed08019d2b05b413bfd6046e0c16a786caeb3245719d4fbd6c5a7c04bceb78f5",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:50:46.533Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 368734,
+  "cleaned_bytes": 24019
+}

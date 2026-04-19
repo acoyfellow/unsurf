@@ -1,0 +1,48 @@
+{
+  "version": "v0",
+  "url": "https://coey.dev/projects",
+  "tools": [
+    {
+      "name": "search_projects",
+      "description": "Search for projects by keyword.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "description": "The keyword to search for in projects."
+          }
+        },
+        "required": [
+          "query"
+        ]
+      },
+      "dsl": [
+        {
+          "op": "click",
+          "target": {
+            "role": "button",
+            "name": "Open search (⌘K)"
+          }
+        },
+        {
+          "op": "fill",
+          "target": {
+            "role": "textbox",
+            "name": "Search"
+          },
+          "value": "{{query}}"
+        }
+      ],
+      "risk": "medium"
+    }
+  ],
+  "synthesizer": {
+    "name": "exp-002b",
+    "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+    "promptHash": "sha256:db14533f2acf53c0cd1a1376dc40a0384f4341ad90203dd82d0c748871f37e23"
+  },
+  "fingerprint": "sha256:e3a3f4a442431a35d0ceec93acb67abff1652e1977a203c7e911da8442f9ee91",
+  "fingerprintStrategy": "sha256-cleaned-dom-v0",
+  "synthesizedAt": "2026-04-18T12:03:48.248Z"
+}

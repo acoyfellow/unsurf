@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>exp-004 test page</title>
+</head>
+<body>
+  <h1>exp-004 test page</h1>
+  <p id="status">booting…</p>
+
+  <!-- 1. Polyfill: adds navigator.modelContext -->
+  <script src="/polyfill.iife.js"></script>
+
+  <!-- 2. Register tools -->
+  <script>
+    (async () => {
+      // Wait for polyfill
+      for (let i = 0; i < 50 && !navigator.modelContext; i++) {
+        await new Promise(r => setTimeout(r, 50));
+      }
+      if (!navigator.modelContext) {
+        document.getElementById("status").textContent = "polyfill failed";
+        return;
+      }
+
+      navigator.modelContext.registerTool({
+        name: "get_page_title",
+        description: "Get the page's title string.",
+        inputSchema: { type: "object", properties: {} },
+        execute: async () => ({ content: [{ type: "text", text: document.title }] }),
+      });
+
+      navigator.modelContext.registerTool({
+        name: "add_numbers",
+        description: "Add two numbers.",
+        inputSchema: {
+          type: "object",
+          properties: { a: { type: "number" }, b: { type: "number" } },
+          required: ["a", "b"],
+        },
+        execute: async ({ a, b }) => ({ content: [{ type: "text", text: String(Number(a) + Number(b)) }] }),
+      });
+
+      document.getElementById("status").textContent = "tools registered: " + (navigator.modelContext.getTools?.().length ?? "?");
+    })();
+  </script>
+
+  <!-- 3. Embed: connects to local relay via WebSocket -->
+  <script src="/embed.js"></script>
+</body>
+</html>

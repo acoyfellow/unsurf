@@ -1,0 +1,58 @@
+{
+  "slug": "duckduckgo",
+  "url": "https://duckduckgo.com/",
+  "latency_ms": 8722,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 1,
+    "nontrivial": 1
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://duckduckgo.com/",
+    "tools": [
+      {
+        "name": "search",
+        "description": "Search DuckDuckGo for a query.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "query"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Search"
+            },
+            "value": "{{query}}"
+          },
+          {
+            "op": "submit",
+            "target": {
+              "role": "form",
+              "name": "Search Form"
+            }
+          }
+        ],
+        "risk": "medium"
+      }
+    ],
+    "synthesizer": {
+      "name": "exp-002b",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:db14533f2acf53c0cd1a1376dc40a0384f4341ad90203dd82d0c748871f37e23"
+    },
+    "fingerprint": "sha256:004a1107062721bda3848db48ce272691a1b1029db139311c35f232865806726",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T12:03:22.169Z"
+  }
+}

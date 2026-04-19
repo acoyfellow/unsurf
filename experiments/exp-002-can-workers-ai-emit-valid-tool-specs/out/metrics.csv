@@ -1,0 +1,13 @@
+slug,url,model,latency_ms,schema_valid,tool_count,nontrivial_count,errors
+"httpbin-forms-post","https://httpbin.org/forms/post","@cf/qwen/qwen2.5-coder-32b-instruct","43208","true","11","0",""
+"duckduckgo","https://duckduckgo.com/","@cf/qwen/qwen2.5-coder-32b-instruct","14967","true","3","0",""
+"example-com","https://example.com/","@cf/qwen/qwen2.5-coder-32b-instruct","4109","true","1","0",""
+"hn-item","https://news.ycombinator.com/item?id=1","@cf/qwen/qwen2.5-coder-32b-instruct","31563","true","10","0",""
+"midjourney-explore","https://www.midjourney.com/explore","@cf/qwen/qwen2.5-coder-32b-instruct","1408","true","0","0",""
+"coey-projects","https://coey.dev/projects","@cf/qwen/qwen2.5-coder-32b-instruct","50467","false","16","0","t2.dsl[0].role option|t3.dsl[0].role option|t4.dsl[0].role option"
+"httpbin-forms-post","https://httpbin.org/forms/post","@cf/meta/llama-3.3-70b-instruct-fp8-fast","164741","false","0","0","not an object"
+"duckduckgo","https://duckduckgo.com/","@cf/meta/llama-3.3-70b-instruct-fp8-fast","83969","false","0","0","not an object"
+"example-com","https://example.com/","@cf/meta/llama-3.3-70b-instruct-fp8-fast","43524","false","0","0","not an object"
+"hn-item","https://news.ycombinator.com/item?id=1","@cf/meta/llama-3.3-70b-instruct-fp8-fast","180009","false","0","0","not an object"
+"midjourney-explore","https://www.midjourney.com/explore","@cf/meta/llama-3.3-70b-instruct-fp8-fast","2364","true","0","0",""
+"coey-projects","https://coey.dev/projects","@cf/meta/llama-3.3-70b-instruct-fp8-fast","130764","false","0","0","not an object"

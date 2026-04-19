@@ -1,0 +1,34 @@
+{
+  "ran_at": "2026-04-18T11:59:54.425Z",
+  "amendments_applied": [
+    "AMD-004",
+    "AMD-005"
+  ],
+  "n_urls": 6,
+  "models": [
+    "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+    "@cf/qwen/qwen2.5-coder-32b-instruct"
+  ],
+  "per_model_totals": [
+    {
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "total": 6,
+      "valid": 5,
+      "nontrivial": 0,
+      "lat_sum": 145722,
+      "lat_n": 6,
+      "mean_latency_ms": 24287,
+      "validity_rate": "0.83"
+    },
+    {
+      "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+      "total": 6,
+      "valid": 1,
+      "nontrivial": 0,
+      "lat_sum": 605371,
+      "lat_n": 6,
+      "mean_latency_ms": 100895,
+      "validity_rate": "0.17"
+    }
+  ]
+}

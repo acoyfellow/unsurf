@@ -1,0 +1,108 @@
+{
+  "slug": "httpbin-forms-post",
+  "url": "https://httpbin.org/forms/post",
+  "latency_ms": 14578,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 1,
+    "nontrivial": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://httpbin.org/forms/post",
+    "tools": [
+      {
+        "name": "submit_order_form",
+        "description": "Submits the pizza order form with customer details and preferences.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {},
+          "required": [
+            "custname",
+            "custtel",
+            "custemail",
+            "size",
+            "topping",
+            "delivery",
+            "comments"
+          ]
+        },
+        "dsl": [
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Customer name:"
+            },
+            "value": "{{custname}}"
+          },
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Telephone:"
+            },
+            "value": "{{custtel}}"
+          },
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "E-mail address:"
+            },
+            "value": "{{custemail}}"
+          },
+          {
+            "op": "select",
+            "target": {
+              "role": "radio",
+              "name": "{{size}}"
+            },
+            "value": "{{size}}"
+          },
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "{{topping}}"
+            },
+            "value": "{{topping}}"
+          },
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Preferred delivery time:"
+            },
+            "value": "{{delivery}}"
+          },
+          {
+            "op": "fill",
+            "target": {
+              "role": "textbox",
+              "name": "Delivery instructions:"
+            },
+            "value": "{{comments}}"
+          },
+          {
+            "op": "submit",
+            "target": {
+              "role": "button",
+              "name": "Submit order"
+            }
+          }
+        ],
+        "risk": "high"
+      }
+    ],
+    "synthesizer": {
+      "name": "exp-002b",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:db14533f2acf53c0cd1a1376dc40a0384f4341ad90203dd82d0c748871f37e23"
+    },
+    "fingerprint": "sha256:8af036a8373dd62c4053fc8c606116501f0749dc80dd7676d93515fc8cedd782",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T12:03:13.222Z"
+  }
+}

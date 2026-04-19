@@ -1,0 +1,49 @@
+{
+  "slug": "example-com",
+  "url": "https://example.com/",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "static control",
+  "latency_ms": 4109,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 1,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://example.com/",
+    "tools": [
+      {
+        "name": "learn_more",
+        "description": "Navigate to the IANA example domains page.",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "link",
+              "name": "Learn more"
+            }
+          }
+        ],
+        "risk": "medium"
+      }
+    ],
+    "fingerprint": "sha256:c43dedb2b1f7aae5e47355af34db9fedb88de9b5faf7114c150ff9a1606c7131",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:50:50.846Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 528,
+  "cleaned_bytes": 368
+}

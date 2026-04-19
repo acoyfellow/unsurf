@@ -1,0 +1,211 @@
+{
+  "slug": "hn-item",
+  "url": "https://news.ycombinator.com/item?id=1",
+  "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+  "note": "comment form, server-rendered",
+  "latency_ms": 31563,
+  "status": 200,
+  "ok": true,
+  "validation": {
+    "ok": true,
+    "errors": [],
+    "tool_count": 10,
+    "nontrivial_count": 0
+  },
+  "spec": {
+    "version": "v0",
+    "url": "https://news.ycombinator.com/item?id=1",
+    "tools": [
+      {
+        "name": "close_debug_sidebar",
+        "description": "Close the debug sidebar",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "click",
+            "target": {
+              "role": "button",
+              "name": "×"
+            }
+          }
+        ],
+        "risk": "low"
+      },
+      {
+        "name": "toggle_skia_trace_option",
+        "description": "Toggle Skia trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Skia"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_gpu_trace_option",
+        "description": "Toggle GPU trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Gpu"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_gpu_cache_trace_option",
+        "description": "Toggle GPU Cache trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Gpu Cache"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_skia_server_trace_option",
+        "description": "Toggle Skia server trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Skia"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_network_trace_option",
+        "description": "Toggle Network trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Network"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_render_main_thread_trace_option",
+        "description": "Toggle Render Main Thread trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Render Main Thread"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_display_items_trace_option",
+        "description": "Toggle Display Items trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "Display Items (SKP)"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_blink_trace_option",
+        "description": "Toggle Blink trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "blink"
+            }
+          }
+        ],
+        "risk": "medium"
+      },
+      {
+        "name": "toggle_toplevel_trace_option",
+        "description": "Toggle Toplevel trace option",
+        "inputSchema": {
+          "type": "object",
+          "properties": {}
+        },
+        "dsl": [
+          {
+            "op": "check",
+            "target": {
+              "role": "checkbox",
+              "name": "toplevel"
+            }
+          }
+        ],
+        "risk": "medium"
+      }
+    ],
+    "fingerprint": "sha256:b0d6c09ac31ba53c6d712cd1c866a7d0b1a809fd7201b76ceb290f5b73b787cf",
+    "fingerprintStrategy": "sha256-cleaned-dom-v0",
+    "synthesizedAt": "2026-04-18T11:51:22.828Z",
+    "synthesizer": {
+      "name": "exp-002",
+      "model": "@cf/qwen/qwen2.5-coder-32b-instruct",
+      "promptHash": "sha256:33e80a5d09075f9dc2b2515e1f7da02f41343324f7916adaca2234e139b8a65e"
+    }
+  },
+  "fetch_bytes": 46737,
+  "cleaned_bytes": 8200
+}

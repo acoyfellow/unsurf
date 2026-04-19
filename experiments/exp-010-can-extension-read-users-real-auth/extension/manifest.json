@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "exp-010 auth probe",
+  "version": "0.0.1",
+  "description": "Minimal MV3 extension to probe session inheritance in content scripts.",
+  "permissions": ["cookies", "storage"],
+  "host_permissions": [
+    "https://www.midjourney.com/*",
+    "https://midjourney.com/*",
+    "https://coey.dev/*",
+    "https://jordancoeyman.com/*",
+    "https://github.com/*",
+    "https://api.github.com/*"
+  ],
+  "content_scripts": [
+    {
+      "matches": [
+        "https://www.midjourney.com/*",
+        "https://midjourney.com/*",
+        "https://coey.dev/*",
+        "https://jordancoeyman.com/*",
+        "https://github.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "background": {
+    "service_worker": "background.js"
+  }
+}

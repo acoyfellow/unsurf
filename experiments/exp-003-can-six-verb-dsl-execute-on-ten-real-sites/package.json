@@ -1,0 +1,13 @@
+{
+  "name": "exp-003-can-six-verb-dsl-execute-on-ten-real-sites",
+  "module": "index.ts",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "playwright": "^1.59.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5"
+  }
+}

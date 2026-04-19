@@ -1,0 +1,21 @@
+{
+  "slug": "duckduckgo",
+  "url": "https://duckduckgo.com/",
+  "model": "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  "note": "search form",
+  "latency_ms": 83969,
+  "status": 500,
+  "ok": false,
+  "validation": {
+    "ok": false,
+    "errors": [
+      "not an object"
+    ],
+    "tool_count": 0,
+    "nontrivial_count": 0
+  },
+  "spec": null,
+  "synth_err": "5024: JSON Model couldn't be met",
+  "fetch_bytes": 368241,
+  "cleaned_bytes": 24019
+}
