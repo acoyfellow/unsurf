@@ -88,4 +88,26 @@ const fixed = await heal({ pathId, error });
   <Card title="API Directory" icon="list-format">
     Community-discovered registry of unsurfed APIs. Scout once, share forever. Browse at /directory.
   </Card>
+  <Card title="proof-spec.v0" icon="document">
+    One schema for tools, gates, and proof loops. Shared with [gateproof](https://gateproof.dev) — same observe/act/assert at different altitudes. `import { runSpec, type ProofSpec } from "unsurf"`.
+  </Card>
 </CardGrid>
+
+## One schema, two repos
+
+unsurf and [gateproof](https://gateproof.dev) share the same `observe / act / assert` schema — `proof-spec.v0`. unsurf drives the DOM (click, fill, submit with role+name targets). gateproof drives HTTP + exec. Specs round-trip between them.
+
+```typescript
+import { runSpec, verifySpec, type ProofSpec } from "unsurf";
+
+// A single file describes tool + gate + proof-loop.
+const spec: ProofSpec = JSON.parse(await Bun.file("./spec.json").text());
+
+// tool mode: runs act[]
+const tool = await runSpec(spec, { email: "jane@example.com" });
+
+// gate mode: runs observe + assert, ignores act
+const gate = await verifySpec(spec);
+```
+
+Full field reference: [SPEC.md](https://github.com/acoyfellow/unsurf/blob/main/experiments/_proof-spec-v0/SPEC.md). Risk is computed deterministically from the DSL — the synthesizer's claim is never trusted.
