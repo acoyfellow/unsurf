@@ -86,6 +86,21 @@ export {
 	OpenApiGenerator,
 	OpenApiGeneratorLive,
 } from "./services/OpenApiGenerator.js";
+export type {
+	LabelResult,
+	Override,
+	RelabelSummary,
+	Risk,
+	RiskDslOp,
+	RiskLabelerService,
+} from "./services/RiskLabeler.js";
+export {
+	computeRiskSync,
+	makeRiskLabeler,
+	relabelSpecSync,
+	RiskLabeler,
+	RiskLabelerLive,
+} from "./services/RiskLabeler.js";
 export type { SchemaInferrerService } from "./services/SchemaInferrer.js";
 export {
 	makeSchemaInferrer,
