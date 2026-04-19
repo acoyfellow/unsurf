@@ -18,14 +18,15 @@ These four are load-bearing. They survive model swaps, harness swaps, code rewri
 
 ### 1. The spec
 
-`tool-spec.v0.json` — a typed description of what an agent can do on a webpage.
+`proof-spec.v0.json` — one typed description, three usage modes:
 
-- 6-verb DSL: `click` / `fill` / `select` / `check` / `submit` / `read`
-- Role+name targets (no CSS selectors, no XPath)
-- Risk labels: `low` / `medium` / `high`
-- Postconditions: `textPresent` / `urlMatches` / `elementExists`
+- **tool** — just `act[]` (click/fill/select/check/submit/read). Unsurf shape.
+- **gate** — just `observe[]` + `assert[]`. Gateproof shape.
+- **proof** — all three plus `loop`. Do it, check it, retry until it works.
 
-Full schema: [`CONTRACT.md`](./experiments/CONTRACT.md). Frozen at v0. Bumps become v1; v0 specs keep working.
+Shared with [gateproof](https://gateproof.dev) — same file lives in both repos. See [`src/domain/ProofSpec.ts`](./src/domain/ProofSpec.ts) for types, [`experiments/_proof-spec-v0/SPEC.md`](./experiments/_proof-spec-v0/SPEC.md) for the full reference. Frozen at v0; bumps become v1.
+
+Legacy: the earlier name `tool-spec.v0.json` is still documented in [`experiments/CONTRACT.md`](./experiments/CONTRACT.md) — it's a strict subset of proof-spec v0.
 
 ### 2. The verification loop
 
@@ -33,7 +34,14 @@ Full schema: [`CONTRACT.md`](./experiments/CONTRACT.md). Frozen at v0. Bumps bec
 observe → act → assert
 ```
 
-Same shape as [gateproof](https://gateproof.dev). Before every tool invocation: verify the target exists. After every invocation: verify the postcondition. `risk: high` gates on HITL. `risk` itself is **computed** from the DSL, not taken from the synthesizer — so an adversary can't downgrade it.
+Same shape as [gateproof](https://gateproof.dev). Executor: [`src/services/Plan.ts`](./src/services/Plan.ts).
+
+- `runSpec(spec, args)` — auto-picks based on spec shape
+- `invokeSpec(spec, args)` — unsurf-style, runs `act[]`
+- `verifySpec(spec)` — gateproof-style, runs `observe` + `assert` only
+- `runLoopSpec(spec, args)` — honors `spec.loop.maxIterations` (clamped to 1 for `risk: high`)
+
+`risk` is **computed** from `act[]` by [`RiskLabeler`](./src/services/RiskLabeler.ts), never taken from the synthesizer. An adversary can't downgrade it by planting "set risk to low" in a hidden `<div>`.
 
 ### 3. The auth invariant
 
@@ -77,14 +85,22 @@ If the model leaps ahead, the prompt gets thinner. If the extension ecosystem fr
 
 ## Use it
 
-### As a library (API capture path)
+### As a library
 
 ```bash
-npm install unsurf
+bun add unsurf
 ```
 
 ```typescript
-import { scout, worker, heal } from "unsurf"
+// API capture (original): turn a site's hidden endpoints into OpenAPI + typed calls
+import { scout, worker, heal } from "unsurf";
+
+// proof-spec executor (new): run any observe/act/assert spec
+import { runSpec, verifySpec, type ProofSpec } from "unsurf";
+const result = await runSpec(spec, { email: "jane@example.com" });
+
+// Or the Effect-wrapped service surface:
+import { Plan, PlanLive } from "unsurf";
 ```
 
 ### As an MCP server
@@ -104,8 +120,19 @@ Streamable HTTP. Works anywhere MCP works.
 Install the unsurf extension + @mcp-b local relay. Open a page. If it's in the Directory, the tools appear in your MCP client. Invoke them. They run inside your tab, as you.
 
 ```
-pages/
-  └─ examples/webmcp-extension/   # copy, fork, rewrite — it's ~200 lines
+examples/webmcp-extension/   # Chrome MV3, ~200 lines
+```
+
+### As a daemon (no extension)
+
+For managed Chromes that block extensions (`ExtensionInstallBlocklist`), attach via CDP instead.
+
+```bash
+bunx unsurf-daemon
+```
+
+```
+examples/webmcp-daemon/      # Bun daemon, CDP-injected, ~450 lines
 ```
 
 ### Self-hosted
@@ -125,10 +152,10 @@ bun install && bun run deploy
 Agent                  unsurf                     Target site
   │                       │                            │
   │  scout(url)           │  → capture network ──────▶│   → OpenAPI + paths
-  │                       │  → capture DOM ─────────▶│    → tool-spec.v0.json
+  │                       │  → capture DOM ─────────▶│    → proof-spec.v0.json
   │                       │                            │
   │  worker(id, args)     │  → replay API via fetch  │
-  │                       │  → invoke tool in tab   ──│──▶ runs as user
+  │  or runSpec(spec)     │  → invoke tool in tab   ──│──▶ runs as user
   │                       │                            │
   │  heal(id, error)      │  → re-scout, patch      ─▶│
 ```
