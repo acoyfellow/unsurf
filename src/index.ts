@@ -31,6 +31,9 @@ export {
 	SearchResult,
 } from "./domain/Fingerprint.js";
 export { GalleryEntry } from "./domain/Gallery.js";
+export type { JudgeScorer, JudgeScorerName } from "./domain/JudgeScorers.js";
+// proof-spec.v0 — unified observe/act/assert schema for tools, gates, and proof loops
+export { SCORERS } from "./domain/JudgeScorers.js";
 export {
 	API_RESOURCE_TYPES,
 	IGNORED_URL_PATTERNS,
@@ -38,6 +41,29 @@ export {
 	NetworkEvent,
 } from "./domain/NetworkEvent.js";
 export { PathStep, ScoutedPath } from "./domain/Path.js";
+export type {
+	ActionResult,
+	AriaRole,
+	Assertion,
+	AssertionResult,
+	DomObservation,
+	DslOp,
+	ElementTarget,
+	EvidenceBundle,
+	ExecObservation,
+	HttpObservation,
+	JudgeScoreAssertion,
+	Loop,
+	NoteObservation,
+	Observation,
+	ObservationResult,
+	ProofRunner,
+	ProofSpec,
+	Provenance,
+	Status,
+	Target as ProofTarget,
+} from "./domain/ProofSpec.js";
+export { computeRisk } from "./domain/ProofSpec.js";
 export { Site } from "./domain/Site.js";
 // Codegen
 export { generateClient } from "./lib/codegen.js";
@@ -86,31 +112,6 @@ export {
 	OpenApiGenerator,
 	OpenApiGeneratorLive,
 } from "./services/OpenApiGenerator.js";
-// proof-spec.v0 — unified observe/act/assert schema for tools, gates, and proof loops
-export {
-	computeRisk,
-} from "./domain/ProofSpec.js";
-export type {
-	ActionResult,
-	AriaRole,
-	Assertion,
-	AssertionResult,
-	DomObservation,
-	DslOp,
-	ElementTarget,
-	EvidenceBundle,
-	ExecObservation,
-	HttpObservation,
-	Loop,
-	NoteObservation,
-	Observation,
-	ObservationResult,
-	ProofRunner,
-	ProofSpec,
-	Provenance,
-	Status,
-	Target as ProofTarget,
-} from "./domain/ProofSpec.js";
 export type { PlanRunOptions, PlanService } from "./services/Plan.js";
 export {
 	invokeSpec,
@@ -132,9 +133,9 @@ export type {
 export {
 	computeRiskSync,
 	makeRiskLabeler,
-	relabelSpecSync,
 	RiskLabeler,
 	RiskLabelerLive,
+	relabelSpecSync,
 } from "./services/RiskLabeler.js";
 export type { SchemaInferrerService } from "./services/SchemaInferrer.js";
 export {

@@ -1,0 +1,44 @@
+{
+	"version": "v0",
+	"target": {
+		"url": "https://chat.example.com/"
+	},
+	"name": "answer_quality_gate",
+	"description": "Run a chat agent, capture its reply, and LLM-judge it for correctness. Fails if the Workers AI judge gives anything below a full pass (A=1.0).",
+	"inputSchema": {
+		"type": "object",
+		"properties": {
+			"input": {
+				"type": "string",
+				"description": "Question to send to the agent."
+			}
+		},
+		"required": ["input"]
+	},
+	"act": [
+		{
+			"op": "fill",
+			"target": { "role": "textbox", "name": "Ask a question" },
+			"value": "{{input}}"
+		},
+		{
+			"op": "click",
+			"target": { "role": "button", "name": "Send" }
+		},
+		{
+			"op": "read",
+			"target": { "role": "region", "name": "Agent reply" },
+			"as": "text"
+		}
+	],
+	"assert": [
+		{
+			"kind": "judgeScore",
+			"scorer": "Correctness",
+			"expected": "A concise, accurate, and helpful answer to the user's question.",
+			"threshold": 1,
+			"judgeModel": "@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+		}
+	],
+	"risk": "medium"
+}

@@ -23,6 +23,7 @@
  */
 
 import { Context, Effect, Layer } from "effect";
+import { SCORERS } from "../domain/JudgeScorers.js";
 import type {
 	ActionResult,
 	Assertion,
@@ -313,12 +314,149 @@ async function runHttpObservation(
 	}
 }
 
+// ==================== LLM-as-judge (cloudeval bridge) ====================
+
+const JUDGE_CHOICES: Record<string, number> = { A: 1, B: 0.5, C: 0 };
+const DEFAULT_JUDGE_MODEL = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+
+/**
+ * buildPrompt — copied verbatim from acoyfellow/cloudeval
+ * src/scorers/workers-ai-judge.mjs. Kept in sync by hand.
+ */
+function buildPrompt({
+	input,
+	expected,
+	output,
+	rubric,
+}: {
+	input: string;
+	expected: string;
+	output: string;
+	rubric: string;
+}): string {
+	return `${rubric}\n\nUser asked: ${input}\nExpected behavior: ${expected}\nAgent response: ${output}\n\nAnswer with a single letter A, B, or C.`;
+}
+
+function parseChoice(text: string): string | null {
+	const match = text.match(/\b([ABC])\b/);
+	return match?.[1] ?? null;
+}
+
+function extractJudgeOutput(evidence: {
+	actions: readonly ActionResult[];
+	content: readonly { type: "text"; text: string }[];
+}): string {
+	const lastContent = evidence.content[evidence.content.length - 1];
+	if (lastContent?.text) return lastContent.text;
+	const reads = evidence.actions
+		.map((a) => a.readValue)
+		.filter((v): v is string => typeof v === "string" && v.length > 0);
+	return reads.join("\n");
+}
+
+function extractJudgeInput(args: Record<string, unknown>): string {
+	if (typeof args.input === "string") return args.input;
+	if (typeof args.query === "string") return args.query;
+	for (const v of Object.values(args)) {
+		if (typeof v === "string") return v;
+	}
+	return "";
+}
+
+async function callWorkersAiJudge(
+	endpoint: string,
+	model: string,
+	prompt: string,
+): Promise<string> {
+	const res = await fetch(endpoint, {
+		method: "POST",
+		headers: { "content-type": "application/json" },
+		body: JSON.stringify({
+			model,
+			messages: [{ role: "user", content: prompt }],
+			max_tokens: 32,
+		}),
+		signal: AbortSignal.timeout(15000),
+	});
+	if (!res.ok) throw new Error(`judge http ${res.status}`);
+	const data = (await res.json()) as {
+		response?: string;
+		result?: { response?: string };
+	};
+	return data.response ?? data.result?.response ?? "";
+}
+
+async function runJudgeScoreAssertion(
+	assertion: Extract<Assertion, { kind: "judgeScore" }>,
+	evidence: {
+		actions: readonly ActionResult[];
+		content: readonly { type: "text"; text: string }[];
+	},
+	args: Record<string, unknown>,
+): Promise<AssertionResult> {
+	const threshold = assertion.threshold ?? 1;
+	const judgeModel = assertion.judgeModel ?? DEFAULT_JUDGE_MODEL;
+	const endpoint = process.env.WORKERS_AI_ENDPOINT ?? "http://127.0.0.1:8890/run";
+	const explicitlyConfigured = !!process.env.WORKERS_AI_ENDPOINT;
+
+	const rubric = (SCORERS as Record<string, string>)[assertion.scorer];
+	if (!rubric) {
+		return {
+			kind: "judgeScore",
+			ok: false,
+			detail: `scorer=${assertion.scorer} unknown scorer (not in SCORERS)`,
+		};
+	}
+
+	const output = extractJudgeOutput(evidence);
+	const input = extractJudgeInput(args);
+	const expected = assertion.expected ?? "";
+	const prompt = buildPrompt({ input, expected, output, rubric });
+
+	let raw: string;
+	try {
+		raw = await callWorkersAiJudge(endpoint, judgeModel, prompt);
+	} catch (e) {
+		if (!explicitlyConfigured) {
+			return {
+				kind: "judgeScore",
+				ok: false,
+				detail: "no judge endpoint configured (WORKERS_AI_ENDPOINT)",
+			};
+		}
+		return {
+			kind: "judgeScore",
+			ok: false,
+			detail: `scorer=${assertion.scorer} judge call failed: ${(e as Error).message}`,
+		};
+	}
+
+	const choice = parseChoice(raw);
+	if (!choice) {
+		return {
+			kind: "judgeScore",
+			ok: false,
+			detail: `scorer=${assertion.scorer} score=0.5 choice=? unrecognized`,
+		};
+	}
+	const score = JUDGE_CHOICES[choice] ?? 0;
+	return {
+		kind: "judgeScore",
+		ok: score >= threshold,
+		detail: `scorer=${assertion.scorer} score=${score} choice=${choice}`,
+	};
+}
+
 // ==================== Assertions ====================
 
 async function runAssertion(
 	cdp: CDPClient | null,
 	assertion: Assertion,
-	evidence: { actions: readonly ActionResult[]; errors: readonly string[] },
+	evidence: {
+		actions: readonly ActionResult[];
+		errors: readonly string[];
+		content: readonly { type: "text"; text: string }[];
+	},
 	args: Record<string, unknown>,
 ): Promise<AssertionResult> {
 	if (assertion.kind === "textPresent") {
@@ -400,6 +538,9 @@ async function runAssertion(
 			detail: "v0: numericDeltaFromEnv requires post-action env probe (not yet)",
 		};
 	}
+	if (assertion.kind === "judgeScore") {
+		return runJudgeScoreAssertion(assertion, evidence, args);
+	}
 	return {
 		kind: (assertion as Assertion).kind,
 		ok: false,
@@ -434,7 +575,8 @@ async function runCore(
 		(spec.act?.some((o) => o.op !== "exec") ?? false) ||
 		(spec.assert?.some((a) =>
 			["textPresent", "urlMatches", "elementExists", "responseBodyIncludes"].includes(a.kind),
-		) ?? false);
+		) ??
+			false);
 
 	let cdp: CDPClient | null = null;
 	if (needsDom && spec.target?.url) {
@@ -451,8 +593,7 @@ async function runCore(
 		}
 	}
 
-	const loopMax =
-		computedRisk === "high" ? 1 : spec.loop?.maxIterations ?? 1;
+	const loopMax = computedRisk === "high" ? 1 : (spec.loop?.maxIterations ?? 1);
 	let iterations = 0;
 	let finalStatus: Status = "inconclusive";
 
@@ -510,13 +651,11 @@ async function runCore(
 
 			assertions.length = 0;
 			for (const a of spec.assert ?? []) {
-				assertions.push(await runAssertion(cdp, a, { actions, errors }, args));
+				assertions.push(await runAssertion(cdp, a, { actions, errors, content }, args));
 			}
 
 			const allAssertionsPass =
-				assertions.length > 0
-					? assertions.every((a) => a.ok)
-					: errors.length === 0;
+				assertions.length > 0 ? assertions.every((a) => a.ok) : errors.length === 0;
 
 			if (allAssertionsPass) {
 				finalStatus = "pass";

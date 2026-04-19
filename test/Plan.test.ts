@@ -2,14 +2,7 @@ import { Effect, Layer } from "effect";
 import { describe, expect, it } from "vitest";
 import type { ProofSpec } from "../src/domain/ProofSpec.js";
 import { computeRisk } from "../src/domain/ProofSpec.js";
-import {
-	makePlan,
-	Plan,
-	PlanLive,
-	invokeSpec,
-	runSpec,
-	verifySpec,
-} from "../src/services/Plan.js";
+import { invokeSpec, makePlan, Plan, PlanLive, runSpec, verifySpec } from "../src/services/Plan.js";
 
 const run = <A, E>(effect: Effect.Effect<A, E, never>) => Effect.runPromise(effect);
 
@@ -130,6 +123,75 @@ describe("Plan (proof-spec executor)", () => {
 			expect(typeof svc.verify).toBe("function");
 			expect(typeof svc.runLoop).toBe("function");
 			expect(typeof svc.auto).toBe("function");
+		});
+	});
+
+	describe("judgeScore assertion", () => {
+		it("fails softly with 'no judge endpoint' when WORKERS_AI_ENDPOINT is not set", async () => {
+			const prev = process.env.WORKERS_AI_ENDPOINT;
+			delete process.env.WORKERS_AI_ENDPOINT;
+			try {
+				const spec: ProofSpec = {
+					version: "v0",
+					target: { url: "about:blank" },
+					name: "judge_no_endpoint",
+					description: "judgeScore should fail softly when no judge endpoint is configured",
+					inputSchema: { type: "object", properties: {}, required: [] },
+					assert: [
+						{
+							kind: "judgeScore",
+							scorer: "Correctness",
+							expected: "a correct and helpful answer",
+						},
+					],
+					risk: "low",
+				};
+				const result = await runSpec(spec, { input: "what is 1+1?" });
+				expect(result.assertions).toHaveLength(1);
+				const a = result.assertions[0];
+				expect(a?.kind).toBe("judgeScore");
+				expect(a?.ok).toBe(false);
+				expect(a?.detail).toContain("no judge endpoint");
+				// Sanity: no crash, no unhandled error
+				expect(result.status).toBe("fail");
+			} finally {
+				if (prev !== undefined) process.env.WORKERS_AI_ENDPOINT = prev;
+			}
+		}, 20_000);
+
+		it("computeRisk is unaffected by judgeScore assertions", () => {
+			const spec: ProofSpec = {
+				version: "v0",
+				target: { url: "about:blank" },
+				name: "judge_risk",
+				description: "judgeScore is an assertion — never an action — so risk stays low",
+				inputSchema: { type: "object", properties: {}, required: [] },
+				assert: [{ kind: "judgeScore", scorer: "Correctness" }],
+				risk: "low",
+			};
+			expect(computeRisk(spec.act)).toBe("low");
+		});
+
+		it("unknown scorer fails with a clear detail", async () => {
+			const prev = process.env.WORKERS_AI_ENDPOINT;
+			delete process.env.WORKERS_AI_ENDPOINT;
+			try {
+				const spec: ProofSpec = {
+					version: "v0",
+					target: { url: "about:blank" },
+					name: "judge_bad_scorer",
+					description: "unknown scorer should fail before any network call",
+					inputSchema: { type: "object", properties: {}, required: [] },
+					assert: [{ kind: "judgeScore", scorer: "NotARealScorer" }],
+					risk: "low",
+				};
+				const result = await runSpec(spec, {});
+				const a = result.assertions[0];
+				expect(a?.ok).toBe(false);
+				expect(a?.detail).toContain("unknown scorer");
+			} finally {
+				if (prev !== undefined) process.env.WORKERS_AI_ENDPOINT = prev;
+			}
 		});
 	});
 

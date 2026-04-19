@@ -117,7 +117,8 @@ export type Assertion =
 	| ResponseBodyIncludesAssertion
 	| NoErrorsAssertion
 	| HasActionAssertion
-	| NumericDeltaFromEnvAssertion;
+	| NumericDeltaFromEnvAssertion
+	| JudgeScoreAssertion;
 
 export interface TextPresentAssertion {
 	kind: "textPresent";
@@ -161,6 +162,28 @@ export interface NumericDeltaFromEnvAssertion {
 	kind: "numericDeltaFromEnv";
 	key: string;
 	threshold: number;
+}
+
+/**
+ * LLM-as-judge assertion. Scorer references a rubric in `JudgeScorers.SCORERS`
+ * (copied verbatim from cloudeval). At runtime, the spec output is sent to a
+ * Workers AI judge model which returns A/B/C → 1/0.5/0. Assertion passes when
+ * score >= threshold (default 1).
+ *
+ * Defaults: threshold=1, judgeModel="@cf/meta/llama-3.3-70b-instruct-fp8-fast".
+ * Endpoint is resolved from the WORKERS_AI_ENDPOINT env var at runtime; if
+ * missing/unreachable, the assertion fails softly with an informative detail.
+ */
+export interface JudgeScoreAssertion {
+	kind: "judgeScore";
+	/** Scorer name — keyof typeof SCORERS, e.g. "Correctness". */
+	scorer: string;
+	/** Expected behavior/answer, included in the judge prompt. */
+	expected?: string | undefined;
+	/** Minimum score to pass. Default 1. */
+	threshold?: number | undefined;
+	/** Workers AI judge model. Default "@cf/meta/llama-3.3-70b-instruct-fp8-fast". */
+	judgeModel?: string | undefined;
 }
 
 // ==================== Loop ====================
