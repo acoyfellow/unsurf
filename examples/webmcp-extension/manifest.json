@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "unsurf",
+  "short_name": "unsurf",
+  "version": "0.0.1",
+  "description": "Turn any website into something your agent can call. Registers WebMCP tools from the unsurf Directory on the pages you visit.",
+
+  "permissions": ["storage", "activeTab", "scripting"],
+
+  "host_permissions": ["<all_urls>"],
+
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle",
+      "world": "ISOLATED"
+    }
+  ],
+
+  "action": {
+    "default_title": "unsurf",
+    "default_popup": "popup.html"
+  },
+
+  "web_accessible_resources": [
+    {
+      "resources": ["polyfill.iife.js", "embed.js", "widget.html", "widget.js", "injected.js"],
+      "matches": ["<all_urls>"]
+    }
+  ]
+}

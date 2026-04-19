@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8" />
+	<title>unsurf</title>
+	<style>
+		html, body {
+			margin: 0;
+			padding: 0;
+			font-family: -apple-system, BlinkMacSystemFont, "SF Mono", "Menlo", monospace;
+			font-size: 13px;
+			background: #fff;
+			color: #111;
+			min-width: 320px;
+		}
+		header {
+			padding: 12px 14px 8px;
+			border-bottom: 1px solid #eee;
+			display: flex;
+			justify-content: space-between;
+			align-items: baseline;
+		}
+		h1 { margin: 0; font-size: 15px; letter-spacing: -0.01em; font-weight: 600; }
+		.muted { color: #888; font-size: 11px; }
+		main { padding: 10px 14px 12px; max-height: 380px; overflow-y: auto; }
+		.row {
+			padding: 6px 0;
+			border-bottom: 1px dashed #eee;
+			display: flex;
+			flex-direction: column;
+			gap: 3px;
+		}
+		.row:last-child { border-bottom: none; }
+		.origin { font-weight: 600; }
+		.sub { color: #666; font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+		.badge {
+			display: inline-block;
+			padding: 1px 5px;
+			border-radius: 3px;
+			font-size: 10px;
+			font-weight: 600;
+			margin-left: 4px;
+		}
+		.badge.hit { background: #d4f4d4; color: #176317; }
+		.badge.miss { background: #f3f3f3; color: #666; }
+		.empty { color: #888; padding: 20px 14px; text-align: center; font-size: 12px; }
+		footer { padding: 8px 14px; border-top: 1px solid #eee; display: flex; justify-content: space-between; font-size: 11px; color: #666; }
+		a { color: #0066cc; text-decoration: none; }
+		a:hover { text-decoration: underline; }
+		input.api {
+			width: 100%;
+			padding: 4px 6px;
+			border: 1px solid #ddd;
+			border-radius: 3px;
+			font-family: inherit;
+			font-size: 11px;
+			margin-top: 4px;
+		}
+	</style>
+</head>
+<body>
+	<header>
+		<h1>unsurf</h1>
+		<span class="muted" id="status">loading…</span>
+	</header>
+	<main id="visits"></main>
+	<footer>
+		<span><a href="https://unsurf.coey.dev/directory" target="_blank">Directory →</a></span>
+		<span><a href="https://github.com/acoyfellow/unsurf" target="_blank">GitHub →</a></span>
+	</footer>
+	<div style="padding: 8px 14px; border-top: 1px solid #eee; background: #fafafa;">
+		<label class="muted" style="font-size: 10px;">API endpoint</label>
+		<input id="api" class="api" />
+	</div>
+	<script src="popup.js"></script>
+</body>
+</html>
