@@ -1,0 +1,26 @@
+{
+	"version": "v0",
+	"target": {
+		"url": "https://coey.dev/",
+		"fingerprint": "sha256:hand-written-example"
+	},
+	"name": "read_headline",
+	"description": "Read the main H1 on the homepage.",
+	"inputSchema": {
+		"type": "object",
+		"properties": {},
+		"required": []
+	},
+	"act": [
+		{
+			"op": "read",
+			"target": { "role": "heading", "name": "hello new world" },
+			"as": "text"
+		}
+	],
+	"risk": "low",
+	"provenance": {
+		"synthesizedAt": "2026-04-19T00:00:00.000Z",
+		"author": { "name": "jordan" }
+	}
+}

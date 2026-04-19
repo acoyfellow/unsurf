@@ -1,0 +1,48 @@
+{
+	"version": "v0",
+	"target": {
+		"url": "https://httpbin.org/forms/post",
+		"fingerprint": "sha256:hand-written-example"
+	},
+	"name": "submit_pizza_order",
+	"description": "Fill + submit the pizza order form. Verify submission by echoed response.",
+	"inputSchema": {
+		"type": "object",
+		"properties": {
+			"custname": { "type": "string" },
+			"custtel": { "type": "string" },
+			"custemail": { "type": "string", "format": "email" },
+			"comments": { "type": "string" }
+		},
+		"required": ["custname", "custtel", "custemail"]
+	},
+	"observe": [
+		{ "kind": "dom", "target": { "role": "heading", "name": "Customer name:" } },
+		{ "kind": "dom", "target": { "role": "button", "name": "Submit order" } }
+	],
+	"act": [
+		{ "op": "fill", "target": { "role": "textbox", "name": "Customer name:" }, "value": "{{custname}}" },
+		{ "op": "fill", "target": { "role": "textbox", "name": "Telephone:" }, "value": "{{custtel}}" },
+		{ "op": "fill", "target": { "role": "textbox", "name": "E-mail address:" }, "value": "{{custemail}}" },
+		{ "op": "fill", "target": { "role": "textbox", "name": "Delivery instructions:" }, "value": "{{comments}}" },
+		{ "op": "submit", "target": { "role": "form", "name": "Customer information" } }
+	],
+	"assert": [
+		{ "kind": "textPresent", "value": "{{custname}}" },
+		{ "kind": "textPresent", "value": "{{custemail}}" },
+		{ "kind": "urlMatches", "pattern": "/post" }
+	],
+	"loop": {
+		"maxIterations": 1,
+		"stopOnFailure": true
+	},
+	"risk": "high",
+	"provenance": {
+		"synthesizedAt": "2026-04-19T00:00:00.000Z",
+		"synthesizer": {
+			"name": "hand-written",
+			"model": "none",
+			"promptHash": "sha256:0"
+		}
+	}
+}

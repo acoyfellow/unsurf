@@ -1,0 +1,34 @@
+{
+	"version": "v0",
+	"target": {
+		"url": "https://coey.dev/"
+	},
+	"name": "verify_coey_dev_online",
+	"description": "Verify coey.dev is responsive and serving the expected homepage.",
+	"inputSchema": {
+		"type": "object",
+		"properties": {},
+		"required": []
+	},
+	"observe": [
+		{
+			"kind": "http",
+			"url": "https://coey.dev/",
+			"expect": { "status": 200 }
+		},
+		{
+			"kind": "dom",
+			"target": { "role": "heading", "name": "hello new world" },
+			"as": "exists"
+		}
+	],
+	"assert": [
+		{ "kind": "httpResponse", "url": "https://coey.dev/", "status": 200 },
+		{ "kind": "elementExists", "target": { "role": "heading", "name": "hello new world" } },
+		{ "kind": "textPresent", "value": "Current Projects" }
+	],
+	"risk": "low",
+	"provenance": {
+		"author": { "name": "jordan" }
+	}
+}
