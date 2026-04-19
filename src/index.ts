@@ -86,6 +86,41 @@ export {
 	OpenApiGenerator,
 	OpenApiGeneratorLive,
 } from "./services/OpenApiGenerator.js";
+// proof-spec.v0 — unified observe/act/assert schema for tools, gates, and proof loops
+export {
+	computeRisk,
+} from "./domain/ProofSpec.js";
+export type {
+	ActionResult,
+	AriaRole,
+	Assertion,
+	AssertionResult,
+	DomObservation,
+	DslOp,
+	ElementTarget,
+	EvidenceBundle,
+	ExecObservation,
+	HttpObservation,
+	Loop,
+	NoteObservation,
+	Observation,
+	ObservationResult,
+	ProofRunner,
+	ProofSpec,
+	Provenance,
+	Status,
+	Target as ProofTarget,
+} from "./domain/ProofSpec.js";
+export type { PlanRunOptions, PlanService } from "./services/Plan.js";
+export {
+	invokeSpec,
+	makePlan,
+	Plan,
+	PlanLive,
+	runLoopSpec,
+	runSpec,
+	verifySpec,
+} from "./services/Plan.js";
 export type {
 	LabelResult,
 	Override,
