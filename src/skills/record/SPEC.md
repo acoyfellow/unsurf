@@ -17,13 +17,15 @@ Immutable. No updates, no deletes except via retention policy.
 
 ## URL shape
 
-One canonical viewer domain. Every artifact is reachable from it.
+One canonical viewer domain: **`trace.coey.dev`** on the hosted deploy. Every
+artifact is reachable from it.
 
 | Route | Content-Type | Cached |
 |---|---|---|
 | `/r/:id` | `text/html` | edge, 1h |
 | `/r/:id.json` | `application/json` | edge, 1d |
-| `/r/:id/video.webm` | `video/webm` | signed, 7d expiry |
+| `/r/:id/video.webm?exp=&sig=` | `video/webm` | signed, 7d expiry |
+| `/r/:id/video-url` | `application/json` | uncached; mints a fresh signed URL |
 | `/r/:id/trace` | `application/json` | edge, 1d |
 | `/r/:id/meta` | `application/json` | edge, 1d |
 

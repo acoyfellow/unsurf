@@ -72,11 +72,17 @@ Usage:
     --out <file>                           Write to file instead of stdout
     --cdp-port <port>                      CDP port (default 9222)
 
+  unsurf record <script.(m)js|.ts> [flags] Record an agent run; prints trace URL
+    --task <str>                           Human label (default: script path)
+    --harness <str>                        Harness tag written to meta.json
+    Env: TRACE_INGEST_TOKEN (required), TRACE_INGEST_ENDPOINT (optional)
+
 Examples:
   unsurf search "payment processing"
   unsurf lookup stripe.com
   unsurf run spec.json --args '{"q":"hello"}'
-  unsurf scout https://coey.dev --out spec.json`);
+  unsurf scout https://coey.dev --out spec.json
+  unsurf record ./demo-run.ts --task 'verify sidebar happy path'`);
 	process.exit(0);
 }
 
@@ -519,6 +525,43 @@ async function scoutCommand(args: string[]): Promise<void> {
 
 // ==================== Main ====================
 
+// ==================== record command ====================
+
+async function recordCommand(args: string[]): Promise<void> {
+	const scriptPath = args[0];
+	if (!scriptPath) {
+		console.error(
+			"Error: record requires a script path\n  Usage: unsurf record <script> [--task <str>] [--harness <str>]",
+		);
+		process.exit(1);
+	}
+
+	const task = flagValue(args, "--task") || scriptPath;
+	const harness = flagValue(args, "--harness");
+
+	const absPath = resolvePath(scriptPath);
+	const mod = (await import(absPath)) as { default?: unknown; run?: unknown };
+	const run = (mod.default ?? mod.run) as
+		| ((browser: import("./skills/record/types.js").BrowserHandle) => Promise<unknown>)
+		| undefined;
+	if (typeof run !== "function") {
+		console.error(
+			`Error: ${scriptPath} must export a default function or a named 'run' function accepting a BrowserHandle`,
+		);
+		process.exit(1);
+	}
+
+	const { recordLocal } = await import("./skills/record/index.js");
+	const result = await recordLocal({
+		task,
+		run,
+		...(harness ? { harness } : {}),
+	});
+
+	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+	if (result.status === "failed") process.exit(1);
+}
+
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 	const command = args[0];
@@ -565,6 +608,10 @@ async function main(): Promise<void> {
 
 			case "scout":
 				await scoutCommand(args.slice(1));
+				break;
+
+			case "record":
+				await recordCommand(args.slice(1));
 				break;
 
 			default:

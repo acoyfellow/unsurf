@@ -76,4 +76,46 @@ await CustomDomain("unsurf-api-domain", {
 	adopt: true,
 });
 
+// ==================== trace viewer + ingest ====================
+//
+// Serves trace.coey.dev/r/:id (viewer) and /upload (ingest) for the `record`
+// skill. v0.0.1 uses one Worker for both; split when there's >1 upload client.
+// Required env vars at deploy time:
+//   TRACE_SIGNING_KEY   32-byte hex (generate: openssl rand -hex 32)
+//   TRACE_INGEST_TOKEN  random bearer string (generate: openssl rand -hex 32)
+
+const traceSigningKey = process.env.TRACE_SIGNING_KEY;
+const traceIngestToken = process.env.TRACE_INGEST_TOKEN;
+
+if (!traceSigningKey || !traceIngestToken) {
+	console.warn(
+		"[unsurf-trace] TRACE_SIGNING_KEY and/or TRACE_INGEST_TOKEN missing; " +
+			"using dev defaults. Generate real values with `openssl rand -hex 32` " +
+			"before production deploys.",
+	);
+}
+
+export const TRACE_WORKER = await Worker("unsurf-trace", {
+	name: "unsurf-trace",
+	entrypoint: "./src/trace-worker.ts",
+	bindings: {
+		STORAGE,
+		TRACE_SIGNING_KEY: alchemy.secret(
+			traceSigningKey || "dev-signing-key-replace-before-real-use-00000000",
+		),
+		TRACE_INGEST_TOKEN: alchemy.secret(
+			traceIngestToken || "dev-ingest-token-replace-before-real-use",
+		),
+	},
+	compatibility: "node",
+	url: true,
+	adopt: true,
+});
+
+await CustomDomain("unsurf-trace-domain", {
+	name: "trace.coey.dev",
+	workerName: TRACE_WORKER.name,
+	adopt: true,
+});
+
 await app.finalize();

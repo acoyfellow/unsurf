@@ -2,16 +2,35 @@
 
 Written against the 2026-04-15 rules: no public Workers with bindings, Access before deploy, secret-before-code.
 
-## Two-Worker split
+## v0.0.1 — single Worker, bearer-token ingest
+
+Shipped at `trace.coey.dev`. Serves both the viewer (`/r/:id*`) and ingest
+(`POST /upload`) from one Worker. Single caller = Jordan's laptop via
+`unsurf record` CLI.
+
+| Surface | Auth | Bindings used |
+|---|---|---|
+| `GET /r/:id*` public viewer | none (signed URLs for video) | `STORAGE` (read only) |
+| `POST /upload` ingest | `Authorization: Bearer $TRACE_INGEST_TOKEN` | `STORAGE` (read/write), `TRACE_SIGNING_KEY` |
+
+This deliberately violates the "public Worker has zero bindings" rule **for
+v0.0.1 only**. The deviation is bounded:
+
+- `STORAGE` is already shared with the main `unsurf` worker
+- The signing key is used only inside the Worker, never emitted
+- The ingest token check is constant-prefix, single-tenant
+
+## v0.1 — two-Worker split (planned)
+
+When there is >1 upload client, split into:
 
 | Worker | Domain | Public? | Bindings | Purpose |
 |---|---|---|---|---|
-| **viewer** | `unsurf.coey.dev/r/*` | yes | **none** | Serves HTML player, fetches signed R2 URLs |
-| **ingest** | `ingest-trace.unsurf.coey.dev` | no (Access) | R2 write, signing key | Receives bundles from callers |
+| **viewer** | `trace.coey.dev/r/*` | yes | **none** | Static HTML + service binding to ingest for signed URLs |
+| **ingest** | `trace-ingest.coey.dev` | Access-gated | R2 write, signing key | Receives bundles, signs playback URLs |
 
-The viewer is public by design **because it has nothing dangerous on it**. It cannot write to R2, cannot read secrets, cannot call AI, cannot touch D1. It is a signed-URL proxy and a static HTML template. If it gets pwned, the blast radius is "someone served weird HTML at our domain" — no data exfil.
-
-The ingest is Access-gated. Every upload carries a Cloudflare Access JWT. No API keys, no bearer tokens, no secrets in headers.
+At that point the viewer loses all bindings and the ingest gains Cloudflare
+Access. The JSON shape and URL routes stay the same across v0.0.1 → v0.1.
 
 ## Signing scheme
 
@@ -28,24 +47,25 @@ sig = HMAC_SHA256(TRACE_SIGNING_KEY, "<id>|<exp>")
 
 Rotation: generate a new key, leave the old one as `TRACE_SIGNING_KEY_PREV` for one retention window, then delete. Signer uses new, verifier accepts either.
 
-## Upload path
+## Upload path (v0.0.1)
 
 ```
-caller → POST ingest.unsurf.coey.dev/upload (Access JWT)
-         multipart: video, trace, result, meta
-      → ingest Worker validates JWT
-      → ingest Worker puts four R2 objects
-      → ingest Worker returns { id, viewerUrl }
+caller → POST trace.coey.dev/upload (Bearer token)
+         multipart: id, video?, trace, result, meta
+      → Worker validates bearer token
+      → Worker validates bundle shape
+      → Worker puts four R2 objects under trace/<id>*
+      → Worker returns { id, url, resultUrl, videoUrl }
 ```
 
 Ingest enforces:
 
 | Check | Failure mode |
 |---|---|
-| Access JWT valid, not expired | 401 |
-| Email in JWT matches Access policy | 403 |
-| Total bundle size < 500 MB | 413 |
-| `trace.json`, `meta.json`, `result.json` parse as v0 | 422 |
+| `Authorization: Bearer <TRACE_INGEST_TOKEN>` matches | 401 |
+| Total bundle size < 500 MB (Content-Length) | 413 |
+| `content-type` starts with `multipart/form-data` | 415 |
+| `trace.json`, `meta.json`, `result.json` parse as v0 with matching id | 422 |
 | Id regex `^[0-9a-z]{12}$` | 422 |
 | Id does not already exist | 409 |
 
