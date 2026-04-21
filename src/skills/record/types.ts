@@ -10,7 +10,7 @@
  * See ./SECURITY.md for the two-Worker split and signing scheme.
  */
 
-import type { EvidenceBundle } from "../../domain/ProofSpec.js";
+import type { EvidenceBundle } from "@acoyfellow/proof-spec";
 
 // ==================== Browser handle ====================
 

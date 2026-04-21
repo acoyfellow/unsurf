@@ -54,6 +54,7 @@
 		"lint": "bun run check && bun run typecheck"
 	},
 	"dependencies": {
+		"@acoyfellow/proof-spec": "file:../proof-spec",
 		"@cloudflare/ai": "^1.2.2",
 		"@cloudflare/puppeteer": "^1.0.6",
 		"@effect/platform": "^0.94.5",
