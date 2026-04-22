@@ -71,7 +71,7 @@
 		"alchemy": "^0.84.0",
 		"drizzle-kit": "^0.31.9",
 		"tsup": "^8.5.1",
-		"typescript": "^5.9.3",
+		"typescript": "^6.0.3",
 		"vitest": "^3.2.4"
 	},
 	"license": "MIT"
