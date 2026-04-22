@@ -51,6 +51,8 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           ALCHEMY_PASSWORD: ${{ secrets.ALCHEMY_PASSWORD }}
           ALCHEMY_STATE_TOKEN: ${{ secrets.ALCHEMY_STATE_TOKEN }}
+          TRACE_SIGNING_KEY: ${{ secrets.TRACE_SIGNING_KEY }}
+          TRACE_INGEST_TOKEN: ${{ secrets.TRACE_INGEST_TOKEN }}
       - name: Smoke test
         run: |
           sleep 5
