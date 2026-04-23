@@ -38,6 +38,7 @@ export default defineConfig({
             { label: 'Scout a website', slug: 'guides/scout' },
             { label: 'Replay a captured API', slug: 'guides/replay' },
             { label: 'Heal a broken path', slug: 'guides/heal' },
+            { label: 'Record a browser session', slug: 'guides/record' },
             { label: 'Agent integration', slug: 'guides/agent-integration' },
             { label: 'MCP Server', slug: 'guides/mcp' },
           ],
