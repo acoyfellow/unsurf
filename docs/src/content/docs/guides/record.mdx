@@ -32,7 +32,7 @@ The typical "agent driving a browser" stack breaks on three things:
 2. **Federated corp browsers** — MDM policy blocks CDP. Trying to `--auto-connect` to your daily-driver Chrome triggers federation prompts every call.
 3. **Text-based selectors** — `click "text=foo"` dies the moment a page has two matches. Then the surrounding script cascades into dead-air hangs.
 
-The pattern below solves all three with one line, one dedicated profile, and a Ralph-style loop.
+The pattern below solves all three with one line, one dedicated profile, and a tick-gated loop.
 
 ## Prerequisites
 
@@ -68,7 +68,7 @@ agent-browser get title
 # → "Access: App Launcher"  (not the SSO page)
 ```
 
-## The Ralph loop — why a one-shot script is a glass cannon
+## The loop — why a one-shot script is a glass cannon
 
 Naïve browser scripts look like this:
 
@@ -81,7 +81,7 @@ agent-browser click "text=Submit"  # runs even if previous step failed
 
 Every `sleep` is dead air on camera. Every text-selector is a landmine. Any failure cascades silently and the daemon can end up in an inconsistent state (you'll see `Command aborted`).
 
-The fix is a **Ralph loop** ([Geoffrey Huntley's pattern](https://ghuntley.com/ralph/)): each step is a tick, each tick gates on a **win flag** checked in the page, and each call has a hard timeout. The loop is the harness; the agent is dumb; the win flag is the fixed point.
+The fix is a **tick-gated loop**: each step is a tick, each tick gates on a **win flag** checked in the page, and each call has a hard timeout. The loop is the harness; the agent is dumb; the win flag is the fixed point.
 
 <Steps>
 
@@ -153,11 +153,11 @@ The fix is a **Ralph loop** ([Geoffrey Huntley's pattern](https://ghuntley.com/r
 
 ## The full script
 
-This is the exact script that produced the video at the top of this page. It's also on disk at [`examples/ralph-coey-tour.sh`](https://github.com/acoyfellow/unsurf/blob/main/examples/ralph-coey-tour.sh) in the unsurf repo.
+This is the exact script that produced the video at the top of this page. It's also on disk at [`examples/loop-coey-tour.sh`](https://github.com/acoyfellow/unsurf/blob/main/examples/loop-coey-tour.sh) in the unsurf repo.
 
 ```bash
 #!/usr/bin/env bash
-# Ralph-style loop for recording a coey.dev tour.
+# Loop-driven recording of a coey.dev tour.
 # Each state is a "tick": take one action, verify win-flag, move on.
 # Hard timeouts + retries + pulse lines. No hangs possible.
 
@@ -227,8 +227,8 @@ echo "$OUT.mp4"
 Run it:
 
 ```bash
-chmod +x examples/ralph-coey-tour.sh
-./examples/ralph-coey-tour.sh
+chmod +x examples/loop-coey-tour.sh
+./examples/loop-coey-tour.sh
 # → ~/cloudflare/recordings/coey-tour.mp4
 ```
 
@@ -236,7 +236,7 @@ chmod +x examples/ralph-coey-tour.sh
 
 The shell script above is the procedural form. The declarative form is a [`proof-spec.v0`](/reference/config/) — observe, act, assert, with evidence. Every tick becomes a spec step; the win flag becomes an `assert`. Unsurf's `record()` skill (in `src/skills/record/`) already wraps any `BrowserHandle` callback into a video+trace+bundle with a canonical URL.
 
-The logical next step is feeding a proof-spec into a Ralph runner so skills can be **refined and committed** across runs — [Lopopolo's workout-session pattern](https://twitter.com/lopopolo/): plant a flag, ralph until captured, commit the refined skill, repeat until reliability metrics stabilize.
+The logical next step is feeding a proof-spec into a loop runner so skills can be **refined and committed** across runs — [Lopopolo's workout-session pattern](https://twitter.com/lopopolo/): plant a flag, loop until captured, commit the refined skill, repeat until reliability metrics stabilize.
 
 ## Related
 

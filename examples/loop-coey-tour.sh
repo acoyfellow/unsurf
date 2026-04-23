@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Ralph-style loop for recording a coey.dev tour.
+# Loop-driven recording of a coey.dev tour.
 #
 # Each state is a "tick": take one action, verify win-flag, move on.
 # On failure: retry with backoff, up to MAX_TICKS per state.
