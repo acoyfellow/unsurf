@@ -107,10 +107,22 @@ export function workersAiVisionBackend(opts: WorkersAiVisionOptions = {}): Visio
 
 	return {
 		async caption(frame) {
-			// Workers AI image-to-text accepts raw byte array under "image".
+			// OpenAI-style multimodal: text + image_url (data URL). Works on
+			// gemma-3, mistral-small-3.1, llama-4-scout, and other native-
+			// multimodal Text Generation models on Workers AI. Avoids the
+			// Llama click-through that gates @cf/meta/llama-3.2-*-vision-*.
+			const b64 = Buffer.from(frame.png).toString("base64");
+			const dataUrl = `data:image/png;base64,${b64}`;
 			const result = await aiRun<ChatCompletionsResult & { description?: string }>(creds, model, {
-				image: Array.from(frame.png),
-				prompt: systemPrompt,
+				messages: [
+					{
+						role: "user",
+						content: [
+							{ type: "text", text: systemPrompt },
+							{ type: "image_url", image_url: { url: dataUrl } },
+						],
+					},
+				],
 				max_tokens: 300,
 			});
 			const text =
