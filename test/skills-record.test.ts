@@ -5,15 +5,10 @@
 
 import { describe, expect, it } from "vitest";
 import { newTraceId } from "../src/skills/record/id.js";
+import { TRACE_ID_REGEX, TRACE_VIEWER_ROUTES } from "../src/skills/record/index.js";
 import { record } from "../src/skills/record/record.js";
 import { traceHandle } from "../src/skills/record/tracer.js";
-import type {
-	BrowserHandle,
-	Bundle,
-	Uploader,
-	UploadResult,
-} from "../src/skills/record/types.js";
-import { TRACE_ID_REGEX, TRACE_VIEWER_ROUTES } from "../src/skills/record/index.js";
+import type { BrowserHandle, Bundle, Uploader, UploadResult } from "../src/skills/record/types.js";
 
 function stubBrowser(overrides: Partial<BrowserHandle> = {}): BrowserHandle {
 	return {
@@ -76,7 +71,11 @@ describe("traceHandle", () => {
 		await handle.fill("input[name=q]", "hello world");
 		await handle.wait(10);
 		expect(steps).toHaveLength(4);
-		expect(steps[0]).toMatchObject({ op: "goto", status: "ok", args: { url: "https://example.com" } });
+		expect(steps[0]).toMatchObject({
+			op: "goto",
+			status: "ok",
+			args: { url: "https://example.com" },
+		});
 		expect(steps[1]!.args).toEqual({ selector: "button.primary" });
 		expect(steps[2]!.args).toEqual({ selector: "input[name=q]", value: "hello world" });
 		expect(steps[3]!.args).toEqual({ ms: 10 });

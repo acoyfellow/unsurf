@@ -27,7 +27,11 @@
 			"!**/.alchemy",
 			"!**/.wrangler",
 			"!**/docs",
-			"!**/scripts/specs"
+			"!**/scripts/specs",
+			"!**/experiments",
+			"!**/examples",
+			"!**/vendor",
+			"!**/drafts"
 		]
 	}
 }

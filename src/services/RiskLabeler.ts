@@ -64,7 +64,9 @@ export interface RiskLabelerService {
 	) => Effect.Effect<LabelResult>;
 
 	/** Relabel every tool in a tool-spec.v0.json in place, returning a summary of overrides. */
-	readonly relabelSpec: (spec: { tools?: Array<{ name?: string; dsl?: unknown; risk?: Risk }> }) => Effect.Effect<RelabelSummary>;
+	readonly relabelSpec: (spec: {
+		tools?: Array<{ name?: string; dsl?: unknown; risk?: Risk }>;
+	}) => Effect.Effect<RelabelSummary>;
 }
 
 export class RiskLabeler extends Context.Tag("RiskLabeler")<RiskLabeler, RiskLabelerService>() {}
@@ -96,15 +98,11 @@ const DESTRUCTIVE_RE = new RegExp(`\\b(${DESTRUCTIVE_VERBS.join("|")})\\b`, "i")
  * Pure computation. Exposed separately so non-Effect callers (scripts, tests, the
  * Directory's SQL write path) can use it without pulling in an Effect runtime.
  */
-export function computeRiskSync(
-	dsl: ReadonlyArray<RiskDslOp>,
-	claimedRisk?: Risk,
-): LabelResult {
+export function computeRiskSync(dsl: ReadonlyArray<RiskDslOp>, claimedRisk?: Risk): LabelResult {
 	const reasons: string[] = [];
 
 	// Rule 1: all-read → low
-	const allRead =
-		Array.isArray(dsl) && dsl.length > 0 && dsl.every((op) => op.op === "read");
+	const allRead = Array.isArray(dsl) && dsl.length > 0 && dsl.every((op) => op.op === "read");
 	if (allRead) {
 		if (claimedRisk && claimedRisk !== "low") {
 			return {
@@ -156,10 +154,7 @@ export function computeRiskSync(
 	if (claimedRisk && claimedRisk !== "medium") {
 		return {
 			risk: "medium",
-			reasons: [
-				...mediumReasons,
-				`synthesizer claimed '${claimedRisk}' but DSL indicates medium`,
-			],
+			reasons: [...mediumReasons, `synthesizer claimed '${claimedRisk}' but DSL indicates medium`],
 			overrode: true,
 			originalClaim: claimedRisk,
 		};

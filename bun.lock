@@ -5,7 +5,7 @@
     "": {
       "name": "unsurf",
       "dependencies": {
-        "@acoyfellow/proof-spec": "file:../proof-spec",
+        "@acoyfellow/proof-spec": "file:./vendor/proof-spec",
         "@cloudflare/ai": "^1.2.2",
         "@cloudflare/puppeteer": "^1.0.6",
         "@effect/platform": "^0.94.5",
@@ -28,7 +28,7 @@
     },
   },
   "packages": {
-    "@acoyfellow/proof-spec": ["@acoyfellow/proof-spec@file:../proof-spec", { "devDependencies": { "typescript": "^5.6.0" } }],
+    "@acoyfellow/proof-spec": ["@acoyfellow/proof-spec@file:vendor/proof-spec", { "devDependencies": { "typescript": "^5.6.0" } }],
 
     "@aws-crypto/sha256-browser": ["@aws-crypto/sha256-browser@5.2.0", "", { "dependencies": { "@aws-crypto/sha256-js": "^5.2.0", "@aws-crypto/supports-web-crypto": "^5.2.0", "@aws-crypto/util": "^5.2.0", "@aws-sdk/types": "^3.222.0", "@aws-sdk/util-locate-window": "^3.0.0", "@smithy/util-utf8": "^2.0.0", "tslib": "^2.6.2" } }, "sha512-AXfN/lGotSQwu6HNcEsIASo7kWXZ5HYWvfOmSNKDsEqC4OashTp8alTmaz+F7TC2L083SFv5RdB+qU3Vs1kZqw=="],
 

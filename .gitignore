@@ -1,5 +1,8 @@
 node_modules/
 dist/
+# Vendored packages need their dist/ shipped since they're installed via file:
+# references and consumers import from their `main`/`exports` which point at dist/.
+!vendor/*/dist/
 .alchemy/
 .wrangler/
 .env
