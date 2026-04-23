@@ -9,8 +9,8 @@
  *   CLOUDFLARE_API_TOKEN    token with "Workers AI - Read" permission
  *
  * Defaults:
- *   vision model      @cf/meta/llama-3.2-11b-vision-instruct
- *   synthesis model   @cf/moonshotai/kimi-k2-instruct   (Kimi K2 family on Workers AI)
+ *   vision model      @cf/google/gemma-3-12b-it   (native multimodal, no license gate)
+ *   synthesis model   @cf/moonshotai/kimi-k2.6     (Jordan-specified frontier model)
  *
  * Both are overridable via options so we can swap to a bigger/smaller model
  * without code changes.
@@ -18,7 +18,11 @@
 
 import type { SynthesisBackend, VisionBackend } from "../types.js";
 
-const DEFAULT_VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
+// Gemma 3 (12B IT) is a native-multimodal Text Generation model on Workers AI.
+// We deliberately avoid @cf/meta/llama-3.2-*-vision-* because those require
+// a one-time POST with prompt:'agree' to accept Meta's Community License,
+// which blocks CI and anonymous callers.
+const DEFAULT_VISION_MODEL = "@cf/google/gemma-3-12b-it";
 // Jordan specified K2.6 explicitly — the frontier 1T param model with 262k
 // context, which is overkill for caption synthesis but what's requested.
 const DEFAULT_SYNTHESIS_MODEL = "@cf/moonshotai/kimi-k2.6";
