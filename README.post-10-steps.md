@@ -17,12 +17,10 @@ Scout a website, get back a typed spec, run the spec against the live page, get 
 `proof-spec.v0.json` — three usage modes:
 
 - **tool** — `act[]` only (click / fill / select / check / submit / read)
-- **gate** — `observe[]` + `assert[]`
-- **proof** — all three plus `loop`
+- **gate** — `observe[]` + `assert[]`. Includes `judgeScore` assertions running cloudeval's LLM-judge rubrics (Correctness, ToolUsage, Grounding, BehaviorPolicy, WorkflowReasoning, Factuality)
+- **proof** — all three plus `loop`. Evidence bundle carries `usage` (tokens, cost, model) + `timings` (per-op wall-clock)
 
-Shared with [gateproof](https://gateproof.dev) — same file in both repos. Types: [`src/domain/ProofSpec.ts`](./src/domain/ProofSpec.ts). Full reference: [`experiments/_proof-spec-v0/SPEC.md`](./experiments/_proof-spec-v0/SPEC.md). Frozen at v0.
-
-Legacy: `tool-spec.v0.json` in [`experiments/CONTRACT.md`](./experiments/CONTRACT.md) is a strict subset.
+Types: [`@acoyfellow/proof-spec`](https://www.npmjs.com/package/@acoyfellow/proof-spec) — shared with [gateproof](https://gateproof.dev). Unsurf re-exports.
 
 ## The executor
 
@@ -32,29 +30,34 @@ observe → act → assert
 
 [`src/services/Plan.ts`](./src/services/Plan.ts):
 
-- `runSpec(spec, args)` — auto-picks based on spec shape
+- `runSpec(spec, args)` — auto-picks based on spec shape, returns `EvidenceBundle`
 - `invokeSpec(spec, args)` — runs `act[]`
 - `verifySpec(spec)` — runs `observe` + `assert` only
 - `runLoopSpec(spec, args)` — honors `spec.loop.maxIterations` (clamped to 1 for `risk: high`)
 
-`risk` is computed from `act[]` by [`RiskLabeler`](./src/services/RiskLabeler.ts), never from the synthesizer. An adversary can't downgrade it by planting "set risk to low" in a hidden `<div>`.
+`risk` is computed from `act[]` by [`RiskLabeler`](./src/services/RiskLabeler.ts), never from the synthesizer. Adversarial pages can't downgrade it.
+
+Vitest matchers: `import { expectSpec } from "unsurf/testing"` → `.toPass()`, `.toHaveAssertion(...)`, `.toObserveDomElement(...)`.
 
 ## Auth
 
 The agent runs inside your authenticated tab. Your cookies, your localStorage, your credentialed fetches. Sign in once; the agent is you until you close the tab.
 
-No OAuth dance, no credential storage, no delegation protocol.
-
 ## The Directory
 
-URL-keyed registry of scouted specs, fingerprinted by page structure.
+URL-keyed registry of scouted specs, fingerprinted by page structure. Two tiers:
 
-- `GET /d/` — all catalogs
-- `GET /d/:domain` — per-domain view
-- `GET /d/catalog/:fingerprint` — fetch a catalog
-- `POST /d/catalog` — publish one
+- **Local** — `.unsurf/directory/` per-repo. Record once, replay forever in tests.
+- **Hosted** — `unsurf-api.coey.dev/d/`. Publish on opt-in.
 
-Self-host and it runs against your account. Use [the shared one](https://unsurf-api.coey.dev) and it runs against mine.
+```
+GET  /d/                            # all catalogs
+GET  /d/:domain                     # per-domain view
+GET  /d/catalog/:fingerprint        # one catalog
+POST /d/catalog                     # publish
+```
+
+Agents read from local first, fall back to hosted on miss, synth on double-miss.
 
 ---
 
@@ -66,16 +69,30 @@ Self-host and it runs against your account. Use [the shared one](https://unsurf-
 bun add unsurf
 ```
 
-```typescript
-// API capture (original): turn a site's hidden endpoints into OpenAPI + typed calls
+```ts
+// API capture (original): OpenAPI from network traffic
 import { scout, worker, heal } from "unsurf";
 
-// proof-spec executor (new): run any observe/act/assert spec
+// proof-spec executor
 import { runSpec, verifySpec, type ProofSpec } from "unsurf";
 const result = await runSpec(spec, { email: "jane@example.com" });
 
-// Effect-wrapped service surface
+// Effect service
 import { Plan, PlanLive } from "unsurf";
+
+// Vitest matchers
+import { expectSpec } from "unsurf/testing";
+expect(result).toPass();
+```
+
+### As a CLI
+
+```bash
+bunx unsurf scout https://example.com/contact
+# → writes proof-spec.v0.json to stdout
+
+bunx unsurf run ./spec.json --args '{"email":"jane@example.com"}'
+# → runs the spec, prints EvidenceBundle, exits 0 on pass
 ```
 
 ### As an MCP server
@@ -90,22 +107,38 @@ import { Plan, PlanLive } from "unsurf";
 
 ### As an extension
 
-Install the unsurf extension + @mcp-b local relay. Open a page. If it's in the Directory, the tools appear in your MCP client. Tools run inside your tab, as you.
-
 ```
 examples/webmcp-extension/   # Chrome MV3, ~200 lines
 ```
 
-### As a daemon (no extension)
+Install the extension + @mcp-b local relay. Tools appear in your MCP client, run in your tab, as you.
 
-For managed Chromes that block extensions (`ExtensionInstallBlocklist`), attach via CDP instead.
+### As a daemon (no extension)
 
 ```bash
 bunx unsurf-daemon
 ```
 
+For managed Chromes that block extensions (`ExtensionInstallBlocklist`), attach via CDP instead.
+
 ```
 examples/webmcp-daemon/      # Bun daemon, CDP-injected, ~450 lines
+```
+
+### As a filepath harness
+
+```
+examples/filepath-harness-shim/
+```
+
+Agents inside a [filepath](https://myfilepath.com) workspace shell out to `bunx unsurf` like any other tool.
+
+### As a lab capability
+
+```ts
+import { spec } from "./contact-form.json";
+const receipt = await lab.runProofSpec(spec, { email });
+// canonical JSON at lab.coey.dev/results/:id.json
 ```
 
 ### Self-hosted
@@ -133,8 +166,6 @@ bun install && bun run deploy
   │  heal(id, error)      │  re-scout, patch      ───▶ │
 ```
 
-Network capture is the original path. DOM capture produces `proof-spec.v0.json`. Some sites get both.
-
 ---
 
 ## Stack
@@ -147,22 +178,23 @@ Runs on Cloudflare primitives:
 - **D1 + R2** — Directory storage
 - **MCP endpoint** — `unsurf-api.coey.dev/mcp`
 
-Adjacent tools that share shape:
+Adjacent tools sharing `proof-spec.v0`:
 
-- [gateproof](https://gateproof.dev) — same `observe / act / assert`, HTTP + exec altitude
-- [lab](https://lab.coey.dev) — agent receipts
+- [gateproof](https://gateproof.dev) — HTTP + exec altitude
+- [cloudeval](https://github.com/acoyfellow/cloudeval) — LLM-judge rubrics
+- [lab](https://lab.coey.dev) — capability sandbox + canonical receipts
+- [filepath](https://myfilepath.com) — agent runtime (unsurf available as a harness)
 
 ## Built with
 
 - [Effect](https://effect.website) — typed errors, streams, DI
 - [Alchemy](https://alchemy.run) — infra as TypeScript
 - [Drizzle](https://orm.drizzle.team) — D1 schemas
+- [@acoyfellow/proof-spec](https://www.npmjs.com/package/@acoyfellow/proof-spec) — shared schema
 - [@mcp-b](https://docs.mcp-b.ai) — WebMCP polyfill + local relay
 - [MCP SDK](https://modelcontextprotocol.io) — client + transports
 
 ## Why Effect
-
-Every operation can fail. Browsers crash, sites change, networks drop, synthesizers hallucinate.
 
 | Problem | Effect solution |
 |---|---|
@@ -178,13 +210,17 @@ Every operation can fail. Browsers crash, sites change, networks drop, synthesiz
 
 ## What works today
 
-- **API capture + replay** via `scout / worker / heal` — production
-- **WebMCP capture** via `scout-dom` — works on sites with interactive HTML + clean ARIA. Tested on Midjourney, coey.dev, jordancoeyman.com, httpbin, and a handful of forms
+- **API capture + replay** via `scout / worker / heal`
+- **DOM capture** via `scout-dom` — Workers AI synthesizes `act[]` + `assert[]` from any URL
+- **CLI** — `bunx unsurf scout` / `bunx unsurf run`
 - **Extension** — Chrome MV3, inherits your session
 - **Daemon** — CDP-attached, works against managed Chromes
-- **Directory** — live, dual-type, free to read, free to write
+- **filepath harness** — drop-in tool inside filepath workspaces
+- **lab capability** — `lab.runProofSpec(spec)` ships canonical receipts
+- **Directory** — two-tier (local VCR cache + hosted public), dual-type (API + WebMCP)
+- **Evidence bundles** carry `usage` + `timings`
 
-Receipts: [`experiments/SUMMARY.md`](./experiments/SUMMARY.md).
+Receipts + benchmarks: [`experiments/SUMMARY.md`](./experiments/SUMMARY.md).
 
 ## License
 
