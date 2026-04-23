@@ -57,3 +57,12 @@ jobs:
         run: |
           sleep 5
           curl -sf https://unsurf-api.coey.dev/api | jq .name | grep -q unsurf
+      - name: Install ffmpeg (for observeVideo verification)
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - name: Post-deploy verification (Phase 1 auth + Phase 2 observeVideo E2E)
+        run: bun scripts/verify-post-deploy.ts
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TRACE_INGEST_TOKEN: ${{ secrets.TRACE_INGEST_TOKEN }}
+          TRACE_INGEST_ENDPOINT: https://trace.coey.dev

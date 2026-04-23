@@ -19,7 +19,9 @@
 import type { SynthesisBackend, VisionBackend } from "../types.js";
 
 const DEFAULT_VISION_MODEL = "@cf/meta/llama-3.2-11b-vision-instruct";
-const DEFAULT_SYNTHESIS_MODEL = "@cf/moonshotai/kimi-k2-instruct";
+// Jordan specified K2.6 explicitly — the frontier 1T param model with 262k
+// context, which is overkill for caption synthesis but what's requested.
+const DEFAULT_SYNTHESIS_MODEL = "@cf/moonshotai/kimi-k2.6";
 
 export interface WorkersAiCreds {
 	accountId: string;
@@ -36,6 +38,23 @@ function credsFromEnv(over?: Partial<WorkersAiCreds>): WorkersAiCreds {
 		);
 	}
 	return { accountId, apiToken, baseUrl: over?.baseUrl || "https://api.cloudflare.com/client/v4" };
+}
+
+interface ChatCompletionsResult {
+	response?: string;
+	choices?: {
+		message?: { content?: string | null; reasoning_content?: string | null };
+	}[];
+}
+
+/** Extract assistant text across the two shapes Workers AI models return. */
+function extractAssistantText(r: ChatCompletionsResult): string {
+	if (typeof r.response === "string" && r.response.trim()) return r.response.trim();
+	const msg = r.choices?.[0]?.message;
+	if (msg?.content && msg.content.trim()) return msg.content.trim();
+	// Some reasoning models emit only reasoning_content when max_tokens is too low.
+	if (msg?.reasoning_content && msg.reasoning_content.trim()) return msg.reasoning_content.trim();
+	return "";
 }
 
 async function aiRun<T>(
@@ -89,12 +108,13 @@ export function workersAiVisionBackend(opts: WorkersAiVisionOptions = {}): Visio
 	return {
 		async caption(frame) {
 			// Workers AI image-to-text accepts raw byte array under "image".
-			const result = await aiRun<{ description?: string; response?: string }>(creds, model, {
+			const result = await aiRun<ChatCompletionsResult & { description?: string }>(creds, model, {
 				image: Array.from(frame.png),
 				prompt: systemPrompt,
-				max_tokens: 200,
+				max_tokens: 300,
 			});
-			const text = (result.description || result.response || "").trim();
+			const text =
+				(result.description && result.description.trim()) || extractAssistantText(result);
 			if (!text) throw new Error(`vision model returned empty caption for frame ${frame.index}`);
 			return text;
 		},
@@ -158,12 +178,12 @@ export function workersAiSynthesisBackend(opts: WorkersAiSynthesisOptions = {}):
 	return {
 		async synthesize({ question, captions }) {
 			const prompt = buildSynthesisPrompt(question, captions);
-			const result = await aiRun<{ response?: string }>(creds, model, {
+			const result = await aiRun<ChatCompletionsResult>(creds, model, {
 				messages: [{ role: "user", content: prompt }],
-				max_tokens: 400,
+				max_tokens: 800,
 				temperature: 0.2,
 			});
-			const text = (result.response || "").trim();
+			const text = extractAssistantText(result);
 			const parsed = tryParseJson(text);
 			if (!parsed) {
 				// Fallback: return the raw text with low confidence rather than throwing.
