@@ -8,10 +8,21 @@
  * Revisit when there are >1 upload clients.
  *
  * Bindings come from alchemy.run.ts:
- *   STORAGE             R2 bucket (shared with the main unsurf worker; trace/
- *                        prefix keys every object)
- *   TRACE_SIGNING_KEY   32-byte hex string, HMAC key for signed video URLs
- *   TRACE_INGEST_TOKEN  bearer token required on POST /upload
+ *   STORAGE                    R2 bucket (shared with the main unsurf worker;
+ *                              trace/ prefix keys every object)
+ *   TRACE_TOKENS               KV namespace, keyed by SHA-256(token), values
+ *                              `{ owner, scope, createdAt, revokedAt?, quotaPerDay? }`
+ *   TRACE_INGEST_RATE_LIMIT    Workers Rate Limit binding (120/min/token)
+ *   TRACE_SIGNING_KEY          32-byte hex, HMAC key for signed video URLs
+ *   TRACE_INGEST_TOKEN         legacy single-token fallback; auth succeeds
+ *                              if header matches this OR a KV entry exists
+ *
+ * Auth order on POST /upload:
+ *   1. If KV lookup finds the token hash AND it is not revoked, accept.
+ *      Rate-limit key = token hash.
+ *   2. Else if TRACE_INGEST_TOKEN is set and matches exactly, accept.
+ *      Rate-limit key = "legacy".
+ *   3. Else 401.
  *
  * Bundle layout in R2 (see src/skills/record/SPEC.md):
  *   trace/<id>.webm
@@ -20,8 +31,22 @@
  *   trace/<id>/meta.json
  */
 
+interface TokenRecord {
+	owner: string;
+	scope?: string;
+	createdAt: string;
+	revokedAt?: string;
+	quotaPerDay?: number;
+}
+
+interface RateLimitBinding {
+	limit(options: { key: string }): Promise<{ success: boolean }>;
+}
+
 interface Env {
 	STORAGE: R2Bucket;
+	TRACE_TOKENS: KVNamespace;
+	TRACE_INGEST_RATE_LIMIT: RateLimitBinding;
 	TRACE_SIGNING_KEY: string;
 	TRACE_INGEST_TOKEN: string;
 }
@@ -235,11 +260,59 @@ function viewerHtml(id: string, origin: string): string {
 
 // ==================== Ingest ====================
 
-async function handleUpload(request: Request, env: Env): Promise<Response> {
+export async function sha256Hex(input: string): Promise<string> {
+	const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(input));
+	return hex(digest);
+}
+
+export interface AuthResult {
+	rateLimitKey: string;
+	owner: string;
+}
+
+export async function authIngest(
+	request: Request,
+	env: Pick<Env, "TRACE_TOKENS" | "TRACE_INGEST_TOKEN">,
+): Promise<AuthResult | null> {
 	const auth = request.headers.get("authorization") || "";
-	const expected = `Bearer ${env.TRACE_INGEST_TOKEN}`;
-	if (!env.TRACE_INGEST_TOKEN || auth !== expected) {
-		return err("unauthorized", 401);
+	const m = auth.match(/^Bearer\s+(.+)$/);
+	if (!m || !m[1]) return null;
+	const token = m[1].trim();
+	if (!token) return null;
+
+	// 1. KV-backed per-owner token.
+	if (env.TRACE_TOKENS) {
+		const hash = await sha256Hex(token);
+		const raw = await env.TRACE_TOKENS.get(hash);
+		if (raw) {
+			try {
+				const rec = JSON.parse(raw) as TokenRecord;
+				if (!rec.revokedAt) {
+					return { rateLimitKey: `t:${hash.slice(0, 16)}`, owner: rec.owner };
+				}
+			} catch {
+				/* treat malformed KV value as no-match; fall through */
+			}
+		}
+	}
+
+	// 2. Legacy single shared token fallback.
+	if (env.TRACE_INGEST_TOKEN && token === env.TRACE_INGEST_TOKEN) {
+		return { rateLimitKey: "legacy", owner: "legacy" };
+	}
+
+	return null;
+}
+
+async function handleUpload(request: Request, env: Env): Promise<Response> {
+	const authed = await authIngest(request, env);
+	if (!authed) return err("unauthorized", 401);
+
+	// Per-token rate limit. 120/min per RateLimit namespace config. If the
+	// binding is absent (dev / old deploys) we fail open.
+	if (env.TRACE_INGEST_RATE_LIMIT) {
+		const { success } = await env.TRACE_INGEST_RATE_LIMIT.limit({ key: authed.rateLimitKey });
+		if (!success) return err("rate limit exceeded", 429);
 	}
 
 	const cl = Number(request.headers.get("content-length") || "0");
@@ -313,7 +386,64 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		url: `${origin}/r/${id}`,
 		resultUrl: `${origin}/r/${id}.json`,
 		videoUrl: isFileLike(video) ? await signVideoUrl(env, origin, id) : undefined,
+		owner: authed.owner,
 	});
+}
+
+// ==================== Token admin ====================
+//
+// Tiny internal endpoints for minting / revoking ingest tokens. Both require
+// the legacy TRACE_INGEST_TOKEN (the "root" token) so we don't have a
+// chicken-and-egg on bootstrap. Callers use `unsurf trace-token mint/revoke`
+// from the CLI, which posts here.
+
+async function handleTokenMint(request: Request, env: Env): Promise<Response> {
+	const auth = request.headers.get("authorization") || "";
+	if (!env.TRACE_INGEST_TOKEN || auth !== `Bearer ${env.TRACE_INGEST_TOKEN}`) {
+		return err("unauthorized", 401);
+	}
+	const body = (await request.json().catch(() => null)) as {
+		owner?: string;
+		scope?: string;
+		quotaPerDay?: number;
+	} | null;
+	if (!body?.owner || typeof body.owner !== "string" || body.owner.length > 64) {
+		return err("owner is required (string, <=64 chars)", 422);
+	}
+
+	// 32 bytes of randomness, hex-encoded. 64 chars, matches legacy shape.
+	const bytes = new Uint8Array(32);
+	crypto.getRandomValues(bytes);
+	const token = Array.from(bytes)
+		.map((b) => b.toString(16).padStart(2, "0"))
+		.join("");
+	const hash = await sha256Hex(token);
+	const record: TokenRecord = {
+		owner: body.owner,
+		...(body.scope ? { scope: body.scope } : {}),
+		...(typeof body.quotaPerDay === "number" ? { quotaPerDay: body.quotaPerDay } : {}),
+		createdAt: new Date().toISOString(),
+	};
+	await env.TRACE_TOKENS.put(hash, JSON.stringify(record));
+	return json({ token, owner: record.owner, createdAt: record.createdAt }, 201);
+}
+
+async function handleTokenRevoke(request: Request, env: Env): Promise<Response> {
+	const auth = request.headers.get("authorization") || "";
+	if (!env.TRACE_INGEST_TOKEN || auth !== `Bearer ${env.TRACE_INGEST_TOKEN}`) {
+		return err("unauthorized", 401);
+	}
+	const body = (await request.json().catch(() => null)) as { token?: string } | null;
+	if (!body?.token || typeof body.token !== "string") {
+		return err("token is required", 422);
+	}
+	const hash = await sha256Hex(body.token);
+	const raw = await env.TRACE_TOKENS.get(hash);
+	if (!raw) return err("token not found", 404);
+	const rec = JSON.parse(raw) as TokenRecord;
+	rec.revokedAt = new Date().toISOString();
+	await env.TRACE_TOKENS.put(hash, JSON.stringify(rec));
+	return json({ owner: rec.owner, revokedAt: rec.revokedAt });
 }
 
 // ==================== Fetch handler ====================
@@ -335,6 +465,20 @@ export default {
 		// POST /upload — ingest.
 		if (method === "POST" && pathname === "/upload") {
 			const res = await handleUpload(request, env);
+			for (const [k, v] of Object.entries(cors)) res.headers.set(k, v as string);
+			return res;
+		}
+
+		// POST /admin/tokens — mint a new ingest token (requires root token).
+		if (method === "POST" && pathname === "/admin/tokens") {
+			const res = await handleTokenMint(request, env);
+			for (const [k, v] of Object.entries(cors)) res.headers.set(k, v as string);
+			return res;
+		}
+
+		// POST /admin/tokens/revoke — revoke a token.
+		if (method === "POST" && pathname === "/admin/tokens/revoke") {
+			const res = await handleTokenRevoke(request, env);
 			for (const [k, v] of Object.entries(cors)) res.headers.set(k, v as string);
 			return res;
 		}

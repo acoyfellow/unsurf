@@ -77,6 +77,16 @@ Usage:
     --harness <str>                        Harness tag written to meta.json
     Env: TRACE_INGEST_TOKEN (required), TRACE_INGEST_ENDPOINT (optional)
 
+  unsurf trace-token mint --owner <name> [flags]
+                                           Mint a new ingest token (prints the token)
+    --owner <str>                          Owner name stored in KV (required)
+    --scope <str>                          Optional scope string
+    --quota <n>                            Optional quota/day
+    Env: TRACE_INGEST_TOKEN (root token, required)
+
+  unsurf trace-token revoke <token>        Revoke a previously minted token
+    Env: TRACE_INGEST_TOKEN (root token, required)
+
 Examples:
   unsurf search "payment processing"
   unsurf lookup stripe.com
@@ -525,6 +535,73 @@ async function scoutCommand(args: string[]): Promise<void> {
 
 // ==================== Main ====================
 
+// ==================== trace-token command ====================
+
+async function traceTokenCommand(args: string[]): Promise<void> {
+	const sub = args[0];
+	const endpoint = process.env.TRACE_INGEST_ENDPOINT || "https://trace.coey.dev";
+	const root = process.env.TRACE_INGEST_TOKEN;
+	if (!root) {
+		console.error("Error: TRACE_INGEST_TOKEN (root token) env var is required");
+		process.exit(1);
+	}
+
+	if (sub === "mint") {
+		const owner = flagValue(args, "--owner");
+		if (!owner) {
+			console.error("Error: trace-token mint requires --owner <name>");
+			process.exit(1);
+		}
+		const scope = flagValue(args, "--scope");
+		const quotaStr = flagValue(args, "--quota");
+		const body: Record<string, unknown> = { owner };
+		if (scope) body.scope = scope;
+		if (quotaStr) body.quotaPerDay = Number(quotaStr);
+
+		const res = await fetch(`${endpoint}/admin/tokens`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${root}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify(body),
+		});
+		if (!res.ok) {
+			console.error(`mint failed (${res.status}): ${await res.text()}`);
+			process.exit(1);
+		}
+		const data = (await res.json()) as { token: string; owner: string; createdAt: string };
+		process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+		return;
+	}
+
+	if (sub === "revoke") {
+		const token = args[1];
+		if (!token) {
+			console.error("Error: trace-token revoke requires <token>");
+			process.exit(1);
+		}
+		const res = await fetch(`${endpoint}/admin/tokens/revoke`, {
+			method: "POST",
+			headers: {
+				authorization: `Bearer ${root}`,
+				"content-type": "application/json",
+			},
+			body: JSON.stringify({ token }),
+		});
+		if (!res.ok) {
+			console.error(`revoke failed (${res.status}): ${await res.text()}`);
+			process.exit(1);
+		}
+		const data = await res.json();
+		process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+		return;
+	}
+
+	console.error("Error: trace-token requires a subcommand: mint | revoke");
+	process.exit(1);
+}
+
 // ==================== record command ====================
 
 async function recordCommand(args: string[]): Promise<void> {
@@ -608,6 +685,10 @@ async function main(): Promise<void> {
 
 			case "scout":
 				await scoutCommand(args.slice(1));
+				break;
+
+			case "trace-token":
+				await traceTokenCommand(args.slice(1));
 				break;
 
 			case "record":

@@ -7,6 +7,7 @@ import {
 	D1Database,
 	KVNamespace,
 	R2Bucket,
+	RateLimit,
 	VectorizeIndex,
 	Worker,
 } from "alchemy/cloudflare";
@@ -27,8 +28,27 @@ const DB = await D1Database("unsurf-db", {
 	adopt: true,
 });
 
+// Bundles are write-once, read-for-a-while. 90-day TTL keeps costs bounded
+// and matches the retention we promise in docs. `trace/` prefix isolates
+// the skill's objects from anything else the main worker writes.
 const STORAGE = await R2Bucket("unsurf-storage", {
 	adopt: true,
+	lifecycle: [
+		{
+			id: "trace-bundles-90d",
+			conditions: { prefix: "trace/" },
+			enabled: true,
+			deleteObjectsTransition: {
+				condition: { type: "Age", maxAge: 90 * 24 * 60 * 60 },
+			},
+			storageClassTransitions: [
+				{
+					condition: { type: "Age", maxAge: 30 * 24 * 60 * 60 },
+					storageClass: "InfrequentAccess",
+				},
+			],
+		},
+	],
 });
 
 const BROWSER = BrowserRendering();
@@ -95,11 +115,29 @@ if (!traceSigningKey || !traceIngestToken) {
 	);
 }
 
+// KV namespace keyed by SHA-256(token) for per-user ingest credentials.
+// Value shape: { owner, scope, createdAt, revokedAt?, quotaPerDay? }.
+// Legacy TRACE_INGEST_TOKEN still authenticates as a fallback to preserve
+// existing callers during migration.
+const TRACE_TOKENS = await KVNamespace("unsurf-trace-tokens", {
+	adopt: true,
+});
+
+// 120 uploads/minute per token hash is 2/s sustained — generous for real
+// use, low enough to cap damage if a token leaks. Namespace id 1001 is
+// arbitrary; must be stable across deploys.
+const TRACE_INGEST_RATE_LIMIT = RateLimit({
+	namespace_id: 1001,
+	simple: { limit: 120, period: 60 },
+});
+
 export const TRACE_WORKER = await Worker("unsurf-trace", {
 	name: "unsurf-trace",
 	entrypoint: "./src/trace-worker.ts",
 	bindings: {
 		STORAGE,
+		TRACE_TOKENS,
+		TRACE_INGEST_RATE_LIMIT,
 		TRACE_SIGNING_KEY: alchemy.secret(
 			traceSigningKey || "dev-signing-key-replace-before-real-use-00000000",
 		),
