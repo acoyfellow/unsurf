@@ -310,15 +310,17 @@ if (viewerHtml.includes('property="og:image"') && viewerHtml.includes('name="twi
 
 const embedRes = await fetch(`${ENDPOINT}/r/${publicId}?embed=1`);
 const embedHtml = await embedRes.text();
-if (
-	embedRes.status === 200 &&
-	embedHtml.includes('data-embed="1"') &&
-	!viewerHtml.includes('data-embed="1"')
-) {
-	pass("GET /r/<id>?embed=1 → 200 with data-embed=1 attribute (default has data-embed=0)");
+// CSS rules contain literal 'data-embed="1"' strings, so a plain includes
+// check hits even on the default response. Match the top-level <html>
+// element's attribute only.
+const htmlTagAttr = (s: string) => /<html[^>]*\bdata-embed="([01])"/.exec(s)?.[1] ?? null;
+const defaultAttr = htmlTagAttr(viewerHtml);
+const embedAttr = htmlTagAttr(embedHtml);
+if (embedRes.status === 200 && embedAttr === "1" && defaultAttr === "0") {
+	pass(`GET /r/<id>?embed=1 → data-embed="1" on <html> (default is "0")`);
 } else {
 	fail(
-		`embed mode did not toggle data-embed attribute (status=${embedRes.status}, embed-has-attr=${embedHtml.includes('data-embed="1"')}, default-has-attr=${viewerHtml.includes('data-embed="1"')})`,
+		`embed mode did not toggle <html data-embed> (status=${embedRes.status}, embed=${embedAttr}, default=${defaultAttr})`,
 	);
 }
 
