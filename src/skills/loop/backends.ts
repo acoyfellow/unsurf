@@ -44,7 +44,17 @@ function extractText(r: ChatResult): string {
 	return "";
 }
 
-async function kimiJson<T>(prompt: string): Promise<T> {
+/**
+ * Call a Workers AI text-gen model with server-side guided JSON decoding.
+ *
+ * Takes a JSON schema; the inference runtime enforces it, so the returned
+ * message.content is guaranteed to parse and match the shape. Works
+ * across models (Kimi, Llama, Gemma, Mistral …) — the enforcement is in
+ * the runtime, not the prompt.
+ *
+ * Docs: https://developers.cloudflare.com/workers-ai/features/json-mode/
+ */
+async function callJsonSchema<T>(prompt: string, schema: Record<string, unknown>): Promise<T> {
 	const c = creds();
 	const url = `https://api.cloudflare.com/client/v4/accounts/${c.accountId}/ai/run/${DEFAULT_SYNTHESIS_MODEL}`;
 	const res = await fetch(url, {
@@ -52,32 +62,33 @@ async function kimiJson<T>(prompt: string): Promise<T> {
 		headers: { authorization: `Bearer ${c.apiToken}`, "content-type": "application/json" },
 		body: JSON.stringify({
 			messages: [{ role: "user", content: prompt }],
-			max_tokens: 2000,
+			max_tokens: 4000,
 			temperature: 0.1,
-			response_format: { type: "json_object" },
+			response_format: { type: "json_schema", json_schema: schema },
 		}),
 	});
 	if (!res.ok) {
 		const detail = await res.text().catch(() => "");
-		throw new Error(`kimi call failed ${res.status}: ${detail.slice(0, 400)}`);
+		throw new Error(`workers-ai call failed ${res.status}: ${detail.slice(0, 400)}`);
 	}
 	const data = (await res.json()) as { result?: ChatResult; success?: boolean };
-	if (data.success === false) throw new Error("kimi call returned success=false");
-	const text = extractText(data.result || {});
-	// Strip code fences if the model snuck them in despite response_format.
-	const cleaned = text.replace(/^```(?:json)?\s*/i, "").replace(/\s*```\s*$/i, "");
-	const match = cleaned.match(/\{[\s\S]*\}/);
-	const candidate = match ? match[0] : cleaned;
+	if (data.success === false) throw new Error("workers-ai call returned success=false");
+	// With json_schema, message.content (when non-empty) is guaranteed
+	// structured JSON. Never fall back to reasoning_content.
+	const r = data.result || {};
+	const text = (r.response || r.choices?.[0]?.message?.content || "").trim();
 	try {
-		return JSON.parse(candidate) as T;
+		return JSON.parse(text) as T;
 	} catch {
-		throw new Error(`kimi returned non-JSON text: ${text.slice(0, 300)}`);
+		throw new Error(
+			`workers-ai returned non-JSON despite json_schema response_format (likely token-truncated reasoning): ${text.slice(0, 300)}`,
+		);
 	}
 }
 
 // ==================== Default planner ====================
 
-const OP_SCHEMA = `
+const OP_DOCS = `
 Valid ops:
   { "op": "goto",     "url": "<string>" }
   { "op": "fill",     "selector": "<css>", "value": "<string>" }
@@ -86,6 +97,94 @@ Valid ops:
   { "op": "waitFor",  "selector": "<css>", "timeoutMs": <number> }
   { "op": "snapshot" }
 `.trim();
+
+/**
+ * JSON schema for a LoopSpec. Uses `oneOf` on each step so the inference
+ * runtime enforces the discriminated union at decode time — impossible
+ * for the model to emit an unknown op or miss a required field.
+ */
+const STEP_SCHEMA = {
+	oneOf: [
+		{
+			type: "object",
+			properties: { op: { const: "goto" }, url: { type: "string" } },
+			required: ["op", "url"],
+			additionalProperties: false,
+		},
+		{
+			type: "object",
+			properties: {
+				op: { const: "fill" },
+				selector: { type: "string" },
+				value: { type: "string" },
+			},
+			required: ["op", "selector", "value"],
+			additionalProperties: false,
+		},
+		{
+			type: "object",
+			properties: { op: { const: "click" }, selector: { type: "string" } },
+			required: ["op", "selector"],
+			additionalProperties: false,
+		},
+		{
+			type: "object",
+			properties: { op: { const: "wait" }, ms: { type: "number" } },
+			required: ["op", "ms"],
+			additionalProperties: false,
+		},
+		{
+			type: "object",
+			properties: {
+				op: { const: "waitFor" },
+				selector: { type: "string" },
+				timeoutMs: { type: "number" },
+			},
+			required: ["op", "selector"],
+			additionalProperties: false,
+		},
+		{
+			type: "object",
+			properties: { op: { const: "snapshot" } },
+			required: ["op"],
+			additionalProperties: false,
+		},
+	],
+} as const;
+
+const SPEC_SCHEMA = {
+	type: "object",
+	properties: {
+		url: { type: "string" },
+		steps: { type: "array", items: STEP_SCHEMA },
+		notes: { type: "string" },
+	},
+	required: ["steps"],
+} as const;
+
+/**
+ * Refiner may either propose a new spec OR signal give-up. Kept as one
+ * schema so the runtime's guided decoder picks exactly one branch. We
+ * disambiguate in code by checking `giveUp`.
+ */
+const REFINER_SCHEMA = {
+	oneOf: [
+		SPEC_SCHEMA,
+		{
+			type: "object",
+			properties: { giveUp: { const: true } },
+			required: ["giveUp"],
+			additionalProperties: false,
+		},
+	],
+} as const;
+
+const YES_NO_SCHEMA = {
+	type: "object",
+	properties: { yes: { type: "boolean" } },
+	required: ["yes"],
+	additionalProperties: false,
+} as const;
 
 export function kimiPlanner(): Planner {
 	return {
@@ -96,21 +195,15 @@ export function kimiPlanner(): Planner {
 				`GOAL: ${goal}`,
 				`NORTH STAR (success condition): ${northStar}`,
 				"",
-				"Output format: one JSON object, no prose, no markdown fences.",
-				'Shape: { "url": "<starting URL or omit>", "steps": [ ...ops ], "notes": "<optional>" }',
-				"",
-				OP_SCHEMA,
+				OP_DOCS,
 				"",
 				"Rules:",
 				"  - Prefer stable selectors (input[name], aria-label, id) over nth-child.",
 				"  - Insert short waits (wait 400-800ms) between actions that likely trigger re-renders.",
 				"  - Use waitFor when you expect a specific element to appear.",
 				"  - Keep the plan minimal. 5-10 steps is usually enough.",
-				"  - Do NOT include any code, only the ops above.",
-				"",
-				"Begin your response with the opening brace.",
 			].join("\n");
-			const raw = await kimiJson<Record<string, unknown>>(prompt);
+			const raw = await callJsonSchema<Record<string, unknown>>(prompt, SPEC_SCHEMA);
 			return validateSpec(raw);
 		},
 	};
@@ -127,24 +220,18 @@ export function kimiRefiner(): Refiner {
 				`NORTH STAR: ${northStar}`,
 				`ITERATION: ${iteration} (0-indexed)`,
 				"",
-				"PREVIOUS SPEC (JSON):",
+				"PREVIOUS SPEC:",
 				JSON.stringify(previousSpec, null, 2),
 				"",
 				"OBSERVATION OF PREVIOUS RUN:",
 				previousAnswer,
 				`(confidence: ${previousConfidence})`,
 				"",
-				"Your job: return a NEW spec that is more likely to meet the North Star.",
-				'If you cannot think of a better plan, return exactly {"giveUp": true}.',
+				'Return a NEW spec more likely to meet the North Star, OR {"giveUp": true} if you cannot improve on the previous attempt.',
 				"",
-				"Output format: one JSON object, no prose, no markdown fences.",
-				'Either the refined spec shape { url?, steps[], notes? } OR {"giveUp": true}.',
-				"",
-				OP_SCHEMA,
-				"",
-				"Begin your response with the opening brace.",
+				OP_DOCS,
 			].join("\n");
-			const raw = await kimiJson<Record<string, unknown>>(prompt);
+			const raw = await callJsonSchema<Record<string, unknown>>(prompt, REFINER_SCHEMA);
 			if (raw.giveUp === true) return null;
 			return validateSpec(raw);
 		},
@@ -194,10 +281,8 @@ export async function kimiYesNo(question: string, evidence: string): Promise<boo
 		"",
 		"EVIDENCE:",
 		evidence,
-		"",
-		'Return JSON: {"yes": true|false}. No prose.',
 	].join("\n");
-	const r = await kimiJson<{ yes?: boolean }>(prompt);
+	const r = await callJsonSchema<{ yes?: boolean }>(prompt, YES_NO_SCHEMA);
 	return r.yes === true;
 }
 

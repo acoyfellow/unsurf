@@ -161,38 +161,29 @@ function buildSynthesisPrompt(
 		"TIMELINE:",
 		timeline,
 		"",
-		"Output format: exactly one JSON object. No prose. No markdown fences. No explanation. No scratch work.",
-		"Shape:",
-		'{"answer": "<2-4 sentence natural-language answer>", "confidence": <0.0..1.0>}',
-		"",
-		"confidence = how strongly the captions support the answer.",
+		"Respond with a 2-4 sentence answer plus a confidence score (0.0..1.0).",
+		"confidence scale:",
 		"  1.0 = captions directly confirm the answer.",
 		"  0.5 = partial or ambiguous evidence.",
 		"  0.0 = no evidence in captions.",
-		"",
-		"Begin your response with the opening brace and nothing else.",
 	].join("\n");
 }
 
-function tryParseJson(text: string): { answer: string; confidence: number } | null {
-	// Strip common markdown fences and leading/trailing prose.
-	const cleaned = text
-		.replace(/^```(?:json)?\s*/i, "")
-		.replace(/\s*```\s*$/i, "")
-		.trim();
-	// Grab the first {...} block if the model wrapped it in prose.
-	const match = cleaned.match(/\{[\s\S]*\}/);
-	const candidate = match ? match[0] : cleaned;
-	try {
-		const obj = JSON.parse(candidate) as { answer?: unknown; confidence?: unknown };
-		if (typeof obj.answer === "string" && typeof obj.confidence === "number") {
-			return { answer: obj.answer, confidence: Math.max(0, Math.min(1, obj.confidence)) };
-		}
-	} catch {
-		/* fall through */
-	}
-	return null;
-}
+/**
+ * JSON schema enforced server-side by Workers AI's guided decoding.
+ * Model-agnostic: the inference runtime picks exactly this shape
+ * regardless of which model is routed (Kimi, Llama, Gemma, Mistral …).
+ * Docs: https://developers.cloudflare.com/workers-ai/features/json-mode/
+ */
+const SYNTHESIS_SCHEMA = {
+	type: "object",
+	properties: {
+		answer: { type: "string" },
+		confidence: { type: "number" },
+	},
+	required: ["answer", "confidence"],
+	additionalProperties: false,
+} as const;
 
 export function workersAiSynthesisBackend(opts: WorkersAiSynthesisOptions = {}): SynthesisBackend {
 	const creds = credsFromEnv(opts.creds);
@@ -203,30 +194,37 @@ export function workersAiSynthesisBackend(opts: WorkersAiSynthesisOptions = {}):
 			const prompt = buildSynthesisPrompt(question, captions);
 			const result = await aiRun<ChatCompletionsResult>(creds, model, {
 				messages: [{ role: "user", content: prompt }],
-				// K2.6 is a reasoning model and happily burns 500+ tokens on
-				// scratch work before emitting the JSON. 2k gives it breathing
-				// room so the final JSON isn't truncated.
-				max_tokens: 2000,
+				// Reasoning models (like Kimi K2.6) burn tokens on
+				// reasoning_content before emitting message.content. 4k
+				// leaves room for both; if truncation still happens we want
+				// to see the loud error rather than silently fall back.
+				max_tokens: 4000,
 				temperature: 0.1,
-				response_format: { type: "json_object" },
+				response_format: { type: "json_schema", json_schema: SYNTHESIS_SCHEMA },
 			});
-			// Prefer message.content (the non-reasoning channel on K2.6). Fall
-			// back to extractAssistantText which handles both shapes.
-			const content = result.choices?.[0]?.message?.content;
-			const text =
-				typeof content === "string" && content.trim()
-					? content.trim()
-					: extractAssistantText(result);
-			const parsed = tryParseJson(text);
-			if (!parsed) {
-				// Fallback: return the raw text with low confidence rather than throwing.
-				return {
-					answer: text || "(model returned empty response)",
-					confidence: 0.0,
-					raw: result,
-				};
+			// With json_schema the inference runtime guarantees message.content
+			// (when non-empty) is valid JSON matching the schema. We deliberately
+			// DO NOT fall back to reasoning_content here — reasoning is scratch
+			// work and by definition not structured output.
+			const text = (result.response || result.choices?.[0]?.message?.content || "").trim();
+			let parsed: { answer?: unknown; confidence?: unknown };
+			try {
+				parsed = JSON.parse(text) as { answer?: unknown; confidence?: unknown };
+			} catch {
+				throw new Error(
+					`synthesis backend: model returned non-JSON despite json_schema response_format: ${text.slice(0, 200)}`,
+				);
 			}
-			return { ...parsed, raw: result };
+			if (typeof parsed.answer !== "string" || typeof parsed.confidence !== "number") {
+				throw new Error(
+					`synthesis backend: JSON shape mismatch: ${JSON.stringify(parsed).slice(0, 200)}`,
+				);
+			}
+			return {
+				answer: parsed.answer,
+				confidence: Math.max(0, Math.min(1, parsed.confidence)),
+				raw: result,
+			};
 		},
 	};
 }
