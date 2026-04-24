@@ -34,7 +34,9 @@ Or from the CLI:
 ```bash
 unsurf loop "open coey.dev, click projects, open the first one" \
   --north-star "Did the user end up on a project detail page?" \
-  --max-iter 3 --private
+  --max-iter 3
+# each iteration uploads a grant-gated trace (private by default; pass
+# --public for a 365-day shareable grant)
 ```
 
 ## The mental model

@@ -238,13 +238,15 @@ The shell script above is the procedural form. The declarative form is a [`proof
 
 The logical next step is feeding a proof-spec into a loop runner so skills can be **refined and committed** across runs — [Lopopolo's workout-session pattern](https://twitter.com/lopopolo/): plant a flag, loop until captured, commit the refined skill, repeat until reliability metrics stabilize. That runner now ships as the [`loop` skill](/guides/loop/).
 
-## Keeping a trace private
+## Private by default (0.4.0+)
 
-Pass `--private` on the CLI or `visibility: "private"` in the JS API
-and the upload returns a signed `viewerUrl`. The bare `/r/<id>` 404s
-without a valid grant; the `viewerUrl` is the only shareable link.
-Default TTL is 7 days; revoke on demand with `unsurf trace-revoke <id>`.
-See the [Privacy guide](/guides/privacy/) for the full model.
+Every new trace is grant-gated. The upload returns a signed `viewerUrl`;
+the bare `/r/<id>` 404s for anything uploaded through the current worker.
+Default grant TTL is 7 days — pass `--public` (or `visibility: "public"`
+in the JS API) for a 365-day long-lived shareable grant. Both are
+revocable on demand with `unsurf trace-revoke <id>`. Traces from before
+0.4.0 keep serving bare so existing links don't break. See the
+[Privacy guide](/guides/privacy/) for the full model.
 
 ## Related
 
