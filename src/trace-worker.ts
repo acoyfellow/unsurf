@@ -140,12 +140,23 @@ async function signVideoUrl(
 // viewer grants authorize access to the trace as a whole, video sigs
 // are short-lived playback tokens the viewer mints on demand.
 
-const VIEWER_GRANT_TTL_SECONDS = 7 * 24 * 60 * 60;
+// Two grant TTLs, matching the two explicit visibility choices.
+//   "private" = presumed sensitive, 7-day share window.
+//   "public"  = long-lived share, 365-day window. Still grant-gated, still
+//              revocable via grantGeneration. NOT a bare URL.
+const VIEWER_GRANT_TTL_PRIVATE_SECONDS = 7 * 24 * 60 * 60;
+const VIEWER_GRANT_TTL_PUBLIC_SECONDS = 365 * 24 * 60 * 60;
 
 interface TraceMeta {
 	visibility?: "public" | "private";
 	grantGeneration?: number;
 	[k: string]: unknown;
+}
+
+function grantTtlFor(visibility: "public" | "private"): number {
+	return visibility === "public"
+		? VIEWER_GRANT_TTL_PUBLIC_SECONDS
+		: VIEWER_GRANT_TTL_PRIVATE_SECONDS;
 }
 
 async function readMeta(env: Env, id: string): Promise<TraceMeta | null> {
@@ -167,7 +178,7 @@ async function mintViewerGrant(
 	env: Env,
 	id: string,
 	generation: number,
-	ttl = VIEWER_GRANT_TTL_SECONDS,
+	ttl = VIEWER_GRANT_TTL_PRIVATE_SECONDS,
 ): Promise<string> {
 	const exp = Math.floor(Date.now() / 1000) + ttl;
 	const key = await importSigningKey(env.TRACE_SIGNING_KEY);
@@ -198,6 +209,24 @@ async function verifyViewerGrant(
  *   - null if the caller may proceed
  *   - a Response to send back otherwise (404 so existence isn't leaked)
  */
+/**
+ * Gate every request to a trace's resources.
+ *
+ *   visibility "private"  → grant required (7d default)
+ *   visibility "public"   → grant required (365d default) — intentionally
+ *                            NOT bare-URL; bare `/r/<id>` 404s.
+ *   visibility missing    → grandfather: bare-URL allowed. This is for
+ *                            bundles uploaded BEFORE the private-by-default
+ *                            migration. New uploads always write an
+ *                            explicit visibility.
+ *
+ *   grantGeneration mismatch  → 404 (revoked)
+ *   grant tampering / expiry  → 404
+ *
+ * Returns:
+ *   - null if the caller may proceed
+ *   - a Response to send back otherwise (404 so existence isn't leaked)
+ */
 async function enforceVisibility(
 	request: Request,
 	env: Env,
@@ -206,7 +235,8 @@ async function enforceVisibility(
 ): Promise<Response | null> {
 	const meta = await readMeta(env, id);
 	if (meta === null) return err("not found", 404);
-	if (meta.visibility !== "private") return null;
+	// Grandfather: pre-migration bundles have no visibility field, stay bare.
+	if (meta.visibility !== "private" && meta.visibility !== "public") return null;
 	const vt = searchParams.get("vt") || "";
 	if (!vt) return err("not found", 404);
 	const gen = typeof meta.grantGeneration === "number" ? meta.grantGeneration : 0;
@@ -727,9 +757,14 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 	]);
 
 	// Light validation: must parse, must be v0. Also pluck the visibility
-	// flag from meta so the upload response can mint a viewer grant for
-	// private traces.
-	let visibility: "public" | "private" = "public";
+	// flag from meta so we can mint an appropriately-scoped viewer grant.
+	//
+	// Default changed to "private" in v0.4.0 to eliminate the bare-URL
+	// footgun. Callers who want a long-lived public share must pass
+	// visibility: "public" explicitly — they still get a grant-gated URL,
+	// just with a 365-day TTL instead of 7. There is no way from the public
+	// API to produce a bare-URL trace anymore.
+	let visibility: "public" | "private" = "private";
 	for (const [name, text] of [
 		["trace", traceText],
 		["result", resultText],
@@ -739,26 +774,27 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 			const parsed = JSON.parse(text) as { version?: unknown; id?: unknown; visibility?: unknown };
 			if (parsed.version !== "v0") return err(`${name}.version must be "v0"`, 422);
 			if (parsed.id !== id) return err(`${name}.id must match form id`, 422);
-			if (name === "meta" && parsed.visibility === "private") {
-				visibility = "private";
+			if (name === "meta") {
+				if (parsed.visibility === "public") visibility = "public";
+				else if (parsed.visibility === "private") visibility = "private";
+				// Any other value — including undefined — stays "private".
 			}
 		} catch {
 			return err(`${name}.json did not parse`, 422);
 		}
 	}
 
-	// For private uploads, inject grantGeneration: 0 into meta.json so
-	// subsequent revokes can bump it. Callers can't set this; we always
-	// overwrite on upload to prevent forgery.
+	// Always inject visibility + grantGeneration: 0 into stored meta.
+	// Overwriting prevents callers from forging generation state; it also
+	// makes the stored doc authoritative for enforceVisibility().
 	let metaToStore = metaText;
-	if (visibility === "private") {
-		try {
-			const parsed = JSON.parse(metaText) as Record<string, unknown>;
-			parsed.grantGeneration = 0;
-			metaToStore = JSON.stringify(parsed);
-		} catch {
-			/* impossible — we just parsed it above, but keep original on any edge-case */
-		}
+	try {
+		const parsed = JSON.parse(metaText) as Record<string, unknown>;
+		parsed.visibility = visibility;
+		parsed.grantGeneration = 0;
+		metaToStore = JSON.stringify(parsed);
+	} catch {
+		/* impossible — we just parsed it above, keep original on any edge-case */
 	}
 
 	await Promise.all([
@@ -778,9 +814,12 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 			: Promise.resolve(),
 	]);
 
+	// Every new trace gets a grant. TTL depends on visibility. The bare
+	// `url` field is kept for back-compat but will 404 on its own — callers
+	// MUST use `viewerUrl` for new uploads.
 	const origin = new URL(request.url).origin;
-	const vt = visibility === "private" ? await mintViewerGrant(env, id, 0) : "";
-	const q = vt ? `?vt=${encodeURIComponent(vt)}` : "";
+	const vt = await mintViewerGrant(env, id, 0, grantTtlFor(visibility));
+	const q = `?vt=${encodeURIComponent(vt)}`;
 	return json({
 		id,
 		url: `${origin}/r/${id}`,
@@ -870,14 +909,20 @@ async function handleTraceRevoke(request: Request, env: Env, id: string): Promis
 	} catch {
 		return err("trace meta unreadable", 500);
 	}
-	if (meta.visibility !== "private") return err("only private traces have grants to revoke", 422);
+	// Both "public" and "private" bundles are grant-gated as of v0.4.0,
+	// so both are revocable by bumping the generation counter. Pre-0.4.0
+	// grandfathered bundles have no visibility field and nothing to revoke
+	// (their access is bare; revoking would require migrating them first).
+	if (meta.visibility !== "private" && meta.visibility !== "public") {
+		return err("grandfathered bundle has no grants to revoke", 422);
+	}
 	const prevGen = typeof meta.grantGeneration === "number" ? meta.grantGeneration : 0;
 	const nextGen = prevGen + 1;
 	meta.grantGeneration = nextGen;
 	await env.STORAGE.put(r2Key(id, "meta"), JSON.stringify(meta), {
 		httpMetadata: { contentType: "application/json" },
 	});
-	const vt = await mintViewerGrant(env, id, nextGen);
+	const vt = await mintViewerGrant(env, id, nextGen, grantTtlFor(meta.visibility));
 	const origin = new URL(request.url).origin;
 	return json({
 		id,

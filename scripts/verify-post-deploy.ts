@@ -230,12 +230,66 @@ if (uploadBody.viewerUrl) {
 	);
 }
 
-// Public bundles should still work without a grant.
-const publicId = mkId();
-await postBundle(ROOT, publicId);
+// v0.4.0: bundles WITHOUT an explicit visibility now default to private.
+// A bare `/r/<id>` on a freshly-uploaded bundle must 404. This is the
+// single most important check of the lockdown — if this passes, the
+// bare-URL footgun is eliminated for all new uploads.
+const defaultId = mkId();
+const defaultUploadRes = await postBundle(ROOT, defaultId);
+const defaultUploadBody = (await defaultUploadRes.json()) as {
+	visibility?: string;
+	viewerUrl?: string;
+};
+if (defaultUploadBody.visibility === "private" && defaultUploadBody.viewerUrl) {
+	pass("default upload (no explicit visibility) stored as private + returned viewerUrl");
+} else {
+	fail("default upload did NOT private-by-default", defaultUploadBody);
+}
 await expectStatus(
-	"GET /r/<public-id> without grant (public default)",
+	"GET /r/<default-id> without grant → 404 (private-by-default lockdown)",
+	await fetch(`${ENDPOINT}/r/${defaultId}`),
+	404,
+);
+if (defaultUploadBody.viewerUrl) {
+	await expectStatus(
+		"GET <viewerUrl> with default-issued grant",
+		await fetch(defaultUploadBody.viewerUrl),
+		200,
+	);
+}
+
+// Explicit visibility: "public" still mints a grant (no bare URLs anywhere).
+const publicId = mkId();
+const publicUploadRes = await postBundle(ROOT, publicId, { visibility: "public" });
+const publicUploadBody = (await publicUploadRes.json()) as {
+	visibility?: string;
+	viewerUrl?: string;
+};
+if (publicUploadBody.visibility === "public" && publicUploadBody.viewerUrl) {
+	pass("explicit public upload returned viewerUrl (long-lived grant, still gated)");
+} else {
+	fail("explicit public upload did not return a viewerUrl", publicUploadBody);
+}
+await expectStatus(
+	"GET /r/<public-id> without grant → 404 (public is grant-gated too)",
 	await fetch(`${ENDPOINT}/r/${publicId}`),
+	404,
+);
+if (publicUploadBody.viewerUrl) {
+	await expectStatus(
+		"GET <public viewerUrl> with grant → 200",
+		await fetch(publicUploadBody.viewerUrl),
+		200,
+	);
+}
+
+// Grandfather check: a known pre-migration bundle (no visibility in stored
+// meta) should still render bare. This keeps docs links and existing
+// external references alive after the lockdown.
+const GRANDFATHERED_ID = "nb9uurla35eg"; // the README dogfood link
+await expectStatus(
+	`GET /r/${GRANDFATHERED_ID} bare → 200 (grandfathered pre-migration bundle)`,
+	await fetch(`${ENDPOINT}/r/${GRANDFATHERED_ID}`),
 	200,
 );
 
@@ -286,7 +340,14 @@ if (revokeUpload.viewerUrl) {
 
 section("Phase 1d: OG card + embed mode");
 
-const ogRes = await fetch(`${ENDPOINT}/r/${publicId}/og.svg`);
+// All endpoints are grant-gated as of v0.4.0 (including public bundles).
+// Use the public viewerUrl from Phase 1b to carry the grant into each
+// probe below.
+const publicViewerUrl = publicUploadBody.viewerUrl || "";
+const publicVt = publicViewerUrl ? new URL(publicViewerUrl).searchParams.get("vt") || "" : "";
+const grantQs = publicVt ? `?vt=${encodeURIComponent(publicVt)}` : "";
+
+const ogRes = await fetch(`${ENDPOINT}/r/${publicId}/og.svg${grantQs}`);
 const ogType = ogRes.headers.get("content-type") || "";
 if (ogRes.status === 200 && ogType.startsWith("image/svg+xml")) {
 	pass(`GET /r/${publicId}/og.svg → 200 (${ogType})`);
@@ -300,7 +361,7 @@ if (ogBody.includes("<svg") && ogBody.includes(publicId.slice(0, 6))) {
 	fail("OG card SVG missing expected content");
 }
 
-const viewerRes = await fetch(`${ENDPOINT}/r/${publicId}`);
+const viewerRes = await fetch(`${ENDPOINT}/r/${publicId}${grantQs}`);
 const viewerHtml = await viewerRes.text();
 if (viewerHtml.includes('property="og:image"') && viewerHtml.includes('name="twitter:card"')) {
 	pass("viewer HTML embeds og:image + twitter:card meta tags");
@@ -308,7 +369,8 @@ if (viewerHtml.includes('property="og:image"') && viewerHtml.includes('name="twi
 	fail("viewer HTML missing OG/Twitter meta tags");
 }
 
-const embedRes = await fetch(`${ENDPOINT}/r/${publicId}?embed=1`);
+const embedSep = grantQs ? "&" : "?";
+const embedRes = await fetch(`${ENDPOINT}/r/${publicId}${grantQs}${embedSep}embed=1`);
 const embedHtml = await embedRes.text();
 // CSS rules contain literal 'data-embed="1"' strings, so a plain includes
 // check hits even on the default response. Match the top-level <html>

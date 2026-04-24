@@ -4,6 +4,44 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-04-24
+
+### Changed (breaking default, API-compatible)
+- **Every new trace upload is grant-gated.** `visibility` in the upload's
+  `meta.json` now defaults to `"private"` (was `"public"`). Bare
+  `/r/<id>` requests for new traces return 404. The only shareable link
+  is the signed `viewerUrl` returned in the upload response.
+- Explicit `visibility: "public"` is now a **long-lived (365-day) grant**,
+  not a bare URL. Still revocable via `unsurf trace-revoke`. Still
+  auditable via `grantGeneration`. There is no way, via the public API,
+  to produce a new bare-URL trace.
+- **Grandfathered bundles** (uploaded before 0.4.0, with no `visibility`
+  field in stored meta) continue to serve bare — so existing links,
+  including the README dogfood URL, keep working.
+- `POST /admin/traces/:id/revoke` now accepts both `"public"` and
+  `"private"` bundles (previously private-only).
+
+### CLI
+- `unsurf record ... --public` — opts into the long-lived 365-day grant.
+  Default is private/7-day.
+- `--private` flag kept as a no-op alias for transition; existing
+  scripts that pass it keep working but no longer change behavior.
+- `unsurf loop ... --public` — same, for per-iteration recordings.
+
+### Security rationale
+The bare-URL default was a footgun: 12-char base36 isn't guessable
+(≈4.7×10¹⁸) but pasting a trace URL into Slack, a PR description, or
+a log file made it world-readable forever. Grant-gating every new
+upload eliminates the class of leakage at the source. Existing links
+are preserved via the grandfathering rule.
+
+### Verified live in CI (`scripts/verify-post-deploy.ts`)
+- Default upload (no explicit visibility) stored as `"private"` with
+  signed `viewerUrl`.
+- Bare `/r/<id>` on a fresh upload → 404.
+- Explicit public upload → still grant-gated; bare → 404; grant → 200.
+- Pre-migration bundle (`nb9uurla35eg`) → still renders bare.
+
 ## [0.3.0] - 2026-04-24
 
 ### Added

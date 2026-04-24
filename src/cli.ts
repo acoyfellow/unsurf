@@ -75,15 +75,17 @@ Usage:
   unsurf record <script.(m)js|.ts> [flags] Record an agent run; prints trace URL
     --task <str>                           Human label (default: script path)
     --harness <str>                        Harness tag written to meta.json
-    --private                              Upload as a private trace (signed
-                                           viewer grant in the response)
+    --public                               Long-lived (365d) shareable grant.
+                                           Default is private (7d grant).
+                                           Both are grant-gated; no bare URLs.
     Env: TRACE_INGEST_TOKEN (required), TRACE_INGEST_ENDPOINT (optional)
 
   unsurf loop <goal|spec.json> [flags]     Record → observeVideo → refine loop
     --north-star <str>                     Yes/no question (required)
     --max-iter <n>                         Max iterations (default 5)
     --tick-ms <ms>                         Per-iteration budget (default 120000)
-    --private                              Record each iteration as private
+    --public                               Record each iteration with a 365d
+                                           shareable grant. Default is 7d.
     Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (Workers AI),
          TRACE_INGEST_TOKEN (trace upload)
 
@@ -674,14 +676,18 @@ async function recordCommand(args: string[]): Promise<void> {
 	const scriptPath = args[0];
 	if (!scriptPath) {
 		console.error(
-			"Error: record requires a script path\n  Usage: unsurf record <script> [--task <str>] [--harness <str>] [--private]",
+			"Error: record requires a script path\n  Usage: unsurf record <script> [--task <str>] [--harness <str>] [--public]",
 		);
 		process.exit(1);
 	}
 
 	const task = flagValue(args, "--task") || scriptPath;
 	const harness = flagValue(args, "--harness");
-	const isPrivate = args.includes("--private");
+	// v0.4.0: default is private. --public opts into the 365d long-lived
+	// shareable grant. --private kept as a no-op alias for transition so
+	// existing scripts don't break (the flag already did nothing new).
+	const isPublic = args.includes("--public");
+	const visibility: "public" | "private" = isPublic ? "public" : "private";
 
 	const absPath = resolvePath(scriptPath);
 	const mod = (await import(absPath)) as { default?: unknown; run?: unknown };
@@ -700,7 +706,7 @@ async function recordCommand(args: string[]): Promise<void> {
 		task,
 		run,
 		...(harness ? { harness } : {}),
-		...(isPrivate ? { visibility: "private" as const } : {}),
+		visibility,
 	});
 
 	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -727,7 +733,8 @@ async function loopCommand(args: string[]): Promise<void> {
 
 	const maxIterStr = flagValue(args, "--max-iter");
 	const tickMsStr = flagValue(args, "--tick-ms");
-	const isPrivate = args.includes("--private");
+	const isPublic = args.includes("--public");
+	const visibility: "public" | "private" = isPublic ? "public" : "private";
 
 	// Decide: file path (spec.json) or natural-language string?
 	const { loop } = await import("./skills/loop/index.js");
@@ -742,24 +749,23 @@ async function loopCommand(args: string[]): Promise<void> {
 		}
 	}
 
-	let recordFn: import("./skills/loop/types.js").RecordFn | undefined;
-	if (isPrivate) {
-		const { recordLocal } = await import("./skills/record/index.js");
-		recordFn = async ({ task, run }) => {
-			const r = await recordLocal({ task, run, harness: "loop", visibility: "private" });
-			return {
-				traceUrl: r.viewerUrl ?? r.url,
-				...(r.videoUrl ? { videoUrl: r.videoUrl } : {}),
-			};
+	// Every iteration's recording gets grant-gated; default private, or
+	// public (long-lived) when --public is set.
+	const { recordLocal } = await import("./skills/record/index.js");
+	const recordFn: import("./skills/loop/types.js").RecordFn = async ({ task, run }) => {
+		const r = await recordLocal({ task, run, harness: "loop", visibility });
+		return {
+			traceUrl: r.viewerUrl ?? r.url,
+			...(r.videoUrl ? { videoUrl: r.videoUrl } : {}),
 		};
-	}
+	};
 
 	const result = await loop({
 		spec,
 		northStar,
 		...(maxIterStr ? { maxIterations: Number(maxIterStr) } : {}),
 		...(tickMsStr ? { tickMs: Number(tickMsStr) } : {}),
-		...(recordFn ? { recordFn } : {}),
+		recordFn,
 		onTick: (t) => {
 			const status = t.met ? "✓ met" : t.error ? `✗ ${t.error.slice(0, 80)}` : "· not-met";
 			const conf = typeof t.confidence === "number" ? ` (conf=${t.confidence.toFixed(2)})` : "";

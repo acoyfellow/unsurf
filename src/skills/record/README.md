@@ -6,9 +6,9 @@ agent runs → video + receipt → shareable URL
 
 Record any agent browser run. Returns a canonical URL: video, step trace, receipt.
 
-**Status:** 0.3 — local provider + HTTP ingest + viewer Worker live,
-plus opt-in private traces with signed viewer grants. Hosted at
-`https://trace.coey.dev/r/:id`.
+**Status:** 0.4 — local provider + HTTP ingest + viewer Worker live,
+**every new trace is grant-gated by default** (see Privacy below).
+Hosted at `https://trace.coey.dev/r/:id`.
 
 ## Quick use
 
@@ -33,33 +33,45 @@ Or from the CLI:
 ```bash
 export TRACE_INGEST_TOKEN=...       # see "Getting a token" below
 bunx unsurf record ./examples/record-demo.ts --task "demo"
-bunx unsurf record ./examples/record-demo.ts --task "demo" --private   # private
+bunx unsurf record ./examples/record-demo.ts --task "demo" --public   # 365d grant
 ```
 
 **Requirements:** `agent-browser` on PATH, `TRACE_INGEST_TOKEN` env.
 
-## Private traces
+## Private by default
 
-Pass `visibility: "private"` (or `--private` on the CLI) and the upload
-response includes a `viewerUrl` with a signed grant baked in:
+As of 0.4.0 every new upload is grant-gated. The upload response's
+`viewerUrl` is the canonical shareable link — the bare `/r/<id>`
+returns 404 for new traces.
 
 ```ts
 const result = await recordLocal({
   task: "log into cmux",
-  visibility: "private",
   run: async (browser) => { /* ... */ },
 });
 console.log(result.viewerUrl);
 // → https://trace.coey.dev/r/<id>?vt=<exp>.<generation>.<signature>
 ```
 
-- Default TTL: 7 days. After that the grant rejects with 404.
-- Share the `viewerUrl`; the bare `/r/<id>` returns 404 for private traces.
+For a long-lived shareable (365-day grant, still revocable, still
+grant-gated), pass `visibility: "public"`:
+
+```ts
+const result = await recordLocal({
+  task: "public demo",
+  visibility: "public",
+  run: async (browser) => { /* ... */ },
+});
+```
+
+- Default TTL: **7 days** for private, **365 days** for public. After that the grant rejects with 404.
+- Share the `viewerUrl`; the bare `/r/<id>` returns 404 for any post-0.4.0 trace.
 - Tampered grants, expired grants, and wrong-generation grants all 404.
 - **Revoke on demand** via `unsurf trace-revoke <id>` — bumps the meta's
   `grantGeneration` counter and returns a fresh grant. Every prior grant
-  immediately stops working.
-- Public is the default. Nothing about existing code paths changed.
+  immediately stops working. Works for public and private alike.
+- **Grandfathered bundles** (pre-0.4.0, no `visibility` field in stored
+  meta) continue to serve bare so existing links don't break.
 
 ## Getting a token
 

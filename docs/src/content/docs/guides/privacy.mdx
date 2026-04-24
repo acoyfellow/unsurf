@@ -1,21 +1,31 @@
 ---
-title: Private traces
-description: Opt-in signed viewer grants for recordings that shouldn't be public. No accounts, no KV, just HMAC.
+title: Private by default
+description: Every new trace is grant-gated. No bare URLs, no footguns. HMAC-signed grants, 7-day default TTL, surgical revocation.
 ---
 
-Every trace on `trace.coey.dev` is public by default — anyone with the
-12-char id can view it. Opt into private visibility and the bare URL
-returns 404; a signed grant baked into the response is the only
-shareable link.
+**As of v0.4.0, every new trace is private by default.** The bare
+`/r/<id>` URL returns 404 for any trace uploaded through the current
+worker — the only shareable link is the signed `viewerUrl` returned in
+the upload response. That eliminates the class of leakage where someone
+pastes a trace URL into Slack, a PR description, or a log file and the
+recording becomes world-readable forever.
 
-## Record privately
+```
+old default:  GET https://trace.coey.dev/r/abc123xyz000                 → 200
+new default:  GET https://trace.coey.dev/r/abc123xyz000                 → 404
+              GET https://trace.coey.dev/r/abc123xyz000?vt=<grant>      → 200
+```
+
+Grandfathered bundles (uploaded before 0.4.0) keep working bare so
+existing links don't break.
+
+## Record (default = private)
 
 ```ts
 import { recordLocal } from "unsurf/skills/record";
 
 const result = await recordLocal({
   task: "log into cmux with yubikey",
-  visibility: "private",
   run: async (browser) => { /* … */ },
 });
 
@@ -23,30 +33,51 @@ console.log(result.viewerUrl);
 // → https://trace.coey.dev/r/<id>?vt=<exp>.<generation>.<signature>
 ```
 
-Or from the CLI:
-
-```bash
-unsurf record ./login-demo.ts --task "login" --private
-```
-
 The grant embedded in `viewerUrl` authorizes the viewer page *and*
 every sub-resource (`/trace`, `/meta`, `/.json`, `/video-url`,
 `/og.svg`) for 7 days. The video itself is signed separately with its
 own short-lived token (unchanged behavior).
 
-## How it works
+From the CLI — identical default:
+
+```bash
+unsurf record ./login-demo.ts --task "login"
+# → prints a JSON blob with viewerUrl including ?vt=...
+```
+
+## Long-lived shareable: `visibility: "public"`
+
+For "this demo is fine to publish; I just want a URL that doesn't
+expire every week," pass `visibility: "public"`. Still grant-gated
+(no bare URL), but the grant lasts **365 days** and is still revocable.
+
+```ts
+await recordLocal({
+  task: "public demo",
+  visibility: "public",
+  run: /* … */,
+});
+```
+
+```bash
+unsurf record ./demo.ts --public
+unsurf loop ./goal.json --north-star "done?" --public
+```
+
+There is no way, via the public API, to produce a new bare-URL trace.
+
+## How grants work
 
 Grants are `HMAC-SHA256(TRACE_SIGNING_KEY, "${id}|view|${generation}|${exp}")`
 rendered as `${exp}.${generation}.${sig}`.
 
 - **`id`** — the trace id.
-- **`generation`** — an integer counter in the trace's `meta.json`,
-  starts at 0. See revocation below.
-- **`exp`** — Unix timestamp, 7 days out by default.
+- **`generation`** — integer counter in the trace's `meta.json`, starts at 0.
+- **`exp`** — Unix timestamp. 7 days for private, 365 days for public.
 
 The worker recomputes the HMAC on every request and compares the
 generation to meta.json. Anything that doesn't match → 404. Existence
-is never leaked for private traces.
+is never leaked.
 
 ## Revoke every outstanding grant
 
@@ -60,27 +91,34 @@ This:
 2. Mints a fresh grant at the new generation.
 3. Returns the fresh `viewerUrl`.
 
-Every previously-issued grant still carries the old generation number
-in its signed payload, so all of them 404 on the next request. No key
-rotation, no KV for revoked tokens — just one atomic meta.json write.
+Every previously-issued grant still carries the old generation in its
+signed payload, so all of them 404 on the next request. No key
+rotation, no KV for revoked tokens — one atomic meta.json write.
 
-## Public is still the default
+Works for both public and private traces.
 
-Existing code paths don't change. You opt into private per-trace; you
-can mix public and private under the same ingest token.
+## Grandfathered bundles
+
+Bundles uploaded before 0.4.0 have no `visibility` field in their
+stored meta.json. They keep serving bare `/r/<id>` so existing docs,
+tweets, and cross-references stay alive. To lock one down retroactively,
+re-upload with `visibility` set, or do a one-off R2 write that injects
+the field. This is not automated — by design, so you don't accidentally
+break an external link.
 
 ## Design notes
 
 - **No accounts, no OAuth.** Grants ARE the auth surface. Trading a
   bearer token for another bearer token saves the caller nothing.
-- **Short TTL + revocation beats long-lived secrets.** If you leak a
-  grant, you lose 7 days max — and you can rescind instantly.
-- **One counter per trace.** Surgical revocation. Key rotation is
-  still the nuclear option if you believe the signing key itself
-  leaked.
+- **Short TTL + revocation beats long-lived secrets.** Leak a private
+  grant, lose 7 days max — and revoke instantly.
+- **Every new trace is gated.** The default eliminates the footgun
+  instead of documenting around it.
+- **One counter per trace.** Surgical revocation. Full signing-key
+  rotation is still the nuclear option.
 
 ## Related
 
 - **[Record](/guides/record/)** — the upload flow that issues grants.
-- **[Loop](/guides/loop/)** — `--private` on the CLI marks every
-  iteration as private.
+- **[Loop](/guides/loop/)** — `--public` on the CLI switches loop
+  iterations to the 365-day grant.
