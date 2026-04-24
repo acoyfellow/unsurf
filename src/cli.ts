@@ -103,6 +103,31 @@ function flagValue(args: string[], name: string): string | undefined {
 	return args[i + 1];
 }
 
+/**
+ * Validate a flag that requires a non-empty value. Distinguishes three cases
+ * for the user instead of conflating them:
+ *   - missing flag entirely
+ *   - flag present with no following value (end of argv)
+ *   - flag present with a value that looks like another flag
+ */
+function requireFlagValue(args: string[], name: string): string {
+	const i = args.indexOf(name);
+	if (i === -1) {
+		console.error(`Error: missing required flag ${name}`);
+		process.exit(1);
+	}
+	if (i === args.length - 1) {
+		console.error(`Error: ${name} requires a value`);
+		process.exit(1);
+	}
+	const val = args[i + 1] ?? "";
+	if (!val || val.startsWith("--")) {
+		console.error(`Error: ${name} requires a value (got ${val ? `"${val}"` : "empty"})`);
+		process.exit(1);
+	}
+	return val;
+}
+
 function hasFlag(args: string[], name: string): boolean {
 	return args.includes(name);
 }
@@ -547,11 +572,7 @@ async function traceTokenCommand(args: string[]): Promise<void> {
 	}
 
 	if (sub === "mint") {
-		const owner = flagValue(args, "--owner");
-		if (!owner) {
-			console.error("Error: trace-token mint requires --owner <name>");
-			process.exit(1);
-		}
+		const owner = requireFlagValue(args, "--owner");
 		const scope = flagValue(args, "--scope");
 		const quotaStr = flagValue(args, "--quota");
 		const body: Record<string, unknown> = { owner };
