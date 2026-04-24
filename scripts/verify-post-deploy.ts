@@ -310,10 +310,16 @@ if (viewerHtml.includes('property="og:image"') && viewerHtml.includes('name="twi
 
 const embedRes = await fetch(`${ENDPOINT}/r/${publicId}?embed=1`);
 const embedHtml = await embedRes.text();
-if (embedRes.status === 200 && embedHtml.length !== viewerHtml.length) {
-	pass(`GET /r/<id>?embed=1 → 200 (different bytes: ${embedHtml.length} vs ${viewerHtml.length})`);
+if (
+	embedRes.status === 200 &&
+	embedHtml.includes('data-embed="1"') &&
+	!viewerHtml.includes('data-embed="1"')
+) {
+	pass("GET /r/<id>?embed=1 → 200 with data-embed=1 attribute (default has data-embed=0)");
 } else {
-	fail(`embed mode did not differ from default viewer (status=${embedRes.status})`);
+	fail(
+		`embed mode did not toggle data-embed attribute (status=${embedRes.status}, embed-has-attr=${embedHtml.includes('data-embed="1"')}, default-has-attr=${viewerHtml.includes('data-embed="1"')})`,
+	);
 }
 
 // ==================== Phase 2 ====================
