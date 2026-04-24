@@ -239,6 +239,83 @@ await expectStatus(
 	200,
 );
 
+// ==================== Phase 1c: grant revocation ====================
+//
+// The trace-revoke endpoint bumps a private trace's grantGeneration; all
+// outstanding grants should 404 on the next request, and the fresh grant
+// from the revoke response should work.
+
+section("Phase 1c: grant revocation");
+
+const revokeId = mkId();
+const revokeUploadRes = await postBundle(ROOT, revokeId, { visibility: "private" });
+const revokeUpload = (await revokeUploadRes.json()) as { viewerUrl?: string };
+if (revokeUpload.viewerUrl) {
+	const originalGrant = new URL(revokeUpload.viewerUrl).searchParams.get("vt") || "";
+	await expectStatus(
+		"pre-revoke: original grant → 200",
+		await fetch(`${ENDPOINT}/r/${revokeId}?vt=${encodeURIComponent(originalGrant)}`),
+		200,
+	);
+
+	const revokeRes = await fetch(`${ENDPOINT}/admin/traces/${revokeId}/revoke`, {
+		method: "POST",
+		headers: { authorization: `Bearer ${ROOT}` },
+	});
+	const revokeBody = (await revokeRes.json()) as { viewerUrl?: string };
+	if (revokeRes.status === 200 && revokeBody.viewerUrl) {
+		pass("POST /admin/traces/:id/revoke returned a fresh viewerUrl");
+	} else {
+		fail("revoke endpoint did not return a fresh viewerUrl", revokeBody);
+	}
+
+	await expectStatus(
+		"post-revoke: original grant now 404",
+		await fetch(`${ENDPOINT}/r/${revokeId}?vt=${encodeURIComponent(originalGrant)}`),
+		404,
+	);
+
+	if (revokeBody.viewerUrl) {
+		await expectStatus("post-revoke: new grant → 200", await fetch(revokeBody.viewerUrl), 200);
+	}
+}
+
+// ==================== Phase 1d: OG card + embed mode ====================
+//
+// Both ship as part of the Stripe-flavored viewer; verify they're wired.
+
+section("Phase 1d: OG card + embed mode");
+
+const ogRes = await fetch(`${ENDPOINT}/r/${publicId}/og.svg`);
+const ogType = ogRes.headers.get("content-type") || "";
+if (ogRes.status === 200 && ogType.startsWith("image/svg+xml")) {
+	pass(`GET /r/${publicId}/og.svg → 200 (${ogType})`);
+} else {
+	fail(`GET /r/${publicId}/og.svg expected 200 + SVG, got ${ogRes.status} ${ogType}`);
+}
+const ogBody = await ogRes.text();
+if (ogBody.includes("<svg") && ogBody.includes(publicId.slice(0, 6))) {
+	pass("OG card SVG contains trace id prefix");
+} else {
+	fail("OG card SVG missing expected content");
+}
+
+const viewerRes = await fetch(`${ENDPOINT}/r/${publicId}`);
+const viewerHtml = await viewerRes.text();
+if (viewerHtml.includes('property="og:image"') && viewerHtml.includes('name="twitter:card"')) {
+	pass("viewer HTML embeds og:image + twitter:card meta tags");
+} else {
+	fail("viewer HTML missing OG/Twitter meta tags");
+}
+
+const embedRes = await fetch(`${ENDPOINT}/r/${publicId}?embed=1`);
+const embedHtml = await embedRes.text();
+if (embedRes.status === 200 && embedHtml.length !== viewerHtml.length) {
+	pass(`GET /r/<id>?embed=1 → 200 (different bytes: ${embedHtml.length} vs ${viewerHtml.length})`);
+} else {
+	fail(`embed mode did not differ from default viewer (status=${embedRes.status})`);
+}
+
 // ==================== Phase 2 ====================
 
 section("Phase 2: observeVideo E2E");
