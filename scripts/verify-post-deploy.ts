@@ -94,7 +94,11 @@ function mkId(): string {
 	return out;
 }
 
-async function postBundle(token: string, id: string): Promise<Response> {
+async function postBundle(
+	token: string,
+	id: string,
+	opts: { visibility?: "public" | "private" } = {},
+): Promise<Response> {
 	const now = new Date().toISOString();
 	const form = new FormData();
 	form.set("id", id);
@@ -133,6 +137,7 @@ async function postBundle(token: string, id: string): Promise<Response> {
 					task: "verify-post-deploy",
 					provider: "local",
 					harness: "ci",
+					...(opts.visibility ? { visibility: opts.visibility } : {}),
 				}),
 			],
 			{ type: "application/json" },
@@ -181,6 +186,58 @@ await expectStatus(
 await expectStatus("revoke minted token", await revokeToken(minted), 200);
 await expectStatus("upload with revoked token", await postBundle(minted, mkId()), 401);
 await expectStatus("upload with legacy root token", await postBundle(ROOT, mkId()), 200);
+
+// ==================== Phase 1b: privacy ====================
+
+section("Phase 1b: private trace visibility");
+
+const privateId = mkId();
+const uploadRes = await postBundle(ROOT, privateId, { visibility: "private" });
+const uploadBody = (await uploadRes.json()) as {
+	visibility?: string;
+	viewerUrl?: string;
+	url?: string;
+};
+if (uploadRes.status === 200 && uploadBody.visibility === "private" && uploadBody.viewerUrl) {
+	pass("private upload returned viewerUrl with ?vt= grant");
+} else {
+	fail("private upload did not return a signed viewer URL", uploadBody);
+}
+
+const publicHtml = await fetch(`${ENDPOINT}/r/${privateId}`);
+await expectStatus("GET /r/<private-id> without grant", publicHtml, 404);
+await expectStatus(
+	"GET /r/<private-id>.json without grant",
+	await fetch(`${ENDPOINT}/r/${privateId}.json`),
+	404,
+);
+
+if (uploadBody.viewerUrl) {
+	await expectStatus("GET <viewerUrl> with valid grant", await fetch(uploadBody.viewerUrl), 200);
+	const viewerUrl = new URL(uploadBody.viewerUrl);
+	const vt = viewerUrl.searchParams.get("vt") || "";
+	await expectStatus(
+		"GET /r/<private-id>/trace with valid grant",
+		await fetch(`${ENDPOINT}/r/${privateId}/trace?vt=${encodeURIComponent(vt)}`),
+		200,
+	);
+	// Tamper with the grant (flip a byte in the sig) → must 404.
+	const badVt = vt.replace(/.$/, (c) => (c === "0" ? "1" : "0"));
+	await expectStatus(
+		"GET /r/<private-id> with tampered grant",
+		await fetch(`${ENDPOINT}/r/${privateId}?vt=${encodeURIComponent(badVt)}`),
+		404,
+	);
+}
+
+// Public bundles should still work without a grant.
+const publicId = mkId();
+await postBundle(ROOT, publicId);
+await expectStatus(
+	"GET /r/<public-id> without grant (public default)",
+	await fetch(`${ENDPOINT}/r/${publicId}`),
+	200,
+);
 
 // ==================== Phase 2 ====================
 

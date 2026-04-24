@@ -129,129 +129,428 @@ async function signVideoUrl(
 	return `${origin}/r/${id}/video.webm?exp=${exp}&sig=${sig}`;
 }
 
+// ==================== Viewer grants (private traces) ====================
+//
+// A "viewer grant" is an HMAC signature over `${id}|view|${exp}`. Passed
+// as ?vt=<exp>.<sig> on every request to a private trace's resources.
+// Any request missing or presenting a bad grant for a private trace
+// returns 404 (we don't leak existence).
+//
+// We keep video-URL signing separate from viewer grants on purpose:
+// viewer grants authorize access to the trace as a whole, video sigs
+// are short-lived playback tokens the viewer mints on demand.
+
+const VIEWER_GRANT_TTL_SECONDS = 7 * 24 * 60 * 60;
+
+async function mintViewerGrant(
+	env: Env,
+	id: string,
+	ttl = VIEWER_GRANT_TTL_SECONDS,
+): Promise<string> {
+	const exp = Math.floor(Date.now() / 1000) + ttl;
+	const key = await importSigningKey(env.TRACE_SIGNING_KEY);
+	const sig = await sign(key, `${id}|view|${exp}`);
+	return `${exp}.${sig}`;
+}
+
+async function verifyViewerGrant(env: Env, id: string, vt: string): Promise<boolean> {
+	const dot = vt.indexOf(".");
+	if (dot < 1) return false;
+	const exp = Number(vt.slice(0, dot));
+	const sigHex = vt.slice(dot + 1);
+	if (!exp || !sigHex) return false;
+	if (exp < Math.floor(Date.now() / 1000)) return false;
+	const key = await importSigningKey(env.TRACE_SIGNING_KEY);
+	return verify(key, `${id}|view|${exp}`, sigHex);
+}
+
+/**
+ * Returns the bundle's visibility from meta.json. Cached result-ish — one
+ * R2 HEAD per request. We keep it simple rather than bolting on KV for
+ * now; the meta.json read already happens in most paths.
+ */
+async function bundleVisibility(env: Env, id: string): Promise<"public" | "private" | null> {
+	const obj = await env.STORAGE.get(r2Key(id, "meta"));
+	if (!obj) return null;
+	try {
+		const meta = (await obj.json()) as { visibility?: string };
+		return meta.visibility === "private" ? "private" : "public";
+	} catch {
+		return "public";
+	}
+}
+
+/**
+ * Gate every request to a private trace's resources. Returns:
+ *   - null if the caller may proceed
+ *   - a Response to send back otherwise (404 so existence isn't leaked)
+ */
+async function enforceVisibility(
+	request: Request,
+	env: Env,
+	id: string,
+	searchParams: URLSearchParams,
+): Promise<Response | null> {
+	const vis = await bundleVisibility(env, id);
+	if (vis === null) return err("not found", 404);
+	if (vis === "public") return null;
+	const vt = searchParams.get("vt") || "";
+	if (!vt) return err("not found", 404);
+	const ok = await verifyViewerGrant(env, id, vt);
+	if (!ok) return err("not found", 404);
+	void request; // reserved for future per-request logging
+	return null;
+}
+
 // ==================== Viewer HTML ====================
 
-function viewerHtml(id: string, origin: string): string {
+function viewerHtml(id: string, origin: string, vt: string): string {
+	// Clinical, Stripe-adjacent light palette. Values chosen from the
+	// Stripe dashboard design system and tweaked for high contrast on
+	// small text. All styles inlined; no external CSS.
+	void origin;
+	const qs = vt ? `?vt=${encodeURIComponent(vt)}` : "";
 	return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="color-scheme" content="light">
 <title>trace ${id} — unsurf</title>
 <style>
-	:root { color-scheme: dark light; }
+	:root {
+		--ink:        #0a2540;
+		--ink-muted:  #425466;
+		--ink-soft:   #697386;
+		--bg:         #ffffff;
+		--canvas:     #f6f9fc;
+		--surface:    #ffffff;
+		--line:       #e3e8ee;
+		--line-soft:  #eef2f7;
+		--accent:     #635bff;
+		--accent-ink: #ffffff;
+		--accent-bg:  #f4f3ff;
+		--ok-ink:     #0b6b4f;
+		--ok-bg:      #e7f7ee;
+		--err-ink:    #a41c1c;
+		--err-bg:     #fff4f4;
+		--warn-ink:   #7a5b00;
+		--warn-bg:    #fff8db;
+		--font-sans:  -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Inter, Roboto, sans-serif;
+		--font-mono:  ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+		--radius:     6px;
+		--shadow:     0 1px 2px rgba(10,37,64,0.04), 0 2px 8px rgba(10,37,64,0.04);
+	}
 	* { box-sizing: border-box; }
-	body { font: 14px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; margin: 0; background: #0b0c10; color: #e6e8eb; }
-	header { padding: 16px 20px; border-bottom: 1px solid #222; display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; }
-	header h1 { margin: 0; font-size: 14px; font-weight: 500; }
-	header h1 code { background: #1b1d22; padding: 2px 6px; border-radius: 3px; color: #7cc4ff; }
-	header .task { color: #9aa3ad; flex: 1; min-width: 200px; }
-	header a { color: #7cc4ff; text-decoration: none; font-size: 12px; }
-	header a:hover { text-decoration: underline; }
-	main { max-width: 1100px; margin: 0 auto; padding: 20px; display: grid; grid-template-columns: 1fr; gap: 20px; }
-	@media (min-width: 900px) { main { grid-template-columns: 1.3fr 1fr; } }
-	video { width: 100%; background: #000; border-radius: 4px; aspect-ratio: 16/10; }
-	.panel { background: #12141a; border: 1px solid #1f222a; border-radius: 4px; overflow: hidden; }
-	.panel h2 { margin: 0; padding: 10px 14px; font-size: 12px; font-weight: 500; color: #9aa3ad; text-transform: uppercase; letter-spacing: 0.04em; border-bottom: 1px solid #1f222a; background: #0e1014; }
-	.panel .body { padding: 10px 14px; max-height: 520px; overflow: auto; }
-	pre { margin: 0; font: 12px/1.55 "SF Mono", Menlo, Consolas, monospace; white-space: pre-wrap; word-break: break-word; color: #c8cdd4; }
-	.steps li { list-style: none; padding: 6px 0; border-bottom: 1px dashed #1f222a; display: flex; gap: 10px; font: 12px/1.4 "SF Mono", Menlo, Consolas, monospace; }
+	html, body { margin: 0; background: var(--canvas); color: var(--ink); }
+	body { font: 14px/1.55 var(--font-sans); -webkit-font-smoothing: antialiased; }
+	a { color: var(--accent); text-decoration: none; }
+	a:hover { text-decoration: underline; }
+	code, .mono { font-family: var(--font-mono); }
+
+	header {
+		background: var(--bg);
+		border-bottom: 1px solid var(--line);
+	}
+	.header-inner {
+		max-width: 1160px;
+		margin: 0 auto;
+		padding: 16px 24px;
+		display: flex;
+		align-items: center;
+		gap: 16px;
+		flex-wrap: wrap;
+	}
+	.brand {
+		font-weight: 600;
+		font-size: 15px;
+		letter-spacing: -0.01em;
+		color: var(--ink);
+	}
+	.brand .sep { color: var(--line); margin: 0 6px; font-weight: 400; }
+	.brand .trace-id {
+		font-family: var(--font-mono);
+		font-size: 12.5px;
+		color: var(--ink-soft);
+		font-weight: 400;
+		background: var(--canvas);
+		padding: 3px 7px;
+		border-radius: 4px;
+		border: 1px solid var(--line);
+	}
+	.task {
+		color: var(--ink-muted);
+		flex: 1;
+		min-width: 200px;
+		font-size: 14px;
+	}
+	.actions { display: flex; gap: 8px; flex-wrap: wrap; }
+	.actions a, .actions button {
+		font: inherit;
+		font-size: 12.5px;
+		color: var(--ink-muted);
+		background: var(--bg);
+		border: 1px solid var(--line);
+		border-radius: 5px;
+		padding: 5px 10px;
+		cursor: pointer;
+		transition: border-color 120ms, color 120ms;
+	}
+	.actions a:hover, .actions button:hover {
+		text-decoration: none;
+		border-color: var(--ink-soft);
+		color: var(--ink);
+	}
+
+	main {
+		max-width: 1160px;
+		margin: 0 auto;
+		padding: 24px;
+		display: grid;
+		grid-template-columns: 1fr;
+		gap: 20px;
+	}
+	@media (min-width: 960px) {
+		main { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); }
+	}
+
+	.status-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+	.pill {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		font-size: 12px;
+		font-weight: 500;
+		padding: 3px 9px;
+		border-radius: 999px;
+		border: 1px solid transparent;
+		line-height: 1.4;
+	}
+	.pill.ok   { color: var(--ok-ink);   background: var(--ok-bg);   border-color: rgba(11,107,79,0.15); }
+	.pill.err  { color: var(--err-ink);  background: var(--err-bg);  border-color: rgba(164,28,28,0.15); }
+	.pill.warn { color: var(--warn-ink); background: var(--warn-bg); border-color: rgba(122,91,0,0.15); }
+	.pill.priv { color: var(--accent);   background: var(--accent-bg); border-color: rgba(99,91,255,0.15); }
+	.pill .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+
+	video {
+		width: 100%;
+		background: #0a2540;
+		border-radius: var(--radius);
+		aspect-ratio: 16/9;
+		box-shadow: var(--shadow);
+		display: block;
+	}
+
+	.panel {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		box-shadow: var(--shadow);
+		overflow: hidden;
+	}
+	.panel h2 {
+		margin: 0;
+		padding: 12px 16px;
+		font-size: 11.5px;
+		font-weight: 600;
+		color: var(--ink-soft);
+		text-transform: uppercase;
+		letter-spacing: 0.06em;
+		border-bottom: 1px solid var(--line-soft);
+	}
+	.panel .body { padding: 4px 0; max-height: 520px; overflow: auto; }
+
+	.steps { list-style: none; margin: 0; padding: 0; }
+	.steps li {
+		display: grid;
+		grid-template-columns: 56px 72px 1fr;
+		align-items: start;
+		padding: 8px 16px;
+		border-bottom: 1px solid var(--line-soft);
+		font: 12.5px/1.5 var(--font-mono);
+		cursor: pointer;
+		background: var(--surface);
+		transition: background-color 80ms;
+	}
 	.steps li:last-child { border-bottom: 0; }
-	.steps .t { color: #6b737d; min-width: 52px; text-align: right; }
-	.steps .op { color: #7cc4ff; min-width: 70px; }
-	.steps .args { color: #c8cdd4; flex: 1; word-break: break-word; }
-	.steps .ok { color: #4ade80; }
-	.steps .err { color: #f87171; }
-	.meta-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; font-size: 12px; }
-	.meta-grid dt { color: #6b737d; }
-	.meta-grid dd { margin: 0; }
-	.muted { color: #6b737d; font-size: 11px; }
-	.banner { padding: 8px 14px; background: #2a1010; color: #f87171; font-size: 12px; }
-	.ok-banner { padding: 8px 14px; background: #0e2218; color: #4ade80; font-size: 12px; }
+	.steps li:hover { background: var(--canvas); }
+	.steps li.active { background: var(--accent-bg); }
+	.steps .t { color: var(--ink-soft); text-align: right; padding-right: 12px; }
+	.steps .op { color: var(--ink); font-weight: 500; }
+	.steps .op.err { color: var(--err-ink); }
+	.steps .args { color: var(--ink-muted); word-break: break-word; }
+	.steps .step-err {
+		grid-column: 2 / 4;
+		margin-top: 4px;
+		color: var(--err-ink);
+		font-size: 12px;
+	}
+
+	.meta-grid {
+		display: grid;
+		grid-template-columns: max-content 1fr;
+		gap: 8px 20px;
+		padding: 14px 16px;
+		font-size: 13px;
+		margin: 0;
+	}
+	.meta-grid dt { color: var(--ink-soft); font-weight: 500; }
+	.meta-grid dd { margin: 0; color: var(--ink); font-family: var(--font-mono); font-size: 12.5px; word-break: break-all; }
+
+	.error-card, .notfound {
+		background: var(--surface);
+		border: 1px solid var(--line);
+		border-radius: var(--radius);
+		padding: 24px;
+		box-shadow: var(--shadow);
+		color: var(--ink-muted);
+	}
+	.notfound h3 { margin: 0 0 6px; color: var(--ink); font-size: 16px; }
 </style>
 </head>
 <body>
 <header>
-	<h1><code>trace/${id}</code></h1>
-	<span class="task" id="task">loading…</span>
-	<a href="/r/${id}.json">result.json</a>
-	<a href="/r/${id}/trace">trace.json</a>
-	<a href="/r/${id}/meta">meta.json</a>
-</header>
-<main>
-	<div>
-		<video id="video" controls preload="metadata"></video>
-		<div id="status" class="muted" style="margin-top: 8px;"></div>
+	<div class="header-inner">
+		<span class="brand">unsurf <span class="sep">∕</span> <span class="trace-id">${id}</span></span>
+		<span class="task" id="task">loading…</span>
+		<div class="actions">
+			<button id="copy" type="button" title="Copy shareable link">Copy link</button>
+			<a href="/r/${id}.json${qs}">result.json</a>
+			<a href="/r/${id}/trace${qs}">trace.json</a>
+			<a href="/r/${id}/meta${qs}">meta.json</a>
+		</div>
 	</div>
-	<div style="display: grid; gap: 16px; align-content: start;">
+</header>
+<main id="main">
+	<section>
+		<div class="status-row" id="status-row"></div>
+		<video id="video" controls preload="metadata"></video>
+	</section>
+	<aside style="display: grid; gap: 20px; align-content: start;">
 		<div class="panel">
 			<h2>Steps</h2>
 			<div class="body"><ul class="steps" id="steps"></ul></div>
 		</div>
 		<div class="panel">
-			<h2>Meta</h2>
+			<h2>Metadata</h2>
 			<div class="body"><dl class="meta-grid" id="meta"></dl></div>
 		</div>
-	</div>
+	</aside>
 </main>
 <script>
 (async () => {
 	const id = ${JSON.stringify(id)};
-	const origin = ${JSON.stringify(origin)};
+	const qs = ${JSON.stringify(qs)};
 	const [resultRes, traceRes, metaRes] = await Promise.all([
-		fetch(\`/r/\${id}.json\`),
-		fetch(\`/r/\${id}/trace\`),
-		fetch(\`/r/\${id}/meta\`),
+		fetch(\`/r/\${id}.json\${qs}\`),
+		fetch(\`/r/\${id}/trace\${qs}\`),
+		fetch(\`/r/\${id}/meta\${qs}\`),
 	]);
 	if (!resultRes.ok) {
 		document.getElementById("task").textContent = "not found";
-		document.getElementById("status").innerHTML = '<div class="banner">This trace does not exist or has expired.</div>';
+		document.getElementById("main").innerHTML =
+			'<div class="notfound"><h3>Trace not found</h3>This link is invalid, revoked, or expired.</div>';
 		return;
 	}
 	const [result, trace, meta] = await Promise.all([resultRes.json(), traceRes.json(), metaRes.json()]);
 	document.getElementById("task").textContent = result.task || "(untitled)";
-	const statusBanner = result.status === "succeeded"
-		? \`<div class="ok-banner">succeeded in \${(result.durationMs / 1000).toFixed(1)}s</div>\`
-		: \`<div class="banner">failed: \${result.error || "unknown error"}</div>\`;
-	document.getElementById("status").innerHTML = statusBanner;
 
-	// Video is signed; fetch a fresh URL.
-	const videoRes = await fetch(\`/r/\${id}/video-url\`);
+	const statusRow = document.getElementById("status-row");
+	const pill = (cls, label) => {
+		const span = document.createElement("span");
+		span.className = "pill " + cls;
+		const dot = document.createElement("span"); dot.className = "dot";
+		span.appendChild(dot);
+		span.appendChild(document.createTextNode(" " + label));
+		return span;
+	};
+	if (result.status === "succeeded") {
+		statusRow.appendChild(pill("ok", "Succeeded · " + (result.durationMs / 1000).toFixed(1) + "s"));
+	} else {
+		statusRow.appendChild(pill("err", "Failed: " + (result.error || "unknown error")));
+	}
+	if (meta.visibility === "private") {
+		statusRow.appendChild(pill("priv", "Private"));
+	}
+
+	const video = document.getElementById("video");
+	const videoRes = await fetch(\`/r/\${id}/video-url\${qs}\`);
 	if (videoRes.ok) {
 		const { url } = await videoRes.json();
-		document.getElementById("video").src = url;
+		video.src = url;
 	} else {
-		document.getElementById("video").style.display = "none";
+		video.style.display = "none";
 	}
 
+	// Steps: click to seek. We need a reference point for t=0 relative
+	// to the video. Trace startedAt is a wall-clock time; the earliest
+	// step.t should be ≈0 and we use that as the seek base. Video may
+	// have started slightly before or after, so we clamp to valid times.
 	const stepsEl = document.getElementById("steps");
-	for (const s of trace.steps || []) {
+	const steps = (trace.steps || []);
+	const base = steps.length ? steps[0].t : 0;
+	const stepEls = [];
+	steps.forEach((s, i) => {
 		const li = document.createElement("li");
-		const args = Object.entries(s.args || {}).map(([k, v]) => \`\${k}=\${JSON.stringify(v)}\`).join(" ");
-		li.innerHTML = \`<span class="t">\${s.t}ms</span><span class="op \${s.status}">\${s.op}</span><span class="args">\${args}\${s.error ? \` <span class="err">\${s.error}</span>\` : ""}</span>\`;
+		li.dataset.t = String(Math.max(0, (s.t - base) / 1000));
+		const t = document.createElement("span");
+		t.className = "t"; t.textContent = (s.t / 1000).toFixed(2) + "s";
+		const op = document.createElement("span");
+		op.className = "op" + (s.status === "err" ? " err" : ""); op.textContent = s.op;
+		const args = document.createElement("span");
+		args.className = "args";
+		args.textContent = Object.entries(s.args || {}).map(([k, v]) => k + "=" + JSON.stringify(v)).join(" ");
+		li.appendChild(t); li.appendChild(op); li.appendChild(args);
+		if (s.error) {
+			const e = document.createElement("div");
+			e.className = "step-err"; e.textContent = s.error;
+			li.appendChild(e);
+		}
+		li.addEventListener("click", () => {
+			if (!video.duration) return;
+			const secs = Math.min(video.duration, Math.max(0, Number(li.dataset.t)));
+			video.currentTime = secs;
+			video.play().catch(() => {});
+			stepEls.forEach((el) => el.classList.remove("active"));
+			li.classList.add("active");
+		});
 		stepsEl.appendChild(li);
-	}
+		stepEls.push(li);
+		void i;
+	});
+
+	// Auto-highlight the current step as the video plays.
+	video.addEventListener("timeupdate", () => {
+		let activeIdx = -1;
+		for (let i = 0; i < stepEls.length; i++) {
+			if (Number(stepEls[i].dataset.t) <= video.currentTime) activeIdx = i; else break;
+		}
+		stepEls.forEach((el, i) => el.classList.toggle("active", i === activeIdx));
+	});
 
 	const metaEl = document.getElementById("meta");
-	const rows = [
-		["id", meta.id],
-		["provider", meta.provider],
-		["harness", meta.harness || "—"],
-		["started", new Date(result.startedAt).toLocaleString()],
-		["duration", \`\${(result.durationMs / 1000).toFixed(2)}s\`],
-	];
-	for (const [k, v] of rows) {
+	const row = (k, v) => {
 		const dt = document.createElement("dt"); dt.textContent = k;
-		const dd = document.createElement("dd"); dd.textContent = v;
+		const dd = document.createElement("dd"); dd.textContent = v == null ? "—" : String(v);
 		metaEl.appendChild(dt); metaEl.appendChild(dd);
-	}
-	if (meta.extra) {
-		for (const [k, v] of Object.entries(meta.extra)) {
-			const dt = document.createElement("dt"); dt.textContent = k;
-			const dd = document.createElement("dd"); dd.textContent = String(v);
-			metaEl.appendChild(dt); metaEl.appendChild(dd);
-		}
-	}
+	};
+	row("id", meta.id);
+	row("provider", meta.provider);
+	row("harness", meta.harness || "—");
+	row("started", new Date(result.startedAt).toLocaleString());
+	row("duration", (result.durationMs / 1000).toFixed(2) + "s");
+	if (meta.visibility) row("visibility", meta.visibility);
+	if (meta.extra) for (const [k, v] of Object.entries(meta.extra)) row(k, v);
+
+	document.getElementById("copy").addEventListener("click", async (e) => {
+		try {
+			await navigator.clipboard.writeText(location.href);
+			const b = e.currentTarget;
+			const prev = b.textContent;
+			b.textContent = "Copied ✓";
+			setTimeout(() => { b.textContent = prev; }, 1400);
+		} catch { /* no-op */ }
+	});
 })();
 </script>
 </body>
@@ -348,16 +647,22 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		metaRaw.text(),
 	]);
 
-	// Light validation: must parse, must be v0.
+	// Light validation: must parse, must be v0. Also pluck the visibility
+	// flag from meta so the upload response can mint a viewer grant for
+	// private traces.
+	let visibility: "public" | "private" = "public";
 	for (const [name, text] of [
 		["trace", traceText],
 		["result", resultText],
 		["meta", metaText],
 	] as const) {
 		try {
-			const parsed = JSON.parse(text);
+			const parsed = JSON.parse(text) as { version?: unknown; id?: unknown; visibility?: unknown };
 			if (parsed.version !== "v0") return err(`${name}.version must be "v0"`, 422);
 			if (parsed.id !== id) return err(`${name}.id must match form id`, 422);
+			if (name === "meta" && parsed.visibility === "private") {
+				visibility = "private";
+			}
 		} catch {
 			return err(`${name}.json did not parse`, 422);
 		}
@@ -381,11 +686,15 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 	]);
 
 	const origin = new URL(request.url).origin;
+	const vt = visibility === "private" ? await mintViewerGrant(env, id) : "";
+	const q = vt ? `?vt=${encodeURIComponent(vt)}` : "";
 	return json({
 		id,
 		url: `${origin}/r/${id}`,
-		resultUrl: `${origin}/r/${id}.json`,
+		viewerUrl: `${origin}/r/${id}${q}`,
+		resultUrl: `${origin}/r/${id}.json${q}`,
 		videoUrl: isFileLike(video) ? await signVideoUrl(env, origin, id) : undefined,
+		visibility,
 		owner: authed.owner,
 	});
 }
@@ -508,16 +817,21 @@ export default {
 		const id = m[1];
 		const suffix = m[2] ?? "";
 
+		// Every /r/:id* path is gated by visibility. Private traces require
+		// a signed ?vt=<grant> on every request; missing or bad grant → 404
+		// (existence intentionally not leaked).
+		const gate = await enforceVisibility(request, env, id, searchParams);
+		if (gate) return gate;
+
 		// GET /r/:id — HTML viewer.
 		if (method === "GET" && suffix === "") {
-			// Cheap existence check so 404s are not HTML-disguised.
-			const exists = await env.STORAGE.head(r2Key(id, "result"));
-			if (!exists) return err("not found", 404);
-			return new Response(viewerHtml(id, url.origin), {
+			const vt = searchParams.get("vt") || "";
+			return new Response(viewerHtml(id, url.origin, vt), {
 				status: 200,
 				headers: {
 					"content-type": "text/html; charset=utf-8",
-					"cache-control": "public, max-age=3600",
+					// Private traces must not be cached by shared proxies.
+					"cache-control": vt ? "private, no-store" : "public, max-age=3600",
 					...cors,
 				},
 			});

@@ -101,6 +101,15 @@ export interface RecordOptions {
 	 * back to the caller's system (runId, workspaceId, conversationId).
 	 */
 	meta?: Record<string, string | number | boolean>;
+	/**
+	 * Visibility policy written into meta.json and enforced by the viewer
+	 * Worker. Defaults to "public" (back-compat).
+	 *   "public"  — anyone with the id can view.
+	 *   "private" — viewer requires a signed grant token on every request.
+	 *               Upload response returns a `viewerUrl` with the grant
+	 *               baked in as ?vt=<signed>.
+	 */
+	visibility?: "public" | "private";
 }
 
 // ==================== Uploader ====================
@@ -129,6 +138,12 @@ export interface UploadResult {
 	videoUrl?: string;
 	/** Receipt URL returning `ResultJson`. */
 	resultUrl: string;
+	/**
+	 * Canonical shareable viewer link. For public traces this is identical
+	 * to `url`. For private traces this includes a signed grant token
+	 * (`?vt=...`) and is the only link that will render the viewer.
+	 */
+	viewerUrl?: string;
 }
 
 // ==================== Bundle JSON shapes ====================
@@ -165,6 +180,16 @@ export interface MetaJson {
 	provider: "local" | "filepath" | "browserRendering" | "custom";
 	harness?: string;
 	extra?: Record<string, string | number | boolean>;
+	/**
+	 * Visibility policy for this trace.
+	 *   "public"  — anyone with the id can view (default, back-compat).
+	 *   "private" — viewer requires a signed grant token (?vt=...) on every
+	 *               request to the HTML page and every sub-resource.
+	 *
+	 * The upload response always includes `viewerUrl`; for private traces
+	 * it has the signed grant baked in and is the only shareable link.
+	 */
+	visibility?: "public" | "private";
 }
 
 // ==================== Skill return ====================

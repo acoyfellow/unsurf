@@ -130,6 +130,7 @@ export async function record(opts: RecordOptions, deps: RecordRuntimeDeps): Prom
 		provider: deps.provider,
 		...(deps.harness ? { harness: deps.harness } : {}),
 		...(opts.meta ? { extra: opts.meta } : {}),
+		...(opts.visibility ? { visibility: opts.visibility } : {}),
 	};
 
 	let video: Uint8Array | undefined;
