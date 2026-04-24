@@ -1,0 +1,121 @@
+---
+title: Loop until the North Star
+description: Hand unsurf a goal and a success question; it records, watches its recording, refines the spec, and tries again — until the answer is yes.
+---
+
+`loop()` closes the record → observe → refine cycle. You describe what
+you want in natural language, supply a yes/no "North Star" question,
+and unsurf drives a real browser until the observed recording answers
+the question affirmatively.
+
+## Quick use
+
+```ts
+import { loop } from "unsurf/skills/loop";
+
+const result = await loop({
+  spec: "Go to httpbin.org/forms/post and fill the customer name, " +
+        "telephone, and email fields.",
+  northStar: "Did the user fill all three text fields with non-empty " +
+             "values that look like a real name, phone, and email?",
+  maxIterations: 3,
+});
+
+console.log(result.met);          // true
+console.log(result.stopReason);   // "met"
+for (const t of result.iterations) {
+  console.log(t.iteration, t.met, t.traceUrl);
+}
+```
+
+Or from the CLI:
+
+```bash
+unsurf loop "open coey.dev, click projects, open the first one" \
+  --north-star "Did the user end up on a project detail page?" \
+  --max-iter 3
+```
+
+## Spec can be a plan or a sentence
+
+If `spec` is a string, the planner (Kimi K2.6 by default) converts it
+into a structured `LoopSpec` before the first run:
+
+```ts
+type LoopSpec = {
+  url?: string;
+  steps: LoopStep[];    // goto | fill | click | wait | waitFor | snapshot
+  notes?: string;
+};
+```
+
+If you already have a spec, hand it in directly — skips the planner,
+saves a round-trip.
+
+## The refine cycle
+
+After each iteration, `observeVideo` answers the North Star with
+`{ answer, confidence }`. If it's not met, the **refiner** (Kimi K2.6
+by default) receives:
+
+- the previous spec
+- the observation's answer
+- its confidence
+- the iteration number
+
+…and returns a new `LoopSpec`, or `{ giveUp: true }`. The loop
+continues until:
+
+| Condition              | `stopReason`      |
+|---                     |---                |
+| North Star met         | `"met"`           |
+| Refiner said giveUp    | `"abort"`         |
+| Hit `maxIterations`    | `"maxIterations"` |
+| 3 consecutive errors   | `"errorBudget"`   |
+
+## Safeguards
+
+- **Tick budget** — every iteration has a wall-clock budget
+  (`tickMs`, default 120s). Exceed it and the tick errors out cleanly
+  instead of hanging the whole loop.
+- **Error budget** — 3 consecutive errors stops the loop. Reset on
+  any successful iteration.
+- **Met detection** — requires confidence ≥ `minConfidence` (default
+  0.7) *and* an affirmative answer pattern. A hedging model doesn't
+  false-positive.
+
+## Live demo
+
+The [Loop demo manual workflow](https://github.com/acoyfellow/unsurf/actions/workflows/loop-demo.yml)
+runs this exact flow in CI. A green run produces two live trace URLs
+on `trace.coey.dev` — click through and you'll see the refine cycle's
+output.
+
+## Swapping backends
+
+Any of the four steps can be overridden:
+
+```ts
+await loop({
+  spec, northStar,
+  planner:   { async plan({ goal, northStar }) { /* … */ } },
+  refiner:   { async refine({ previousSpec, previousAnswer }) { /* … */ } },
+  recordFn:  async ({ task, run }) => { /* custom upload target */ },
+  observeFn: async ({ video, question }) => { /* custom vision stack */ },
+});
+```
+
+## Related
+
+- **[Record](/guides/record/)** — the driving layer every iteration runs.
+- **[Observe](/guides/observe/)** — the signal every iteration hinges on.
+- **[Privacy](/guides/privacy/)** — pair `--private` with loop if the
+  run shouldn't be shareable.
+
+## Anti-patterns
+
+- **Don't loop without a yes/no North Star.** "Improve the page" isn't
+  measurable; "Did the cart total update to $42.99?" is.
+- **Don't crank `maxIterations` without fixing the refiner.** More
+  tries on a bad refiner is more waste. If iteration 2's spec looks
+  identical to iteration 1's, swap refiners before adding budget.

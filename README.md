@@ -6,9 +6,14 @@ surf the web → unsurf it
 
 Scout a website, get back a typed spec, run the spec against the live page, get back evidence it worked. Tools and gates share one schema.
 
+Also ships three composable skills for the agent loop:
+**`record`** drives a real browser and uploads a shareable mp4 + step trace.
+**`observeVideo`** watches a recording and answers questions about it.
+**`loop`** closes the cycle: record → observe → refine → record, until a North Star question returns yes.
+
 ![Directory](https://unsurf.coey.dev/directory-screenshot.png)
 
-**[Browse the Directory →](https://unsurf.coey.dev/directory)**
+**[Browse the Directory →](https://unsurf.coey.dev/directory)** · **[See a live trace →](https://trace.coey.dev/r/nb9uurla35eg)**
 
 ---
 

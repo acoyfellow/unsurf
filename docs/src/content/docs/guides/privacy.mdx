@@ -1,0 +1,86 @@
+---
+title: Private traces
+description: Opt-in signed viewer grants for recordings that shouldn't be public. No accounts, no KV, just HMAC.
+---
+
+Every trace on `trace.coey.dev` is public by default — anyone with the
+12-char id can view it. Opt into private visibility and the bare URL
+returns 404; a signed grant baked into the response is the only
+shareable link.
+
+## Record privately
+
+```ts
+import { recordLocal } from "unsurf/skills/record";
+
+const result = await recordLocal({
+  task: "log into cmux with yubikey",
+  visibility: "private",
+  run: async (browser) => { /* … */ },
+});
+
+console.log(result.viewerUrl);
+// → https://trace.coey.dev/r/<id>?vt=<exp>.<generation>.<signature>
+```
+
+Or from the CLI:
+
+```bash
+unsurf record ./login-demo.ts --task "login" --private
+```
+
+The grant embedded in `viewerUrl` authorizes the viewer page *and*
+every sub-resource (`/trace`, `/meta`, `/.json`, `/video-url`,
+`/og.svg`) for 7 days. The video itself is signed separately with its
+own short-lived token (unchanged behavior).
+
+## How it works
+
+Grants are `HMAC-SHA256(TRACE_SIGNING_KEY, "${id}|view|${generation}|${exp}")`
+rendered as `${exp}.${generation}.${sig}`.
+
+- **`id`** — the trace id.
+- **`generation`** — an integer counter in the trace's `meta.json`,
+  starts at 0. See revocation below.
+- **`exp`** — Unix timestamp, 7 days out by default.
+
+The worker recomputes the HMAC on every request and compares the
+generation to meta.json. Anything that doesn't match → 404. Existence
+is never leaked for private traces.
+
+## Revoke every outstanding grant
+
+```bash
+unsurf trace-revoke <id>
+```
+
+This:
+
+1. Bumps `grantGeneration` in meta.json (0 → 1).
+2. Mints a fresh grant at the new generation.
+3. Returns the fresh `viewerUrl`.
+
+Every previously-issued grant still carries the old generation number
+in its signed payload, so all of them 404 on the next request. No key
+rotation, no KV for revoked tokens — just one atomic meta.json write.
+
+## Public is still the default
+
+Existing code paths don't change. You opt into private per-trace; you
+can mix public and private under the same ingest token.
+
+## Design notes
+
+- **No accounts, no OAuth.** Grants ARE the auth surface. Trading a
+  bearer token for another bearer token saves the caller nothing.
+- **Short TTL + revocation beats long-lived secrets.** If you leak a
+  grant, you lose 7 days max — and you can rescind instantly.
+- **One counter per trace.** Surgical revocation. Key rotation is
+  still the nuclear option if you believe the signing key itself
+  leaked.
+
+## Related
+
+- **[Record](/guides/record/)** — the upload flow that issues grants.
+- **[Loop](/guides/loop/)** — `--private` on the CLI marks every
+  iteration as private.

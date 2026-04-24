@@ -1,6 +1,6 @@
 {
 	"name": "unsurf",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Turn any website into a typed API",
 	"type": "module",
 	"main": "dist/index.js",
@@ -10,6 +10,18 @@
 		".": {
 			"import": "./dist/index.js",
 			"types": "./dist/index.d.ts"
+		},
+		"./skills/record": {
+			"import": "./dist/skills/record.js",
+			"types": "./dist/skills/record.d.ts"
+		},
+		"./skills/observe-video": {
+			"import": "./dist/skills/observe-video.js",
+			"types": "./dist/skills/observe-video.d.ts"
+		},
+		"./skills/loop": {
+			"import": "./dist/skills/loop.js",
+			"types": "./dist/skills/loop.d.ts"
 		}
 	},
 	"bin": {

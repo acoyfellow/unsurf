@@ -142,42 +142,55 @@ async function signVideoUrl(
 
 const VIEWER_GRANT_TTL_SECONDS = 7 * 24 * 60 * 60;
 
+interface TraceMeta {
+	visibility?: "public" | "private";
+	grantGeneration?: number;
+	[k: string]: unknown;
+}
+
+async function readMeta(env: Env, id: string): Promise<TraceMeta | null> {
+	const obj = await env.STORAGE.get(r2Key(id, "meta"));
+	if (!obj) return null;
+	try {
+		return (await obj.json()) as TraceMeta;
+	} catch {
+		return {};
+	}
+}
+
+/**
+ * Mint a viewer grant. Grants embed the meta's current `grantGeneration`
+ * so bumping the counter in meta.json revokes every previously-issued
+ * grant for that one trace — no KV, no key rotation, surgical.
+ */
 async function mintViewerGrant(
 	env: Env,
 	id: string,
+	generation: number,
 	ttl = VIEWER_GRANT_TTL_SECONDS,
 ): Promise<string> {
 	const exp = Math.floor(Date.now() / 1000) + ttl;
 	const key = await importSigningKey(env.TRACE_SIGNING_KEY);
-	const sig = await sign(key, `${id}|view|${exp}`);
-	return `${exp}.${sig}`;
+	const sig = await sign(key, `${id}|view|${generation}|${exp}`);
+	return `${exp}.${generation}.${sig}`;
 }
 
-async function verifyViewerGrant(env: Env, id: string, vt: string): Promise<boolean> {
-	const dot = vt.indexOf(".");
-	if (dot < 1) return false;
-	const exp = Number(vt.slice(0, dot));
-	const sigHex = vt.slice(dot + 1);
-	if (!exp || !sigHex) return false;
+async function verifyViewerGrant(
+	env: Env,
+	id: string,
+	currentGeneration: number,
+	vt: string,
+): Promise<boolean> {
+	const parts = vt.split(".");
+	if (parts.length !== 3) return false;
+	const [expStr, genStr, sigHex] = parts;
+	const exp = Number(expStr);
+	const generation = Number(genStr);
+	if (!exp || Number.isNaN(generation) || !sigHex) return false;
 	if (exp < Math.floor(Date.now() / 1000)) return false;
+	if (generation !== currentGeneration) return false;
 	const key = await importSigningKey(env.TRACE_SIGNING_KEY);
-	return verify(key, `${id}|view|${exp}`, sigHex);
-}
-
-/**
- * Returns the bundle's visibility from meta.json. Cached result-ish — one
- * R2 HEAD per request. We keep it simple rather than bolting on KV for
- * now; the meta.json read already happens in most paths.
- */
-async function bundleVisibility(env: Env, id: string): Promise<"public" | "private" | null> {
-	const obj = await env.STORAGE.get(r2Key(id, "meta"));
-	if (!obj) return null;
-	try {
-		const meta = (await obj.json()) as { visibility?: string };
-		return meta.visibility === "private" ? "private" : "public";
-	} catch {
-		return "public";
-	}
+	return verify(key, `${id}|view|${generation}|${exp}`, sigHex);
 }
 
 /**
@@ -191,32 +204,94 @@ async function enforceVisibility(
 	id: string,
 	searchParams: URLSearchParams,
 ): Promise<Response | null> {
-	const vis = await bundleVisibility(env, id);
-	if (vis === null) return err("not found", 404);
-	if (vis === "public") return null;
+	const meta = await readMeta(env, id);
+	if (meta === null) return err("not found", 404);
+	if (meta.visibility !== "private") return null;
 	const vt = searchParams.get("vt") || "";
 	if (!vt) return err("not found", 404);
-	const ok = await verifyViewerGrant(env, id, vt);
+	const gen = typeof meta.grantGeneration === "number" ? meta.grantGeneration : 0;
+	const ok = await verifyViewerGrant(env, id, gen, vt);
 	if (!ok) return err("not found", 404);
-	void request; // reserved for future per-request logging
+	void request;
 	return null;
+}
+
+// ==================== OG card (SVG) ====================
+
+function escapeXml(s: string): string {
+	return s
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&apos;");
+}
+
+function ogSvg(
+	id: string,
+	task: string,
+	status: "succeeded" | "failed",
+	durationMs: number,
+): string {
+	const taskClean = escapeXml(task.length > 80 ? `${task.slice(0, 77)}…` : task);
+	const statusLabel =
+		status === "succeeded" ? `Succeeded · ${(durationMs / 1000).toFixed(1)}s` : "Failed";
+	const statusBg = status === "succeeded" ? "#e7f7ee" : "#fff4f4";
+	const statusFg = status === "succeeded" ? "#0b6b4f" : "#a41c1c";
+	return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+	<defs>
+		<linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
+			<stop offset="0" stop-color="#ffffff"/>
+			<stop offset="1" stop-color="#f6f9fc"/>
+		</linearGradient>
+	</defs>
+	<rect width="1200" height="630" fill="url(#bg)"/>
+	<rect x="0" y="0" width="1200" height="6" fill="#635bff"/>
+	<text x="80" y="130" font-family="-apple-system, 'SF Pro Text', Inter, sans-serif" font-size="28" font-weight="600" fill="#0a2540">
+		unsurf <tspan fill="#e3e8ee">∕</tspan> <tspan font-family="ui-monospace, 'SF Mono', Menlo, monospace" font-size="24" fill="#697386">${escapeXml(id)}</tspan>
+	</text>
+	<text x="80" y="260" font-family="-apple-system, 'SF Pro Text', Inter, sans-serif" font-size="52" font-weight="600" fill="#0a2540">
+		${taskClean}
+	</text>
+	<g transform="translate(80,360)">
+		<rect width="340" height="48" rx="24" fill="${statusBg}"/>
+		<circle cx="26" cy="24" r="6" fill="${statusFg}"/>
+		<text x="48" y="32" font-family="-apple-system, 'SF Pro Text', Inter, sans-serif" font-size="20" font-weight="500" fill="${statusFg}">
+			${escapeXml(statusLabel)}
+		</text>
+	</g>
+	<text x="80" y="560" font-family="-apple-system, 'SF Pro Text', Inter, sans-serif" font-size="20" fill="#697386">
+		trace.coey.dev · recorded browser session
+	</text>
+</svg>`;
 }
 
 // ==================== Viewer HTML ====================
 
-function viewerHtml(id: string, origin: string, vt: string): string {
+function viewerHtml(id: string, origin: string, vt: string, embed = false): string {
 	// Clinical, Stripe-adjacent light palette. Values chosen from the
 	// Stripe dashboard design system and tweaked for high contrast on
 	// small text. All styles inlined; no external CSS.
-	void origin;
 	const qs = vt ? `?vt=${encodeURIComponent(vt)}` : "";
+	const ogUrl = `${origin}/r/${id}/og.svg${qs}`;
+	const pageUrl = `${origin}/r/${id}${qs}`;
 	return `<!doctype html>
-<html lang="en">
+<html lang="en" data-embed="${embed ? "1" : "0"}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>trace ${id} — unsurf</title>
+<meta property="og:type" content="video.other">
+<meta property="og:title" content="unsurf trace ${id}">
+<meta property="og:site_name" content="unsurf">
+<meta property="og:url" content="${pageUrl}">
+<meta property="og:image" content="${ogUrl}">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="${ogUrl}">
 <style>
 	:root {
 		--ink:        #0a2540;
@@ -244,6 +319,10 @@ function viewerHtml(id: string, origin: string, vt: string): string {
 	* { box-sizing: border-box; }
 	html, body { margin: 0; background: var(--canvas); color: var(--ink); }
 	body { font: 14px/1.55 var(--font-sans); -webkit-font-smoothing: antialiased; }
+	html[data-embed="1"] header { display: none; }
+	html[data-embed="1"] main { padding: 12px; gap: 12px; }
+	html[data-embed="1"] { background: transparent; }
+	html[data-embed="1"] .panel { box-shadow: none; }
 	a { color: var(--accent); text-decoration: none; }
 	a:hover { text-decoration: underline; }
 	code, .mono { font-family: var(--font-mono); }
@@ -668,6 +747,20 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		}
 	}
 
+	// For private uploads, inject grantGeneration: 0 into meta.json so
+	// subsequent revokes can bump it. Callers can't set this; we always
+	// overwrite on upload to prevent forgery.
+	let metaToStore = metaText;
+	if (visibility === "private") {
+		try {
+			const parsed = JSON.parse(metaText) as Record<string, unknown>;
+			parsed.grantGeneration = 0;
+			metaToStore = JSON.stringify(parsed);
+		} catch {
+			/* impossible — we just parsed it above, but keep original on any edge-case */
+		}
+	}
+
 	await Promise.all([
 		env.STORAGE.put(r2Key(id, "trace"), traceText, {
 			httpMetadata: { contentType: "application/json" },
@@ -675,7 +768,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 		env.STORAGE.put(r2Key(id, "result"), resultText, {
 			httpMetadata: { contentType: "application/json" },
 		}),
-		env.STORAGE.put(r2Key(id, "meta"), metaText, {
+		env.STORAGE.put(r2Key(id, "meta"), metaToStore, {
 			httpMetadata: { contentType: "application/json" },
 		}),
 		isFileLike(video)
@@ -686,7 +779,7 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 	]);
 
 	const origin = new URL(request.url).origin;
-	const vt = visibility === "private" ? await mintViewerGrant(env, id) : "";
+	const vt = visibility === "private" ? await mintViewerGrant(env, id, 0) : "";
 	const q = vt ? `?vt=${encodeURIComponent(vt)}` : "";
 	return json({
 		id,
@@ -755,6 +848,45 @@ async function handleTokenRevoke(request: Request, env: Env): Promise<Response> 
 	return json({ owner: rec.owner, revokedAt: rec.revokedAt });
 }
 
+/**
+ * Revoke all outstanding viewer grants for a private trace by bumping its
+ * `grantGeneration` counter. Previously-issued grants still carry the old
+ * generation in their signed payload, so they'll fail the equality check
+ * in verifyViewerGrant() on the next request.
+ *
+ * Response includes a freshly-minted grant so the caller can keep viewing
+ * without re-uploading.
+ */
+async function handleTraceRevoke(request: Request, env: Env, id: string): Promise<Response> {
+	const auth = request.headers.get("authorization") || "";
+	if (!env.TRACE_INGEST_TOKEN || auth !== `Bearer ${env.TRACE_INGEST_TOKEN}`) {
+		return err("unauthorized", 401);
+	}
+	const existing = await env.STORAGE.get(r2Key(id, "meta"));
+	if (!existing) return err("not found", 404);
+	let meta: TraceMeta;
+	try {
+		meta = (await existing.json()) as TraceMeta;
+	} catch {
+		return err("trace meta unreadable", 500);
+	}
+	if (meta.visibility !== "private") return err("only private traces have grants to revoke", 422);
+	const prevGen = typeof meta.grantGeneration === "number" ? meta.grantGeneration : 0;
+	const nextGen = prevGen + 1;
+	meta.grantGeneration = nextGen;
+	await env.STORAGE.put(r2Key(id, "meta"), JSON.stringify(meta), {
+		httpMetadata: { contentType: "application/json" },
+	});
+	const vt = await mintViewerGrant(env, id, nextGen);
+	const origin = new URL(request.url).origin;
+	return json({
+		id,
+		revokedGeneration: prevGen,
+		grantGeneration: nextGen,
+		viewerUrl: `${origin}/r/${id}?vt=${encodeURIComponent(vt)}`,
+	});
+}
+
 // ==================== Fetch handler ====================
 
 export default {
@@ -792,6 +924,14 @@ export default {
 			return res;
 		}
 
+		// POST /admin/traces/:id/revoke — revoke outstanding viewer grants.
+		const traceRevokeMatch = pathname.match(/^\/admin\/traces\/([0-9a-z]{12})\/revoke$/);
+		if (method === "POST" && traceRevokeMatch && traceRevokeMatch[1]) {
+			const res = await handleTraceRevoke(request, env, traceRevokeMatch[1]);
+			for (const [k, v] of Object.entries(cors)) res.headers.set(k, v as string);
+			return res;
+		}
+
 		// GET /healthz — liveness.
 		if (method === "GET" && pathname === "/healthz") {
 			return json({ ok: true, service: "unsurf-trace" }, 200, cors);
@@ -811,7 +951,7 @@ export default {
 
 		// Everything else is /r/:id/...
 		const m = pathname.match(
-			/^\/r\/([0-9a-z]{12})(\.json|\/trace|\/meta|\/video\.webm|\/video-url)?$/,
+			/^\/r\/([0-9a-z]{12})(\.json|\/trace|\/meta|\/video\.webm|\/video-url|\/og\.svg)?$/,
 		);
 		if (!m || !m[1]) return err("not found", 404);
 		const id = m[1];
@@ -826,7 +966,8 @@ export default {
 		// GET /r/:id — HTML viewer.
 		if (method === "GET" && suffix === "") {
 			const vt = searchParams.get("vt") || "";
-			return new Response(viewerHtml(id, url.origin, vt), {
+			const embed = searchParams.get("embed") === "1";
+			return new Response(viewerHtml(id, url.origin, vt, embed), {
 				status: 200,
 				headers: {
 					"content-type": "text/html; charset=utf-8",
@@ -864,6 +1005,36 @@ export default {
 			if (!exists) return err("no video", 404);
 			const signed = await signVideoUrl(env, url.origin, id);
 			return json({ url: signed }, 200, cors);
+		}
+
+		// GET /r/:id/og.svg — 1200x630 SVG social card. Shared links in
+		// Slack/Twitter/etc. preview with the trace task + id.
+		if (method === "GET" && suffix === "/og.svg") {
+			const resultObj = await env.STORAGE.get(r2Key(id, "result"));
+			if (!resultObj) return err("not found", 404);
+			let task = "trace";
+			let status: "succeeded" | "failed" = "succeeded";
+			let durationMs = 0;
+			try {
+				const r = (await resultObj.json()) as {
+					task?: string;
+					status?: string;
+					durationMs?: number;
+				};
+				if (typeof r.task === "string") task = r.task;
+				if (r.status === "failed") status = "failed";
+				if (typeof r.durationMs === "number") durationMs = r.durationMs;
+			} catch {
+				/* best-effort */
+			}
+			return new Response(ogSvg(id, task, status, durationMs), {
+				status: 200,
+				headers: {
+					"content-type": "image/svg+xml; charset=utf-8",
+					"cache-control": "public, max-age=3600",
+					...cors,
+				},
+			});
 		}
 
 		// GET /r/:id/video.webm?exp=&sig= — signed playback.

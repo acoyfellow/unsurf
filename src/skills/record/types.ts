@@ -190,6 +190,16 @@ export interface MetaJson {
 	 * it has the signed grant baked in and is the only shareable link.
 	 */
 	visibility?: "public" | "private";
+	/**
+	 * Viewer-grant generation counter. Present only for private traces.
+	 * Every grant is signed with this value baked in; bumping it (via
+	 * `POST /admin/traces/:id/revoke`) invalidates every previously-minted
+	 * grant for this trace without touching any other trace or key.
+	 *
+	 * Callers must not set this at upload time. The worker initializes it
+	 * to 0 for private uploads and writes it back to R2 on revocation.
+	 */
+	grantGeneration?: number;
 }
 
 // ==================== Skill return ====================

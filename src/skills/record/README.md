@@ -6,8 +6,9 @@ agent runs → video + receipt → shareable URL
 
 Record any agent browser run. Returns a canonical URL: video, step trace, receipt.
 
-**Status:** 0.0.1 — local provider + HTTP ingest + viewer Worker all live.
-Hosted at `https://trace.coey.dev/r/:id`.
+**Status:** 0.3 — local provider + HTTP ingest + viewer Worker live,
+plus opt-in private traces with signed viewer grants. Hosted at
+`https://trace.coey.dev/r/:id`.
 
 ## Quick use
 
@@ -32,9 +33,33 @@ Or from the CLI:
 ```bash
 export TRACE_INGEST_TOKEN=...       # see "Getting a token" below
 bunx unsurf record ./examples/record-demo.ts --task "demo"
+bunx unsurf record ./examples/record-demo.ts --task "demo" --private   # private
 ```
 
 **Requirements:** `agent-browser` on PATH, `TRACE_INGEST_TOKEN` env.
+
+## Private traces
+
+Pass `visibility: "private"` (or `--private` on the CLI) and the upload
+response includes a `viewerUrl` with a signed grant baked in:
+
+```ts
+const result = await recordLocal({
+  task: "log into cmux",
+  visibility: "private",
+  run: async (browser) => { /* ... */ },
+});
+console.log(result.viewerUrl);
+// → https://trace.coey.dev/r/<id>?vt=<exp>.<generation>.<signature>
+```
+
+- Default TTL: 7 days. After that the grant rejects with 404.
+- Share the `viewerUrl`; the bare `/r/<id>` returns 404 for private traces.
+- Tampered grants, expired grants, and wrong-generation grants all 404.
+- **Revoke on demand** via `unsurf trace-revoke <id>` — bumps the meta's
+  `grantGeneration` counter and returns a fresh grant. Every prior grant
+  immediately stops working.
+- Public is the default. Nothing about existing code paths changed.
 
 ## Getting a token
 

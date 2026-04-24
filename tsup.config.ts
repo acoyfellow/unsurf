@@ -1,7 +1,13 @@
 import { defineConfig } from "tsup";
 
 export default defineConfig({
-	entry: ["src/index.ts", "src/cli.ts"],
+	entry: {
+		index: "src/index.ts",
+		cli: "src/cli.ts",
+		"skills/record": "src/skills/record/index.ts",
+		"skills/observe-video": "src/skills/observe-video/index.ts",
+		"skills/loop": "src/skills/loop/index.ts",
+	},
 	format: ["esm"],
 	dts: true,
 	splitting: false,

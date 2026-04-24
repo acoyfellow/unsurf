@@ -75,7 +75,17 @@ Usage:
   unsurf record <script.(m)js|.ts> [flags] Record an agent run; prints trace URL
     --task <str>                           Human label (default: script path)
     --harness <str>                        Harness tag written to meta.json
+    --private                              Upload as a private trace (signed
+                                           viewer grant in the response)
     Env: TRACE_INGEST_TOKEN (required), TRACE_INGEST_ENDPOINT (optional)
+
+  unsurf loop <goal|spec.json> [flags]     Record → observeVideo → refine loop
+    --north-star <str>                     Yes/no question (required)
+    --max-iter <n>                         Max iterations (default 5)
+    --tick-ms <ms>                         Per-iteration budget (default 120000)
+    --private                              Record each iteration as private
+    Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (Workers AI),
+         TRACE_INGEST_TOKEN (trace upload)
 
   unsurf trace-token mint --owner <name> [flags]
                                            Mint a new ingest token (prints the token)
@@ -85,6 +95,11 @@ Usage:
     Env: TRACE_INGEST_TOKEN (root token, required)
 
   unsurf trace-token revoke <token>        Revoke a previously minted token
+    Env: TRACE_INGEST_TOKEN (root token, required)
+
+  unsurf trace-revoke <id>                 Revoke all viewer grants for a
+                                           private trace (bumps generation,
+                                           returns a fresh grant)
     Env: TRACE_INGEST_TOKEN (root token, required)
 
 Examples:
@@ -623,19 +638,50 @@ async function traceTokenCommand(args: string[]): Promise<void> {
 	process.exit(1);
 }
 
+// ==================== trace-revoke command ====================
+//
+// Bumps grantGeneration on a private trace, invalidating every
+// previously-issued viewer grant. Returns a fresh grant so the caller
+// can keep viewing after the revoke.
+
+async function traceRevokeCommand(args: string[]): Promise<void> {
+	const id = args[0];
+	if (!id || !/^[0-9a-z]{12}$/.test(id)) {
+		console.error("Error: trace-revoke requires a 12-char trace id");
+		process.exit(1);
+	}
+	const endpoint = process.env.TRACE_INGEST_ENDPOINT || "https://trace.coey.dev";
+	const root = process.env.TRACE_INGEST_TOKEN;
+	if (!root) {
+		console.error("Error: TRACE_INGEST_TOKEN (root token) env var is required");
+		process.exit(1);
+	}
+	const res = await fetch(`${endpoint}/admin/traces/${id}/revoke`, {
+		method: "POST",
+		headers: { authorization: `Bearer ${root}` },
+	});
+	if (!res.ok) {
+		console.error(`trace-revoke failed (${res.status}): ${await res.text()}`);
+		process.exit(1);
+	}
+	const data = await res.json();
+	process.stdout.write(`${JSON.stringify(data, null, 2)}\n`);
+}
+
 // ==================== record command ====================
 
 async function recordCommand(args: string[]): Promise<void> {
 	const scriptPath = args[0];
 	if (!scriptPath) {
 		console.error(
-			"Error: record requires a script path\n  Usage: unsurf record <script> [--task <str>] [--harness <str>]",
+			"Error: record requires a script path\n  Usage: unsurf record <script> [--task <str>] [--harness <str>] [--private]",
 		);
 		process.exit(1);
 	}
 
 	const task = flagValue(args, "--task") || scriptPath;
 	const harness = flagValue(args, "--harness");
+	const isPrivate = args.includes("--private");
 
 	const absPath = resolvePath(scriptPath);
 	const mod = (await import(absPath)) as { default?: unknown; run?: unknown };
@@ -654,10 +700,75 @@ async function recordCommand(args: string[]): Promise<void> {
 		task,
 		run,
 		...(harness ? { harness } : {}),
+		...(isPrivate ? { visibility: "private" as const } : {}),
 	});
 
 	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	if (result.status === "failed") process.exit(1);
+}
+
+// ==================== loop command ====================
+
+async function loopCommand(args: string[]): Promise<void> {
+	const goalOrSpec = args[0];
+	const northStar = flagValue(args, "--north-star");
+	if (!goalOrSpec || !northStar) {
+		console.error(
+			"Error: loop requires a goal (string or spec.json path) and --north-star\n" +
+				"  Usage: unsurf loop <goal|spec.json> --north-star <question> [flags]\n" +
+				"    --max-iter <n>    Max iterations (default 5)\n" +
+				"    --tick-ms <ms>    Per-iteration wall-clock budget (default 120000)\n" +
+				"    --private         Record each iteration as a private trace\n" +
+				"  Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (Workers AI),\n" +
+				"       TRACE_INGEST_TOKEN (trace upload)",
+		);
+		process.exit(1);
+	}
+
+	const maxIterStr = flagValue(args, "--max-iter");
+	const tickMsStr = flagValue(args, "--tick-ms");
+	const isPrivate = args.includes("--private");
+
+	// Decide: file path (spec.json) or natural-language string?
+	const { loop } = await import("./skills/loop/index.js");
+	let spec: string | import("./skills/loop/types.js").LoopSpec = goalOrSpec;
+	if (goalOrSpec.endsWith(".json")) {
+		try {
+			const raw = readFileSync(resolvePath(goalOrSpec), "utf8");
+			spec = JSON.parse(raw) as import("./skills/loop/types.js").LoopSpec;
+		} catch (e) {
+			console.error(`Error: could not read spec file ${goalOrSpec}: ${(e as Error).message}`);
+			process.exit(1);
+		}
+	}
+
+	let recordFn: import("./skills/loop/types.js").RecordFn | undefined;
+	if (isPrivate) {
+		const { recordLocal } = await import("./skills/record/index.js");
+		recordFn = async ({ task, run }) => {
+			const r = await recordLocal({ task, run, harness: "loop", visibility: "private" });
+			return {
+				traceUrl: r.viewerUrl ?? r.url,
+				...(r.videoUrl ? { videoUrl: r.videoUrl } : {}),
+			};
+		};
+	}
+
+	const result = await loop({
+		spec,
+		northStar,
+		...(maxIterStr ? { maxIterations: Number(maxIterStr) } : {}),
+		...(tickMsStr ? { tickMs: Number(tickMsStr) } : {}),
+		...(recordFn ? { recordFn } : {}),
+		onTick: (t) => {
+			const status = t.met ? "✓ met" : t.error ? `✗ ${t.error.slice(0, 80)}` : "· not-met";
+			const conf = typeof t.confidence === "number" ? ` (conf=${t.confidence.toFixed(2)})` : "";
+			console.error(`[loop] iteration ${t.iteration}: ${status}${conf} ${t.traceUrl ?? ""}`);
+		},
+	});
+
+	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+	if (!result.met) process.exit(result.stopReason === "maxIterations" ? 2 : 1);
 }
 
 async function main(): Promise<void> {
@@ -710,6 +821,14 @@ async function main(): Promise<void> {
 
 			case "trace-token":
 				await traceTokenCommand(args.slice(1));
+				break;
+
+			case "trace-revoke":
+				await traceRevokeCommand(args.slice(1));
+				break;
+
+			case "loop":
+				await loopCommand(args.slice(1));
 				break;
 
 			case "record":
