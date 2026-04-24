@@ -161,9 +161,16 @@ function buildSynthesisPrompt(
 		"TIMELINE:",
 		timeline,
 		"",
-		"Respond with a single JSON object on one line, no markdown fences, no prose outside the object. Shape:",
-		'{"answer": "<natural-language answer>", "confidence": <0.0..1.0>}',
-		"confidence is how strongly the captions support the answer. 1.0 = captions directly confirm. 0.5 = partial/ambiguous. 0.0 = no evidence either way.",
+		"Output format: exactly one JSON object. No prose. No markdown fences. No explanation. No scratch work.",
+		"Shape:",
+		'{"answer": "<2-4 sentence natural-language answer>", "confidence": <0.0..1.0>}',
+		"",
+		"confidence = how strongly the captions support the answer.",
+		"  1.0 = captions directly confirm the answer.",
+		"  0.5 = partial or ambiguous evidence.",
+		"  0.0 = no evidence in captions.",
+		"",
+		"Begin your response with the opening brace and nothing else.",
 	].join("\n");
 }
 
@@ -196,10 +203,20 @@ export function workersAiSynthesisBackend(opts: WorkersAiSynthesisOptions = {}):
 			const prompt = buildSynthesisPrompt(question, captions);
 			const result = await aiRun<ChatCompletionsResult>(creds, model, {
 				messages: [{ role: "user", content: prompt }],
-				max_tokens: 800,
-				temperature: 0.2,
+				// K2.6 is a reasoning model and happily burns 500+ tokens on
+				// scratch work before emitting the JSON. 2k gives it breathing
+				// room so the final JSON isn't truncated.
+				max_tokens: 2000,
+				temperature: 0.1,
+				response_format: { type: "json_object" },
 			});
-			const text = extractAssistantText(result);
+			// Prefer message.content (the non-reasoning channel on K2.6). Fall
+			// back to extractAssistantText which handles both shapes.
+			const content = result.choices?.[0]?.message?.content;
+			const text =
+				typeof content === "string" && content.trim()
+					? content.trim()
+					: extractAssistantText(result);
 			const parsed = tryParseJson(text);
 			if (!parsed) {
 				// Fallback: return the raw text with low confidence rather than throwing.
