@@ -93,6 +93,53 @@ curl -X POST https://unsurf-api.coey.dev/mcp \
 
 The response lists the registered tools. The core set is `scout`, `worker`, and `heal`. Depending on server configuration, you may also see `gallery`, `directory`, and `agent-scout`.
 
+## The trace-skill tool pair
+
+Beyond the scout/worker/heal set, the MCP server exposes two tools that work with the record/observe/loop skills — a pair-pattern (search + execute) so agents have a small, stable surface to reason over:
+
+### `unsurf_search`
+
+List recorded traces. Filter by owner, task substring, or visibility. Returns `viewerUrl` values with grants pre-minted, ready to open.
+
+```bash
+curl -X POST https://unsurf-api.coey.dev/mcp \
+  -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "unsurf_search",
+      "arguments": { "q": "httpbin form", "limit": 5 }
+    }
+  }'
+```
+
+### `unsurf_execute`
+
+Run one of unsurf's Worker-safe skills. Today:
+
+- **`loopPlan`** — synthesize a structured `LoopSpec` from a natural-language goal via Kimi K2.6. Plan only; no browser drive. Feed the result to the local `unsurf loop` CLI (or `loop()` JS API) to actually record.
+
+```json
+{
+  "jsonrpc": "2.0",
+  "id": 4,
+  "method": "tools/call",
+  "params": {
+    "name": "unsurf_execute",
+    "arguments": {
+      "action": "loopPlan",
+      "goal": "go to coey.dev, open the first project",
+      "northStar": "Did the user land on a project detail page?"
+    }
+  }
+}
+```
+
+Actions that need local Node APIs (actual `record()` via agent-browser, `observeVideo()` via ffmpeg) are CLI-only until the cloud recording provider lands (Phase 4 in [NORTHSTAR.md](https://github.com/acoyfellow/unsurf/blob/main/docs/NORTHSTAR.md)).
+
 ### Call a tool
 
 ```bash

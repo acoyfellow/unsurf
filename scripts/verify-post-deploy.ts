@@ -334,6 +334,52 @@ if (revokeUpload.viewerUrl) {
 	}
 }
 
+// ==================== Phase 1e: /search endpoint ====================
+//
+// Proves the search API the `unsurf_search` MCP tool depends on:
+//   - 401 without auth
+//   - root token gets recent uploads (at least the one we just made)
+//   - q filter narrows results
+//   - grant URLs in entries are valid (fetch one, expect 200)
+
+section("Phase 1e: /search endpoint");
+
+const searchNoAuth = await fetch(`${ENDPOINT}/search`);
+await expectStatus("GET /search without auth → 401", searchNoAuth, 401);
+
+const searchRes = await fetch(`${ENDPOINT}/search?limit=25`, {
+	headers: { authorization: `Bearer ${ROOT}` },
+});
+if (searchRes.status !== 200) {
+	fail(`GET /search root → ${searchRes.status}`, await searchRes.text());
+} else {
+	const searchBody = (await searchRes.json()) as {
+		entries?: { id: string; task?: string; viewerUrl?: string; visibility?: string }[];
+		count?: number;
+	};
+	if ((searchBody.count ?? 0) > 0) {
+		pass(`GET /search returned ${searchBody.count} entr${searchBody.count === 1 ? "y" : "ies"}`);
+	} else {
+		fail("GET /search returned zero entries", searchBody);
+	}
+	const first = searchBody.entries?.[0];
+	if (first?.viewerUrl) {
+		await expectStatus(`search entry[0] viewerUrl → 200`, await fetch(first.viewerUrl), 200);
+	}
+
+	// Filter probe: q=verify-post-deploy should hit the fixture uploads
+	// we've been making this run.
+	const qRes = await fetch(`${ENDPOINT}/search?q=verify-post-deploy`, {
+		headers: { authorization: `Bearer ${ROOT}` },
+	});
+	const qBody = (await qRes.json()) as { count?: number };
+	if ((qBody.count ?? 0) > 0) {
+		pass(`GET /search?q=verify-post-deploy → ${qBody.count} hit(s)`);
+	} else {
+		fail("GET /search?q= filter returned zero matching entries", qBody);
+	}
+}
+
 // ==================== Phase 1d: OG card + embed mode ====================
 //
 // Both ship as part of the Stripe-flavored viewer; verify they're wired.
@@ -384,6 +430,64 @@ if (embedRes.status === 200 && embedAttr === "1" && defaultAttr === "0") {
 	fail(
 		`embed mode did not toggle <html data-embed> (status=${embedRes.status}, embed=${embedAttr}, default=${defaultAttr})`,
 	);
+}
+
+// ==================== Phase 1f: MCP tool surface ====================
+//
+// Hit the MCP server's tools/list and assert the unsurf_search and
+// unsurf_execute tools are registered. Protects against deploy drift
+// where the Worker starts but the MCP tools silently don't load.
+
+section("Phase 1f: MCP tool surface");
+
+const MCP_ENDPOINT = process.env.UNSURF_MCP_ENDPOINT || "https://unsurf-api.coey.dev/mcp";
+const mcpBody = JSON.stringify({
+	jsonrpc: "2.0",
+	id: 1,
+	method: "tools/list",
+	params: {},
+});
+const mcpInit = JSON.stringify({
+	jsonrpc: "2.0",
+	id: 0,
+	method: "initialize",
+	params: {
+		protocolVersion: "2024-11-05",
+		capabilities: {},
+		clientInfo: { name: "unsurf-verify", version: "0.1" },
+	},
+});
+
+try {
+	const initRes = await fetch(MCP_ENDPOINT, {
+		method: "POST",
+		headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+		body: mcpInit,
+	});
+	const sessionId = initRes.headers.get("mcp-session-id");
+	const listRes = await fetch(MCP_ENDPOINT, {
+		method: "POST",
+		headers: {
+			"content-type": "application/json",
+			accept: "application/json, text/event-stream",
+			...(sessionId ? { "mcp-session-id": sessionId } : {}),
+		},
+		body: mcpBody,
+	});
+	const listText = await listRes.text();
+	if (listRes.status !== 200) {
+		fail(`MCP tools/list → ${listRes.status}`, listText.slice(0, 200));
+	} else {
+		const hasSearch = listText.includes('"unsurf_search"');
+		const hasExec = listText.includes('"unsurf_execute"');
+		if (hasSearch && hasExec) {
+			pass("MCP tools/list exposes unsurf_search and unsurf_execute");
+		} else {
+			fail(`MCP missing tools (search=${hasSearch}, execute=${hasExec})`);
+		}
+	}
+} catch (e) {
+	fail(`MCP tool probe failed: ${(e as Error).message.slice(0, 200)}`);
 }
 
 // ==================== Phase 2 ====================

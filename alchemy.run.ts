@@ -80,6 +80,22 @@ if (process.env.ANTHROPIC_API_KEY) {
 	bindings.ANTHROPIC_API_KEY = alchemy.secret(process.env.ANTHROPIC_API_KEY);
 }
 
+// Bindings used by the unsurf MCP server (src/mcp.ts) for the
+// `unsurf_search` and `unsurf_execute` tool pair:
+//   TRACE_INGEST_TOKEN   — auth against trace.coey.dev for /search
+//   CLOUDFLARE_ACCOUNT_ID / CLOUDFLARE_API_TOKEN — Workers AI for
+//     kimi-k2.6 planner used by unsurf_execute loopPlan
+// All three are optional; the tools self-report misconfiguration.
+if (process.env.TRACE_INGEST_TOKEN) {
+	bindings.TRACE_INGEST_TOKEN = alchemy.secret(process.env.TRACE_INGEST_TOKEN);
+}
+if (process.env.CLOUDFLARE_ACCOUNT_ID) {
+	bindings.CLOUDFLARE_ACCOUNT_ID = process.env.CLOUDFLARE_ACCOUNT_ID;
+}
+if (process.env.CLOUDFLARE_API_TOKEN) {
+	bindings.CLOUDFLARE_API_TOKEN = alchemy.secret(process.env.CLOUDFLARE_API_TOKEN);
+}
+
 export const WORKER = await Worker("unsurf", {
 	name: "unsurf",
 	entrypoint: "./src/cf-worker.ts",

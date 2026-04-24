@@ -787,11 +787,16 @@ async function handleUpload(request: Request, env: Env): Promise<Response> {
 	// Always inject visibility + grantGeneration: 0 into stored meta.
 	// Overwriting prevents callers from forging generation state; it also
 	// makes the stored doc authoritative for enforceVisibility().
+	// Inject server-owned fields so search/list endpoints can filter
+	// without reading every meta.json. Callers can't forge owner or
+	// uploadedAt because we overwrite on write.
 	let metaToStore = metaText;
 	try {
 		const parsed = JSON.parse(metaText) as Record<string, unknown>;
 		parsed.visibility = visibility;
 		parsed.grantGeneration = 0;
+		parsed.owner = authed.owner;
+		parsed.uploadedAt = new Date().toISOString();
 		metaToStore = JSON.stringify(parsed);
 	} catch {
 		/* impossible — we just parsed it above, keep original on any edge-case */
@@ -932,6 +937,142 @@ async function handleTraceRevoke(request: Request, env: Env, id: string): Promis
 	});
 }
 
+// ==================== Search ====================
+//
+// Lists recent trace metadata. Filters by owner (defaulting to the caller's
+// own, root token excepted), optional task substring, optional visibility.
+// Paginates over R2 via listOpts.cursor. Returns at most 100 entries/call.
+//
+// Why filter in the worker: listing R2 by `trace/*/meta.json` is fast, and
+// we have ≤ a few thousand bundles total today. When that stops scaling,
+// fold this into D1 on upload. Not premature now.
+
+const SEARCH_MAX_LIMIT = 100;
+const SEARCH_DEFAULT_LIMIT = 25;
+const SEARCH_SCAN_BUDGET = 400; // R2 objects to fetch before we return a cursor
+
+interface SearchEntry {
+	id: string;
+	task: string;
+	owner: string;
+	harness?: string;
+	visibility: "public" | "private" | "grandfathered";
+	uploadedAt?: string;
+	provider?: string;
+	viewerUrl?: string;
+}
+
+async function handleSearch(
+	request: Request,
+	env: Env,
+	searchParams: URLSearchParams,
+): Promise<Response> {
+	const authed = await authIngest(request, env);
+	if (!authed) return err("unauthorized", 401);
+
+	const ownerFilter = searchParams.get("owner") || undefined;
+	const qRaw = searchParams.get("q") || "";
+	const q = qRaw.toLowerCase().trim();
+	const visFilter = searchParams.get("visibility");
+	const limit = Math.min(
+		SEARCH_MAX_LIMIT,
+		Math.max(1, Number(searchParams.get("limit") || SEARCH_DEFAULT_LIMIT)),
+	);
+	const cursor = searchParams.get("cursor") || undefined;
+
+	// Scope rule: root (legacy) token sees any owner (ownerFilter respected).
+	// Per-owner tokens are always scoped to their own owner, ignoring any
+	// `owner=<other>` param in the query string. This prevents data leakage
+	// via the search API.
+	const effectiveOwner = authed.owner === "legacy" ? ownerFilter : authed.owner;
+
+	const list = await env.STORAGE.list({
+		prefix: "trace/",
+		limit: SEARCH_SCAN_BUDGET,
+		...(cursor ? { cursor } : {}),
+	});
+
+	const metaKeys = list.objects.filter((o) => o.key.endsWith("/meta.json")).map((o) => o.key);
+
+	const entries: SearchEntry[] = [];
+	await Promise.all(
+		metaKeys.map(async (key) => {
+			const idMatch = key.match(/^trace\/([0-9a-z]{12})\/meta\.json$/);
+			if (!idMatch) return;
+			const id = idMatch[1]!;
+			const obj = await env.STORAGE.get(key);
+			if (!obj) return;
+			const meta = (await obj.json().catch(() => null)) as
+				| (TraceMeta & {
+						task?: string;
+						owner?: string;
+						harness?: string;
+						uploadedAt?: string;
+						provider?: string;
+				  })
+				| null;
+			if (!meta) return;
+
+			const owner = typeof meta.owner === "string" ? meta.owner : "unknown";
+			if (effectiveOwner && owner !== effectiveOwner) return;
+
+			const visibility: SearchEntry["visibility"] =
+				meta.visibility === "public" || meta.visibility === "private"
+					? meta.visibility
+					: "grandfathered";
+			if (visFilter && visFilter !== visibility) return;
+
+			const task = typeof meta.task === "string" ? meta.task : "";
+			if (q && !task.toLowerCase().includes(q)) return;
+
+			const entry: SearchEntry = {
+				id,
+				task,
+				owner,
+				visibility,
+				...(typeof meta.harness === "string" ? { harness: meta.harness } : {}),
+				...(typeof meta.uploadedAt === "string" ? { uploadedAt: meta.uploadedAt } : {}),
+				...(typeof meta.provider === "string" ? { provider: meta.provider } : {}),
+			};
+
+			// For grant-gated bundles, mint a fresh grant so the caller can
+			// open the result without a separate round-trip. Grandfathered
+			// bundles get the bare URL.
+			const origin = new URL(request.url).origin;
+			if (visibility === "grandfathered") {
+				entry.viewerUrl = `${origin}/r/${id}`;
+			} else {
+				const gen = typeof meta.grantGeneration === "number" ? meta.grantGeneration : 0;
+				const vt = await mintViewerGrant(env, id, gen, grantTtlFor(visibility));
+				entry.viewerUrl = `${origin}/r/${id}?vt=${encodeURIComponent(vt)}`;
+			}
+
+			entries.push(entry);
+		}),
+	);
+
+	// Sort newest first by uploadedAt (grandfathered fall to end).
+	entries.sort((a, b) => {
+		if (!a.uploadedAt && !b.uploadedAt) return 0;
+		if (!a.uploadedAt) return 1;
+		if (!b.uploadedAt) return -1;
+		return b.uploadedAt.localeCompare(a.uploadedAt);
+	});
+
+	const clipped = entries.slice(0, limit);
+	const nextCursor = list.truncated ? list.cursor : undefined;
+	return json(
+		{
+			entries: clipped,
+			count: clipped.length,
+			scannedObjects: list.objects.length,
+			nextCursor,
+			owner: effectiveOwner ?? "(all)",
+		},
+		200,
+	);
+}
+
 // ==================== Fetch handler ====================
 
 export default {
@@ -980,6 +1121,16 @@ export default {
 		// GET /healthz — liveness.
 		if (method === "GET" && pathname === "/healthz") {
 			return json({ ok: true, service: "unsurf-trace" }, 200, cors);
+		}
+
+		// GET /search?owner=<name>&q=<substr>&visibility=<v>&limit=50
+		//   Requires Bearer auth (same token matrix as /upload).
+		//   Per-owner tokens can only see their own traces.
+		//   Root (legacy) token sees everything.
+		if (method === "GET" && pathname === "/search") {
+			const res = await handleSearch(request, env, searchParams);
+			for (const [k, v] of Object.entries(cors)) res.headers.set(k, v as string);
+			return res;
 		}
 
 		// GET / — index pointer to docs.

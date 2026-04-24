@@ -29,6 +29,13 @@ interface Env {
 	ANTHROPIC_API_KEY?: string | undefined;
 	VECTORS?: unknown | undefined;
 	AI?: unknown | undefined;
+	// Added for unsurf_search / unsurf_execute MCP tools. search/execute
+	// reach the trace.coey.dev Worker and Workers AI from inside the main
+	// worker's Fetcher context. Optional — the tools self-report
+	// misconfiguration if any are missing.
+	TRACE_INGEST_TOKEN?: string | undefined;
+	CLOUDFLARE_ACCOUNT_ID?: string | undefined;
+	CLOUDFLARE_API_TOKEN?: string | undefined;
 }
 
 function buildGalleryService(env: Env) {
@@ -376,6 +383,128 @@ export function createMcpServer(env: Env): McpServer {
 			},
 		);
 	}
+
+	// ==================== unsurf_search + unsurf_execute ====================
+	//
+	// Two-tool pair pattern: one to discover, one to act. Matches the
+	// Cloudflare MCP shape the user asked for.
+	//
+	// `unsurf_search` — list past traces, filter by owner/task/visibility.
+	// `unsurf_execute` — Worker-safe skill invocations. One action today:
+	//                    `loopPlan` generates a structured LoopSpec from a
+	//                    natural-language goal via Kimi K2.6.
+	//                    Actually running record() or observeVideo()
+	//                    requires Node APIs (agent-browser subprocess /
+	//                    ffmpeg) that don't exist inside a Worker. Those
+	//                    are CLI-only for now; add them here once we have
+	//                    the cloud recording provider (Phase 4 in
+	//                    NORTHSTAR.md).
+
+	const TRACE_ENDPOINT = "https://trace.coey.dev";
+
+	server.registerTool(
+		"unsurf_search",
+		{
+			title: "Unsurf — search traces",
+			description:
+				"List recorded unsurf traces (video + step trace + metadata). Filter by " +
+				"owner (the token's owner tag), free-text task substring, and visibility. " +
+				"Returns viewerUrls ready to open (grants pre-minted for private/public " +
+				"traces). Use this when the user asks 'find my recent traces', 'show me " +
+				"the loop demo from earlier', 'list private recordings', etc. " +
+				"Requires TRACE_INGEST_TOKEN in the MCP server's env.",
+			inputSchema: {
+				owner: z
+					.string()
+					.optional()
+					.describe("Owner tag to filter by (only effective when auth is the root token)"),
+				q: z.string().optional().describe("Case-insensitive substring match on trace.task"),
+				visibility: z
+					.enum(["public", "private", "grandfathered"])
+					.optional()
+					.describe("Filter by visibility classification"),
+				limit: z.number().int().min(1).max(100).optional().describe("Max results (default 25)"),
+				cursor: z.string().optional().describe("Pagination cursor from a previous response"),
+			},
+		},
+		async ({ owner, q, visibility, limit, cursor }) => {
+			const token = env.TRACE_INGEST_TOKEN;
+			if (!token) {
+				return errText(
+					"TRACE_INGEST_TOKEN is not configured on this MCP server; cannot search traces.",
+				);
+			}
+			const u = new URL(`${TRACE_ENDPOINT}/search`);
+			if (owner) u.searchParams.set("owner", owner);
+			if (q) u.searchParams.set("q", q);
+			if (visibility) u.searchParams.set("visibility", visibility);
+			if (typeof limit === "number") u.searchParams.set("limit", String(limit));
+			if (cursor) u.searchParams.set("cursor", cursor);
+			const res = await fetch(u.toString(), {
+				headers: { authorization: `Bearer ${token}` },
+			});
+			if (!res.ok) {
+				return errText(`search failed (${res.status}): ${(await res.text()).slice(0, 300)}`);
+			}
+			return okText(await res.json());
+		},
+	);
+
+	server.registerTool(
+		"unsurf_execute",
+		{
+			title: "Unsurf — execute a skill",
+			description:
+				"Run one of unsurf's Worker-safe skills. Two actions supported from MCP: " +
+				"'observeVideo' (answer a natural-language question about a trace's video) and " +
+				"'loopPlan' (synthesize a structured LoopSpec from a natural-language goal using " +
+				"Kimi K2.6 via Workers AI — plan only, no browser). " +
+				"Use observeVideo when the user asks 'did the agent succeed in this trace', " +
+				"'what happened in recording X', 'summarize this video'. Use loopPlan when " +
+				"the user wants a step-by-step plan to feed to unsurf.loop() or to hand to " +
+				"a local agent that will call record() from their own machine. " +
+				"Actually recording a new trace requires a local agent-browser and is NOT " +
+				"exposed through MCP — use the CLI or agent-browser skill for that.",
+			inputSchema: {
+				action: z.enum(["loopPlan"]).describe("Which skill to invoke"),
+				goal: z.string().describe("loopPlan: natural-language description of the browser task"),
+				northStar: z.string().describe("loopPlan: yes/no success condition for the task"),
+			},
+		},
+		async ({ action, goal, northStar }) => {
+			if (action === "loopPlan") {
+				if (!goal || !northStar) {
+					return errText("loopPlan requires both `goal` and `northStar`");
+				}
+				try {
+					// Dynamic import so this stays lazy — kimiPlanner reads
+					// CLOUDFLARE_API_TOKEN / ACCOUNT_ID from env. In the Worker
+					// context those are provided via bindings; we re-export them
+					// into process.env at call time so the REST-based backend
+					// works unchanged.
+					if (env.CLOUDFLARE_ACCOUNT_ID && !process.env.CLOUDFLARE_ACCOUNT_ID) {
+						process.env.CLOUDFLARE_ACCOUNT_ID = env.CLOUDFLARE_ACCOUNT_ID;
+					}
+					if (env.CLOUDFLARE_API_TOKEN && !process.env.CLOUDFLARE_API_TOKEN) {
+						process.env.CLOUDFLARE_API_TOKEN = env.CLOUDFLARE_API_TOKEN;
+					}
+					const { kimiPlanner } = await import("./skills/loop/index.js");
+					const spec = await kimiPlanner().plan({ goal, northStar });
+					return okText({
+						spec,
+						hint:
+							'Feed this spec to `unsurf loop <spec.json> --north-star "..."` ' +
+							"from a local shell, or to `loop({ spec, northStar })` from your own " +
+							"agent. Actually recording requires agent-browser on the caller's " +
+							"machine; that path is CLI-only until Phase 4 (cloud recording).",
+					});
+				} catch (e) {
+					return errText(`loopPlan failed: ${(e as Error).message.slice(0, 300)}`);
+				}
+			}
+			return errText(`unknown action: ${action}`);
+		},
+	);
 
 	return server;
 }
