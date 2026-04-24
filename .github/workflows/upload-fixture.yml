@@ -1,0 +1,60 @@
+name: Upload demo bundle (manual)
+
+# Manual workflow to prove the full pipeline end-to-end in public:
+#   1. Record a fresh form-fill on httpbin with real Chrome + agent-browser
+#   2. Upload via the live trace.coey.dev/upload endpoint using a minted token
+#   3. Print the trace URL so a human can click through and watch the video
+#
+# Trigger: GitHub UI → Actions → "Upload demo bundle (manual)" → Run workflow
+#
+# This is deliberately opt-in. It hits external sites (httpbin) and spends
+# Workers AI tokens, so we don't run it on every push.
+
+on:
+  workflow_dispatch:
+    inputs:
+      site_url:
+        description: "URL to visit and record (default: httpbin form)"
+        required: false
+        default: "https://httpbin.org/forms/post"
+      ask_about:
+        description: "Question to ask observeVideo afterward"
+        required: false
+        default: "Did the user fill out a form? What fields and values?"
+
+jobs:
+  record-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Install system deps (ffmpeg + Chrome)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          # Chrome for agent-browser
+          wget -qO /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+      - name: Install agent-browser
+        run: npm i -g agent-browser && agent-browser install || true
+      - name: Record form-fill
+        id: record
+        run: |
+          export TRACE_INGEST_ENDPOINT=https://trace.coey.dev
+          bun examples/form-fill-demo.ts > /tmp/record-out.json 2>&1 || {
+            echo "--- record failed ---"; cat /tmp/record-out.json; exit 1;
+          }
+          echo "---record output---"
+          cat /tmp/record-out.json
+          # Extract the URL (last well-formed JSON blob)
+          URL=$(tail -n +1 /tmp/record-out.json | python3 -c "import sys,json,re; t=sys.stdin.read(); m=re.search(r'\{[\s\S]*\}', t); print(json.loads(m.group(0)).get('url','')) if m else print('')")
+          echo "url=$URL" >> $GITHUB_OUTPUT
+          echo "::notice title=Trace URL::$URL"
+        env:
+          TRACE_INGEST_TOKEN: ${{ secrets.TRACE_INGEST_TOKEN }}
+      - name: Summarize the result
+        if: success()
+        run: |
+          echo "### Trace URL" >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.record.outputs.url }}" >> $GITHUB_STEP_SUMMARY
