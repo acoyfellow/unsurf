@@ -1,0 +1,69 @@
+name: Loop demo (manual)
+
+# Runs the full unsurf loop() pipeline end-to-end in public CI:
+#   record form-fill → observeVideo → (refine if not met) → done
+#
+# Opt-in via workflow_dispatch so it doesn't spin up Chrome + burn
+# Workers AI tokens on every push.
+#
+# UI: Actions → "Loop demo (manual)" → Run workflow
+#
+# Expected: first iteration meets the North Star; loop exits with
+# stopReason="met". If it doesn't, that's a real signal something
+# regressed in observeVideo, the refiner, or the met-detection heuristic.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  run-loop:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+      - run: bun install --frozen-lockfile
+      - name: Install system deps (ffmpeg + Chrome)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          wget -qO /tmp/chrome.deb https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+          sudo apt-get install -y /tmp/chrome.deb
+      - name: Install agent-browser
+        run: npm i -g agent-browser && agent-browser install || true
+      - name: Run loop demo
+        id: loop
+        run: bun scripts/loop-demo.ts | tee /tmp/loop-out.json
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          TRACE_INGEST_TOKEN: ${{ secrets.TRACE_INGEST_TOKEN }}
+          TRACE_INGEST_ENDPOINT: https://trace.coey.dev
+      - name: Summarize
+        if: always()
+        run: |
+          echo "### Loop demo result" >> $GITHUB_STEP_SUMMARY
+          echo '```json' >> $GITHUB_STEP_SUMMARY
+          # The stdout contains the onTick log lines followed by a JSON blob.
+          # Grep the final JSON out and append.
+          python3 - <<'PY' >> $GITHUB_STEP_SUMMARY || true
+          import json, re, sys
+          text = open("/tmp/loop-out.json").read()
+          m = re.search(r"^\{[\s\S]*\}\s*$", text, re.M)
+          if m:
+              obj = json.loads(m.group(0))
+              print(json.dumps({
+                "met": obj.get("met"),
+                "stopReason": obj.get("stopReason"),
+                "iterations": [{
+                  "i": t.get("iteration"),
+                  "met": t.get("met"),
+                  "confidence": t.get("confidence"),
+                  "traceUrl": t.get("traceUrl"),
+                  "answer": (t.get("answer") or "")[:300],
+                } for t in obj.get("iterations", [])],
+                "finalAnswer": obj.get("finalAnswer"),
+              }, indent=2))
+          else:
+              print("(no JSON summary produced)")
+          PY
+          echo '```' >> $GITHUB_STEP_SUMMARY
