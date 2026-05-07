@@ -1,8 +1,10 @@
 # _proof-spec-v0
 
-> **Experimental.** Not yet imported by unsurf or gateproof. Speculation hardened into a contract.
+> **Archived design artifact.** The schema in `SPEC.md` graduated to
+> `src/services/Plan.ts`. This folder is kept for the design narrative
+> only — the working code lives in `src/`.
 
-The unified schema for `observe/act/assert` loops across unsurf and gateproof. Same pattern, two projects, drifting — so this folder drafts one schema both can consume.
+The unified schema for `observe/act/assert` loops across unsurf and gateproof. Same pattern, two projects, drifting — so this folder drafted one schema both can consume.
 
 ## Why it's here
 
@@ -14,34 +16,35 @@ The unified schema for `observe/act/assert` loops across unsurf and gateproof. S
 _proof-spec-v0/
 ├── README.md            ← this file
 ├── SPEC.md              ← the contract — field-by-field reference + non-goals
-├── types.ts             ← TypeScript types, importable as a module
 └── examples/
     ├── tool-only.json   ← pure unsurf shape (act only)
     ├── gate-only.json   ← pure gateproof shape (observe + assert, no act)
     └── proof-loop.json  ← full observe/act/assert with loop
 ```
 
+The TypeScript types and runner that originally lived here are now in
+`src/` (see `src/services/Plan.ts`). They were removed from this folder
+to avoid stale-clone noise — git history retains the original drafts.
+
 ## Status
 
 - ✅ Schema drafted (`SPEC.md`)
-- ✅ TypeScript types written (`types.ts`)
+- ✅ TypeScript types live in `src/services/Plan.ts`
 - ✅ Three worked examples (`examples/*.json`)
-- ❌ JSON Schema file (to be derived from `types.ts`)
-- ❌ Either unsurf or gateproof actually importing this
-- ❌ A runner that can execute these specs end-to-end
+- ✅ Plan executor merged to `src/`
+- ❌ JSON Schema file (to be derived from `src/services/Plan.ts` types)
+- ❌ gateproof importing the unified shape (still uses its own `PlanDefinition`)
 
 ## What happens next if the merge is greenlit
 
-1. **Extract this folder into a tiny npm package** (name TBD — candidates: `proof-spec`, `@acoyfellow/proof-spec`, `@unsurf/spec`). Both unsurf and gateproof depend on it for types.
-2. **Migrate unsurf's `tool-spec.v0.json`** to the new shape. Since unsurf is already on `0.2.0` and Directory endpoints aren't published yet, this is a low-cost rename.
-3. **Migrate gateproof's `PlanDefinition`** — slightly harder, since gateproof is public on npm at its own version. Probably ships as `gateproof@v1` with the old shape deprecated but still accepted via a compat shim for a release.
-4. **Write a cross-runner compatibility test:** same `proof-loop.json` executable by both unsurf-daemon AND gateproof's `Plan.runLoop` worker (for the shared subset of capabilities). Cross-tool interop is the proof the merge worked.
-5. **Write the memo to Sunil Pai** (draft in the thesis doc).
+1. **Extract `src/services/Plan.ts` types into a tiny npm package** (name TBD — candidates: `proof-spec`, `@acoyfellow/proof-spec`, `@unsurf/spec`). Both unsurf and gateproof depend on it.
+2. **Migrate gateproof's `PlanDefinition`** — slightly harder, since gateproof is public on npm at its own version. Probably ships as `gateproof@v1` with the old shape deprecated but still accepted via a compat shim for a release.
+3. **Write a cross-runner compatibility test:** same `proof-loop.json` executable by both unsurf and gateproof.
 
 ## What happens if we don't merge
 
-This folder stays here as a design artifact. Both projects ship separately. The schema drift gets worse over time, and we eventually either re-do this exercise under pressure or accept the split forever. Either is OK.
+This folder stays as a design artifact. Both projects ship separately. The schema drift gets worse over time, and we eventually either re-do this exercise under pressure or accept the split forever. Either is OK.
 
 ## To contribute or sanity-check
 
-Anybody reviewing this: the highest-leverage feedback is in `SPEC.md`'s "Known design tensions" section at the bottom. Those are the places the merge could still come apart. If you have a strong opinion on any of them, open a GitHub issue on unsurf tagged `proof-spec-v0`.
+The highest-leverage feedback is in `SPEC.md`'s "Known design tensions" section at the bottom. Those are the places the merge could still come apart.
