@@ -82,8 +82,13 @@ function buildFunctionName(method: string, path: string): string {
 	return camelCase(`${method}_${segments.join("_")}`);
 }
 
-/** Build an interface name from method + path, e.g. GET /posts -> GetPostsResponse */
-function buildResponseTypeName(method: string, path: string): string {
+/**
+ * Build a PascalCase type name from method + path + suffix.
+ *
+ *   buildTypeName("GET", "/posts/{id}", "Response")  -> "GetPostsByIdResponse"
+ *   buildTypeName("POST", "/posts", "Body")          -> "PostPostsBody"
+ */
+function buildTypeName(method: string, path: string, suffix: string): string {
 	const segments = path
 		.split("/")
 		.filter(Boolean)
@@ -93,20 +98,16 @@ function buildResponseTypeName(method: string, path: string): string {
 			}
 			return pascalCase(seg);
 		});
-	return `${pascalCase(method)}${segments.join("")}Response`;
+	return `${pascalCase(method)}${segments.join("")}${suffix}`;
+}
+
+/** Build an interface name from method + path, e.g. GET /posts -> GetPostsResponse */
+function buildResponseTypeName(method: string, path: string): string {
+	return buildTypeName(method, path, "Response");
 }
 
 function buildRequestBodyTypeName(method: string, path: string): string {
-	const segments = path
-		.split("/")
-		.filter(Boolean)
-		.map((seg) => {
-			if (seg.startsWith("{") && seg.endsWith("}")) {
-				return `By${pascalCase(seg.slice(1, -1))}`;
-			}
-			return pascalCase(seg);
-		});
-	return `${pascalCase(method)}${segments.join("")}Body`;
+	return buildTypeName(method, path, "Body");
 }
 
 // ==================== Schema -> TypeScript ====================
