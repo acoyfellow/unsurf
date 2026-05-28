@@ -1,0 +1,116 @@
+---
+title: Agent safety guardrails
+description: How unsurf prevents AI agents from accidentally calling destructive endpoints.
+---
+
+import { Aside } from '@astrojs/starlight/components';
+
+## The problem
+
+When an AI agent discovers API endpoints via scout, it sees everything — including `DELETE /user/account`, `POST /billing/charge`, and `PATCH /admin/settings`. Without guardrails, a misguided tool call could delete data, trigger charges, or change account settings.
+
+unsurf classifies every endpoint by risk level and blocks dangerous ones by default.
+
+## Risk levels
+
+| Level | Methods | Examples | Default behavior |
+|---|---|---|---|
+| **safe** | GET, HEAD, OPTIONS | `GET /api/users`, `HEAD /health` | Execute normally |
+| **moderate** | POST, PUT, PATCH to standard paths | `POST /api/comments`, `PUT /api/posts/:id` | Execute with safety info in response |
+| **unsafe** | Mutations to sensitive resources | `PATCH /account/settings`, `POST /admin/roles` | **Blocked** — requires `confirmUnsafe: true` |
+| **destructive** | DELETE anything, mutations to billing/payment paths | `DELETE /api/users/:id`, `POST /billing/charge` | **Blocked** — requires `confirmUnsafe: true` |
+
+## How it works
+
+The worker classifies each endpoint before replaying it:
+
+```
+worker(pathId) → classify(method, path) → safe? → replay
+                                        → unsafe/destructive? → block (unless confirmUnsafe)
+```
+
+When an endpoint is blocked, the response includes the classification so the agent (or user) can review before confirming:
+
+```json
+{
+  "success": false,
+  "response": "Blocked: DELETE /api/users/:id — may permanently remove data. Pass confirmUnsafe: true to execute this endpoint.",
+  "safety": {
+    "level": "destructive",
+    "reason": "DELETE /api/users/:id — may permanently remove data"
+  }
+}
+```
+
+## Confirming unsafe endpoints
+
+To execute a blocked endpoint, pass `confirmUnsafe: true`:
+
+```json
+{
+  "pathId": "path_abc123",
+  "data": { "id": "42" },
+  "confirmUnsafe": true
+}
+```
+
+This is intentionally explicit. An AI agent must make a conscious second call with the flag set — it cannot accidentally execute a destructive endpoint.
+
+<Aside type="caution">
+  `confirmUnsafe` is a caller-level decision. If you're building an agent, consider requiring human approval before setting this flag for destructive endpoints.
+</Aside>
+
+## What gets flagged
+
+### Destructive patterns
+
+These path patterns are always flagged as destructive regardless of HTTP method (except GET/HEAD/OPTIONS):
+
+- `billing`, `payment`, `charge`, `invoice`, `refund`
+- `checkout`, `purchase`, `order`, `transaction`
+- `transfer`, `payout`, `subscription`
+
+### Sensitive patterns
+
+These are flagged as unsafe for mutation methods:
+
+- `account`, `admin`, `settings`
+- `password`, `role`, `permission`
+- `api-key`, `token`, `secret`, `webhook`
+
+### Method-based rules
+
+- **DELETE** — always destructive, regardless of path
+- **GET, HEAD, OPTIONS** — always safe, regardless of path
+- **POST, PUT, PATCH** — depends on the path pattern
+
+## Agent integration
+
+### System prompt guidance
+
+Add this to your agent's system prompt:
+
+```
+When using the unsurf worker tool:
+- If the worker returns success: false with a "safety" field, the endpoint was
+  blocked for safety. Review the reason before proceeding.
+- Only pass confirmUnsafe: true after verifying the action is intentional.
+- For destructive endpoints (DELETE, billing mutations), ask the user for
+  confirmation before retrying with confirmUnsafe: true.
+```
+
+### MCP tool description
+
+The worker tool's MCP description includes safety information. Agents that read tool descriptions will see the `confirmUnsafe` parameter and its purpose automatically.
+
+## Auth and session handling
+
+Safety guardrails are separate from authentication. For details on passing auth headers and managing sessions:
+
+- [Authenticated endpoints](/guides/replay/#authenticated-endpoints) — passing `Authorization`, `Cookie`, and API key headers
+- [Working with inbox.dog](/guides/replay/#with-inboxdog) — session management for login-required sites
+
+Key security properties:
+- Auth headers are passed through at call time, **never stored** in the database
+- The scout captures endpoint structure, not credentials
+- HTTPS is enforced for all communication

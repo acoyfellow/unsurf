@@ -72,6 +72,8 @@ Explore a website and capture its API endpoints.
 
 Execute a scouted path or replay a captured API endpoint.
 
+Endpoints are classified by risk level. Unsafe and destructive endpoints (DELETE, billing mutations, account changes) are **blocked by default** — pass `confirmUnsafe: true` to proceed. See [Agent safety guardrails](/concepts/safety/) for details.
+
 ### Input
 
 | Field | Type | Required | Description |
@@ -79,6 +81,7 @@ Execute a scouted path or replay a captured API endpoint.
 | `pathId` | `string` | ✅ | ID of the path to execute |
 | `data` | `Record<string, unknown>` | | Data to pass to the endpoint |
 | `headers` | `Record<string, string>` | | Custom headers (`Authorization`, `Cookie`, etc.) for authenticated endpoints |
+| `confirmUnsafe` | `boolean` | | Must be `true` to execute unsafe or destructive endpoints |
 
 ### Output
 
@@ -86,6 +89,7 @@ Execute a scouted path or replay a captured API endpoint.
 |---|---|---|
 | `success` | `boolean` | Whether execution succeeded |
 | `response` | `unknown` | Response body from the target API |
+| `safety` | `object` | Present for non-safe endpoints: `{ level, reason }` |
 
 ### Errors
 
@@ -101,14 +105,15 @@ Execute a scouted path or replay a captured API endpoint.
 ```json
 {
   "name": "worker",
-  "description": "Replay a scouted API path directly — no browser needed. Pass the pathId from a scout result. Include headers for authenticated endpoints.",
+  "description": "Replay a scouted API path directly — no browser needed. Unsafe/destructive endpoints are blocked by default.",
   "inputSchema": {
     "type": "object",
     "required": ["pathId"],
     "properties": {
       "pathId": { "type": "string", "description": "The path ID from a scout result" },
       "data": { "type": "object", "description": "Data to pass to the endpoint" },
-      "headers": { "type": "object", "description": "Custom headers (Authorization, Cookie, etc.) for authenticated endpoints" }
+      "headers": { "type": "object", "description": "Custom headers (Authorization, Cookie, etc.) for authenticated endpoints" },
+      "confirmUnsafe": { "type": "boolean", "description": "Must be true to execute unsafe or destructive endpoints (DELETE, billing, account mutations)" }
     }
   }
 }
