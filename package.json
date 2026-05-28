@@ -69,7 +69,7 @@
 		"@acoyfellow/proof-spec": "file:./vendor/proof-spec",
 		"@cloudflare/ai": "^1.2.2",
 		"@cloudflare/puppeteer": "^1.0.6",
-		"@effect/platform": "^0.94.5",
+		"@effect/platform": "^0.96.1",
 		"@effect/schema": "^0.75.5",
 		"@modelcontextprotocol/sdk": "^1.26.0",
 		"drizzle-orm": "^0.45.1",
