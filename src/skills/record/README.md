@@ -13,7 +13,7 @@ Hosted at `https://trace.coey.dev/r/:id`.
 ## Quick use
 
 ```ts
-import { recordLocal } from "unsurf/skills/record";
+import { recordAttachedLocal, recordLocal } from "unsurf/skills/record";
 
 const result = await recordLocal({
 	task: "verify the stratus sidebar happy path",
@@ -25,7 +25,16 @@ const result = await recordLocal({
 	},
 });
 
-console.log(result.url); // https://trace.coey.dev/r/abc123xyz000
+const attached = await recordAttachedLocal({
+	connect: 9222,
+	task: "record my already-authenticated Chrome session",
+	run: async (browser) => {
+		await browser.goto("https://dash.cloudflare.com");
+		await browser.wait(4000);
+	},
+});
+
+console.log(result.url, attached.url); // https://trace.coey.dev/r/abc123xyz000
 ```
 
 Or from the CLI:
@@ -33,10 +42,29 @@ Or from the CLI:
 ```bash
 export TRACE_INGEST_TOKEN=...       # see "Getting a token" below
 bunx unsurf record ./examples/record-demo.ts --task "demo"
+bunx unsurf record ./examples/record-demo.ts --task "demo" --cdp-port 9222
 bunx unsurf record ./examples/record-demo.ts --task "demo" --public   # 365d grant
 ```
 
 **Requirements:** `agent-browser` on PATH, `TRACE_INGEST_TOKEN` env.
+
+## Hosted Browser Run provider
+
+```ts
+import { openBrowserRunBrowser } from "unsurf/skills/record";
+
+const browser = await openBrowserRunBrowser({ binding: env.BROWSER });
+try {
+	await browser.goto("https://httpbin.org/forms/post");
+	await browser.fill('input[name="custname"]', "unsurf");
+	const snapshot = await browser.snapshot();
+	console.log(snapshot);
+} finally {
+	await browser.close();
+}
+```
+
+This provider implements the shared `BrowserHandle` verbs inside a Cloudflare Worker. Use `recordBrowserRunSession(...)` to enable Cloudflare-native Browser Run session recording and receive the finalized recording session ID after browser close. Those recordings are rrweb replay events available from Browser Run logs/API, not Unsurf WebM video. Local attached Chrome remains the playable-video path.
 
 ## Private by default
 
@@ -118,6 +146,7 @@ env at deploy time and the Worker secret of the same name.
 | `record.ts` | `record()` — orchestration (open → record → run → stop → upload). |
 | `uploader.ts` | `makeHttpUploader()` — multipart POST to the trace ingest Worker. |
 | `providers/local.ts` | `openLocalBrowser()` — wraps the `agent-browser` CLI. |
+| `providers/browser-run.ts` | `openBrowserRunBrowser()` — Browser Run-backed hosted Worker `BrowserHandle` provider. |
 | `SPEC.md` | Bundle layout, URL routes, JSON shapes, versioning. |
 | `SECURITY.md` | Deploy posture, signing, upload path, guardrail checks. |
 

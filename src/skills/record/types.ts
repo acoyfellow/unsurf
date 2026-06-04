@@ -177,7 +177,7 @@ export interface MetaJson {
 	version: "v0";
 	id: string;
 	task: string;
-	provider: "local" | "filepath" | "browserRendering" | "custom";
+	provider: "local" | "filepath" | "browserRun" | "browserRendering" | "custom";
 	harness?: string;
 	extra?: Record<string, string | number | boolean>;
 	/**

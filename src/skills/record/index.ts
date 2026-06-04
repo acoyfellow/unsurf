@@ -9,11 +9,18 @@
  */
 
 import { type LocalProviderOptions, openLocalBrowser } from "./providers/local.js";
-import { record as _record, type RecordRuntimeDeps } from "./record.js";
+import { record as _record } from "./record.js";
 import type { RecordOptions, RecordResult } from "./types.js";
 import { makeHttpUploader } from "./uploader.js";
 
 export { newTraceId } from "./id.js";
+export {
+	type BrowserRunHandle,
+	type BrowserRunProviderOptions,
+	type BrowserRunRecordingResult,
+	openBrowserRunBrowser,
+	recordBrowserRunSession,
+} from "./providers/browser-run.js";
 export { type LocalProviderOptions, openLocalBrowser } from "./providers/local.js";
 export { type RecordRuntimeDeps, record } from "./record.js";
 export { traceHandle } from "./tracer.js";
@@ -76,5 +83,22 @@ export async function recordLocal(
 		uploader: makeHttpUploader({ endpoint, token }),
 		provider: "local",
 		...(opts.harness ? { harness: opts.harness } : {}),
+	});
+}
+
+export async function recordAttachedLocal(
+	opts: RecordOptions & {
+		connect: number | string;
+		provider?: Omit<LocalProviderOptions, "connect" | "closeOnExit">;
+		harness?: string;
+	},
+): Promise<RecordResult> {
+	return recordLocal({
+		...opts,
+		provider: {
+			...opts.provider,
+			connect: opts.connect,
+			closeOnExit: false,
+		},
 	});
 }

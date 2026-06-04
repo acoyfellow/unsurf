@@ -1,0 +1,11 @@
+{
+	"$schema": "../../node_modules/wrangler/config-schema.json",
+	"name": "unsurf-browser-run-proof",
+	"main": "./src.ts",
+	"compatibility_date": "2026-05-21",
+	"compatibility_flags": ["nodejs_compat"],
+	"workers_dev": true,
+	"browser": {
+		"binding": "BROWSER"
+	}
+}

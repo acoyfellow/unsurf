@@ -30,7 +30,7 @@ await unsurf.loop({
 | Concern | Choice | Rationale |
 |---|---|---|
 | Primary execution | Local (real Chrome via agent-browser) | Best video fidelity, already works |
-| Cloud execution | Future optional provider | Nice-to-have, not a replacement |
+| Cloud execution | Browser Run provider shipped | Hosted BrowserHandle flows + native rrweb recording; not a local-auth replacement |
 | Vision backend | Workers AI (Llama 3.2 vision) | Free-tier, CF-native, no vendor keys |
 | Refiner LLM | Kimi K2.6 via Workers AI | Top-tier reasoning, on-platform |
 | Storage | R2 (`trace.coey.dev`) | Already wired, signed URL viewer |
@@ -39,9 +39,9 @@ await unsurf.loop({
 
 ## Non-goals (explicit)
 
-- ❌ Using CF Browser Run for recording. Its session recording is rrweb DOM events, not mp4. We dogfood real Chrome.
-- ❌ Eliminating the local provider. It is the primary path.
-- ❌ Treating the cloud provider as a priority. It's Phase 4, maybe never.
+- ❌ Claiming Browser Run native recordings are mp4. They are replayable rrweb events.
+- ❌ Eliminating the local provider. It is the primary authenticated/playable-video path.
+- ❌ Treating cloud recording as a replacement for local browser auth.
 
 ## Phases (order may change; all ship independently useful units)
 
@@ -68,11 +68,15 @@ Before building anything new, verify the current `record()` skill produces a cle
 - Emits one trace bundle per iteration + a stitched "loop bundle"
 - Win: give it a 2-iteration North Star, confirm it refines and stops
 
-### Phase 4 — cloud execution (optional, deferred)
-- `src/skills/record/providers/browser-run.ts` using `@cloudflare/puppeteer` + `Page.startScreencast` + wasm-ffmpeg stitching
-- `POST /record`, `POST /observe`, `POST /loop` endpoints
-- Durable Object per scope for natural concurrency isolation
-- MCP surface: 2 tools only (`unsurf_search` + `unsurf_execute`)
+### Phase 4a — Browser Run provider + native recording ✅
+- `src/skills/record/providers/browser-run.ts` using `@cloudflare/puppeteer`
+- Shared BrowserHandle verbs for hosted Workers flows
+- `recordBrowserRunSession(...)` enabling Browser Run's native rrweb session recording
+
+### Phase 4b — cloud playable video (deferred)
+- Pixel/video capture rather than rrweb replay events
+- Upload/viewer integration for cloud-produced video bytes
+- MCP execution surface only after the playable-artifact path is proven
 
 ## Working agreement
 
@@ -89,8 +93,7 @@ Before building anything new, verify the current `record()` skill produces a cle
   HMAC-signed viewer grants (`?vt=<exp>.<gen>.<sig>`) rather than
   per-user accounts. Revocation is a `grantGeneration` bump in meta.json
   — no KV namespace for revoked tokens, no key rotation.
-- **Video is the product.** Every UI, doc, and demo leads with the mp4.
-  CF Browser Run's rrweb recording is explicitly rejected as the main path.
-- **Record uploads from the laptop.** The cloud-side provider (Phase 4)
-  remains a *nice-to-have* slot, not a replacement. Real-Chrome
-  fidelity matters more than horizontal scale for the USP.
+- **Video is the flagship proof.** Local recording produces playable files for sharing.
+  Browser Run's native rrweb recording is a separate hosted debugging/replay artifact.
+- **Local remains the authful video path.** Browser Run now ships as the hosted provider
+  for browser flows and native session recording, without pretending to inherit local auth.

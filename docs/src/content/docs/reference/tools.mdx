@@ -3,7 +3,7 @@ title: MCP Tools
 description: Complete reference for all unsurf MCP tools.
 ---
 
-Unsurf registers up to **five** MCP tools. Three are always available; two are conditionally registered based on environment bindings.
+The hosted unsurf MCP server registers **six** default tools plus up to **two** conditional tools. The local stdio server adds two browser-runtime tools.
 
 | Tool | Availability |
 |---|---|
@@ -13,6 +13,48 @@ Unsurf registers up to **five** MCP tools. Three are always available; two are c
 | `gallery` | Always |
 | `directory` | Requires `VECTORS` + `AI` bindings |
 | `agent-scout` | Requires `ANTHROPIC_API_KEY` |
+
+The separate local stdio server, `unsurf-local-mcp`, adds two browser-session tools for nearby agents:
+
+| Tool | Availability |
+|---|---|
+| `unsurf_local_sessions` | Local only |
+| `unsurf_local_execute` | Local only |
+
+---
+
+## unsurf_local_sessions
+
+List attachable page tabs from the local Chrome/CDP runtime that `unsurf-local-mcp` can drive.
+
+### Input
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `cdpPort` | `number` | | DevTools port to inspect. Defaults to `9222`. |
+
+### Output
+
+| Field | Type | Description |
+|---|---|---|
+| `connected` | `boolean` | Whether the local browser endpoint responded |
+| `sessions` | `array` | Attachable page targets with tab id, title, and URL |
+
+---
+
+## unsurf_local_execute
+
+Execute a small browser action plan against the attached local Chrome runtime. Actions include `goto`, `click`, `fill`, `wait`, `waitFor`, `snapshot`, and `screenshot`. Set `record: true` plus `task` to route the run through unsurf's recorder.
+
+### Input
+
+| Field | Type | Required | Description |
+|---|---|---|---|
+| `cdpPort` | `number` | | DevTools port to inspect. Defaults to `9222`. |
+| `actions` | `array` | ✅ | Ordered browser action plan |
+| `record` | `boolean` | | Record the run through unsurf |
+| `task` | `string` | Required when `record=true` | Trace/task label |
+| `visibility` | `"private" \| "public"` | | Recording visibility grant policy |
 
 ---
 

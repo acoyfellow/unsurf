@@ -1,96 +1,52 @@
 ---
 title: Read a recorded browser session
-description: Hand unsurf an mp4 and a natural-language question; get back a structured answer with per-frame evidence.
+description: Ask a yes/no or evidence-seeking question about an Unsurf recording.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-`observeVideo` closes the other half of the loop. Pair it with `record`
-and an agent can watch its own runs and decide whether they worked.
+`observeVideo` is how Unsurf turns browser footage into a signal an agent can act on.
 
 ## The shape
 
 ```ts
 import { observeVideo } from "unsurf/skills/observe-video";
 
-const { answer, confidence, evidenceFrames } = await observeVideo({
-  video: "https://trace.coey.dev/r/abc123xyz000/video.webm?exp=…&sig=…",
-  question: "Did the user submit the form?",
+const result = await observeVideo({
+  video: "./run.webm",
+  question: "Did the dashboard load successfully?",
 });
 ```
 
-Accepts either a local file path or an `http(s)` URL (it downloads
-to a temp dir, runs the pipeline, and cleans up).
+It returns:
 
-## What's happening under the hood
+- `answer`
+- `confidence`
+- `evidenceFrames`
 
-1. **Keyframe extraction.** ffmpeg's scene-change filter picks up to
-   `maxFrames` (default 8) visually distinct frames. If the video is
-   static (form-fill), it pads with evenly-spaced samples.
-2. **Per-frame captioning.** Each frame is captioned by a vision model.
-   Default is `@cf/google/gemma-3-12b-it` on Workers AI — native
-   multimodal, no license click-through.
-3. **Synthesis.** Captions + the user's question go to
-   `@cf/moonshotai/kimi-k2.6`, which emits a JSON `{ answer, confidence }`.
-   Workers AI's `response_format: { type: "json_schema" }` guarantees
-   the shape at decode time. No regex, no retry, no prompt discipline.
+## Where it fits
+
+Use `observeVideo` when:
+
+- you recorded a browser run and need a compact answer
+- another agent needs to inspect what happened without reading raw footage
+- a loop needs a machine-readable success signal
 
 ## Requirements
 
-- `ffmpeg` + `ffprobe` on PATH.
-- `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` (token needs `Workers AI - Read`).
+- `ffmpeg` + `ffprobe`
+- Workers AI credentials for the default backends
 
-## Confidence
+## Better questions
 
-The synthesis model returns a `0.0..1.0` confidence. Interpret it as
-**how strongly the captions support the answer**, not how accurate the
-model is overall:
+Prefer bounded questions:
 
-| Value | Meaning                                                 |
-|------:|---                                                      |
-| 1.0   | Captions directly confirm.                              |
-| 0.5   | Partial or ambiguous evidence.                          |
-| 0.0   | No evidence either way in the captions.                 |
+| Better | Worse |
+|---|---|
+| "Did the page land on the authenticated dashboard?" | "What happened?" |
+| "Was the submit button clicked?" | "Summarize everything." |
+| "Did an error banner appear?" | "Was it good?" |
 
-A 0.0-confidence "no" is often the correct answer to "did X happen?"
-when X just wasn't visible — worth treating as "no, probably not" rather
-than "model failed."
-
-## Swapping backends
-
-Every step is a plain injectable interface. Use any other Workers AI
-model, or write your own:
-
-```ts
-import {
-  observeVideo,
-  workersAiVisionBackend,
-  workersAiSynthesisBackend,
-} from "unsurf/skills/observe-video";
-
-await observeVideo({
-  video: "./tour.webm",
-  question: "…",
-  visionBackend: workersAiVisionBackend({
-    model: "@cf/mistralai/mistral-small-3.1-24b-instruct",
-  }),
-  synthesisBackend: workersAiSynthesisBackend({
-    model: "@cf/meta/llama-4-scout-17b-16e-instruct",
-  }),
-});
-```
-
-## Composed by
-
-- **[Loop skill](/guides/loop/)** — each iteration's video is fed
-  through `observeVideo` with the loop's North Star as the question.
-  If the answer is affirmative with high confidence, the loop stops.
-
-## Anti-patterns
-
-- **Don't ask open-ended questions when you want a yes/no signal.**
-  "What did the user do?" will get a narration; "Did the user click
-  submit?" gets something you can branch on.
-- **Don't trust `confidence` as an accuracy score.** It's a
-  captions-support score. A captioner that missed the key frame will
-  still report low confidence honestly.
+<Aside>
+`observeVideo` is not the product by itself. It is the judgment layer around the browser proof artifact.
+</Aside>

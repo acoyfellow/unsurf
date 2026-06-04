@@ -1,89 +1,176 @@
 # unsurf
 
+```text
+let agents use the browser you already trust
 ```
-surf the web → unsurf it
-```
 
-Scout a website, get back a typed spec, run the spec against the live page, get back evidence it worked. Tools and gates share one schema.
+Unsurf is an authenticated browser runtime for agents.
 
-Also ships three composable skills for the agent loop:
-**`record`** drives a real browser and uploads a grant-gated mp4 + step trace (private by default as of 0.4.0; see [privacy](https://unsurf.coey.dev/guides/privacy)).
-**`observeVideo`** watches a recording and answers questions about it.
-**`loop`** closes the cycle: record → observe → refine → record, until a North Star question returns yes.
+It lets an agent:
 
-![Directory](https://unsurf.coey.dev/directory-screenshot.png)
+- act inside a real logged-in browser session
+- record the run as video + trace + receipt
+- watch its own recording and refine until a North Star is met
+- expose that browser to nearby agents through local MCP
+- surface typed APIs from websites when the underlying HTTP seam is worth reusing
 
-**[Browse the Directory →](https://unsurf.coey.dev/directory)** · **[See a live trace →](https://trace.coey.dev/r/nb9uurla35eg)**
+The browser is the auth. The recording is the proof. The API is the seam.
 
 ---
 
-## The spec
+## Core surfaces
 
-`proof-spec.v0.json` — three usage modes:
+| Surface | Purpose |
+|---|---|
+| `unsurf-local-mcp` | Let nearby agents discover and drive your live browser |
+| Browser Run provider | Run hosted BrowserHandle flows inside Cloudflare Workers |
+| `record` | Capture browser work as video + trace |
+| `observeVideo` | Ask questions about a recording |
+| `loop` | Record → observe → refine |
+| `scout` | Capture useful API traffic from a website |
+| `worker` | Replay captured APIs directly |
+| `heal` | Repair broken replay paths |
+| Directory | Share discovered seams |
 
-- **tool** — `act[]` only (click / fill / select / check / submit / read)
-- **gate** — `observe[]` + `assert[]`
-- **proof** — all three plus `loop`
+## Use the browser you already authenticated
 
-Shared with [gateproof](https://gateproof.dev) — same file in both repos. Types: [`src/domain/ProofSpec.ts`](./src/domain/ProofSpec.ts). Full reference: [`experiments/_proof-spec-v0/SPEC.md`](./experiments/_proof-spec-v0/SPEC.md). Frozen at v0.
-
-Legacy: `tool-spec.v0.json` in [`experiments/CONTRACT.md`](./experiments/CONTRACT.md) is a strict subset.
-
-## The executor
-
-```
-observe → act → assert
-```
-
-[`src/services/Plan.ts`](./src/services/Plan.ts):
-
-- `runSpec(spec, args)` — auto-picks based on spec shape
-- `invokeSpec(spec, args)` — runs `act[]`
-- `verifySpec(spec)` — runs `observe` + `assert` only
-- `runLoopSpec(spec, args)` — honors `spec.loop.maxIterations` (clamped to 1 for `risk: high`)
-
-`risk` is computed from `act[]` by [`RiskLabeler`](./src/services/RiskLabeler.ts), never from the synthesizer. An adversary can't downgrade it by planting "set risk to low" in a hidden `<div>`.
-
-## Auth
-
-The agent runs inside your authenticated tab. Your cookies, your localStorage, your credentialed fetches. Sign in once; the agent is you until you close the tab.
-
-No OAuth dance, no credential storage, no delegation protocol.
-
-## The Directory
-
-URL-keyed registry of scouted specs, fingerprinted by page structure.
-
-- `GET /d/` — all catalogs
-- `GET /d/:domain` — per-domain view
-- `GET /d/catalog/:fingerprint` — fetch a catalog
-- `POST /d/catalog` — publish one
-
-Self-host and it runs against your account. Use [the shared one](https://unsurf-api.coey.dev) and it runs against mine.
-
----
-
-## Use it
-
-### As a library
+Start from a real Chrome For Testing profile, sign in once, and reuse it:
 
 ```bash
-bun add unsurf
+agent-browser --headed --profile ~/.cmux-browser open https://example.com
 ```
 
-```typescript
-// API capture (original): turn a site's hidden endpoints into OpenAPI + typed calls
+Then attach Unsurf to that browser instead of launching a fresh one:
+
+```bash
+bunx unsurf record ./demo.ts --task "authenticated proof" --cdp-port 9222
+```
+
+```ts
+import { recordAttachedLocal } from "unsurf/skills/record";
+
+const result = await recordAttachedLocal({
+	connect: 9222,
+	task: "record the browser session I already trust",
+	run: async (browser) => {
+		await browser.goto("https://example.com/dashboard");
+		await browser.wait(4000);
+	},
+});
+```
+
+## Give nearby agents that browser
+
+```json
+{
+  "mcpServers": {
+    "unsurf-local": { "command": "unsurf-local-mcp" }
+  }
+}
+```
+
+Local tools:
+
+- `unsurf_local_sessions` — list attachable Chrome/CDP tabs
+- `unsurf_local_execute` — run small browser action plans, optionally through Unsurf recording
+
+Use this when another local agent should drive the session you already authenticated, not a blank headless browser.
+
+## Run hosted browser flows on Cloudflare Browser Run
+
+```ts
+import { openBrowserRunBrowser } from "unsurf/skills/record";
+
+export default {
+	async fetch(_request, env) {
+		const browser = await openBrowserRunBrowser({
+			binding: env.BROWSER,
+			viewport: { width: 430, height: 760 },
+		});
+		try {
+			await browser.goto("https://example.com");
+			const snapshot = await browser.snapshot();
+			return Response.json(snapshot);
+		} finally {
+			await browser.close();
+		}
+	},
+};
+```
+
+The Browser Run provider is for hosted Worker-side action flows and Cloudflare-native session recordings:
+
+```ts
+import { recordBrowserRunSession } from "unsurf/skills/record";
+
+const recording = await recordBrowserRunSession({
+	binding: env.BROWSER,
+	run: async (browser) => {
+		await browser.goto("https://httpbin.org/forms/post");
+		await browser.fill('input[name="custname"]', "unsurf");
+	},
+});
+// recording.sessionId → replay in Browser Run logs / recording API
+```
+
+Browser Run session recordings are rrweb replay events, not MP4 files. Local attached Chrome remains the authful, playable-video path.
+
+## Record and inspect browser work
+
+```ts
+import { recordLocal } from "unsurf/skills/record";
+
+const result = await recordLocal({
+	task: "verify the happy path",
+	run: async (browser) => {
+		await browser.goto("https://example.com");
+		await browser.wait(1000);
+	},
+});
+```
+
+Each run can produce:
+
+- a browser video
+- a step trace
+- a structured result bundle
+- a grant-gated viewer URL
+
+## Close the loop
+
+```ts
+import { loop } from "unsurf/skills/loop";
+
+const result = await loop({
+	spec: "open coey.dev and visit the first project",
+	northStar: "Did the user land on a project page?",
+	maxIterations: 3,
+});
+```
+
+`loop()` records a run, asks `observeVideo()` whether the North Star was met, refines, and tries again when needed.
+
+## Reuse a website's hidden API when it helps
+
+Unsurf still turns useful website behavior into typed, replayable seams:
+
+```ts
 import { scout, worker, heal } from "unsurf";
 
-// proof-spec executor (new): run any observe/act/assert spec
-import { runSpec, verifySpec, type ProofSpec } from "unsurf";
-const result = await runSpec(spec, { email: "jane@example.com" });
+const found = await scout({
+	url: "https://example.com",
+	task: "find the search API",
+});
 
-// Effect-wrapped service surface
-import { Plan, PlanLive } from "unsurf";
+const data = await worker({ pathId: found.pathId });
+const fixed = await heal({ pathId: found.pathId, error: "endpoint drifted" });
 ```
 
-### As an MCP server
+Use the API path when repeated HTTP replay is better than repeatedly driving the UI.
+
+## Hosted MCP
+
+The hosted MCP server exposes scout/search/plan surfaces:
 
 ```json
 {
@@ -93,103 +180,43 @@ import { Plan, PlanLive } from "unsurf";
 }
 ```
 
-### As an extension
+Use hosted MCP for remote Unsurf capabilities. Use local MCP for your live browser.
 
-Install the unsurf extension + @mcp-b local relay. Open a page. If it's in the Directory, the tools appear in your MCP client. Tools run inside your tab, as you.
+## Auth
 
-```
-examples/webmcp-extension/   # Chrome MV3, ~200 lines
-```
+The agent runs inside the browser session you already authenticated:
 
-### As a daemon (no extension)
+- cookies
+- localStorage
+- credentialed fetches
+- WebAuthn-compatible real Chrome flows
 
-For managed Chromes that block extensions (`ExtensionInstallBlocklist`), attach via CDP instead.
-
-```bash
-bunx unsurf-daemon
-```
-
-```
-examples/webmcp-daemon/      # Bun daemon, CDP-injected, ~450 lines
-```
-
-### Self-hosted
-
-[![Deploy to Cloudflare](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/acoyfellow/unsurf)
-
-```bash
-git clone https://github.com/acoyfellow/unsurf && cd unsurf
-bun install && bun run deploy
-```
-
----
-
-## Two capture paths
-
-```
-  Agent                 unsurf                       Target site
-  │                       │                            │
-  │  scout(url)           │  capture network      ───▶ │  OpenAPI + paths
-  │                       │  capture DOM          ───▶ │  proof-spec.v0.json
-  │                       │                            │
-  │  worker(id, args)     │  replay API via fetch ───▶ │
-  │  or runSpec(spec)     │  invoke tool in tab   ───▶ │  runs as user
-  │                       │                            │
-  │  heal(id, error)      │  re-scout, patch      ───▶ │
-```
-
-Network capture is the original path. DOM capture produces `proof-spec.v0.json`. Some sites get both.
-
----
+No copied cookie bundle. No new credential vault. No delegation layer standing between the agent and the browser you can inspect.
 
 ## Stack
 
-Runs on Cloudflare primitives:
+Cloudflare-backed services power the hosted layer:
 
-- **Workers** — runtime
-- **Workers AI** — synthesis (Qwen 2.5 Coder 32B)
-- **Browser Rendering** — scout
-- **D1 + R2** — Directory storage
-- **MCP endpoint** — `unsurf-api.coey.dev/mcp`
+- Workers
+- Workers AI
+- Browser Rendering for hosted scouting
+- D1 + R2 for stored specs, runs, and traces
+- Streamable HTTP MCP endpoint
 
-Adjacent tools that share shape:
+Local runtime pieces remain swappable behind Unsurf's `BrowserHandle`; today the local provider is powered by `agent-browser`.
 
-- [gateproof](https://gateproof.dev) — same `observe / act / assert`, HTTP + exec altitude
-- [lab](https://lab.coey.dev) — agent receipts
+## Roadmap
 
-## Built with
+- polish pause / steer / resume for live human intervention
+- keep tightening local browser MCP into the default cross-agent browser control plane
+- extend Browser Run from hosted BrowserHandle flows toward optional cloud proof capture where it fits
 
-- [Effect](https://effect.website) — typed errors, streams, DI
-- [Alchemy](https://alchemy.run) — infra as TypeScript
-- [Drizzle](https://orm.drizzle.team) — D1 schemas
-- [@mcp-b](https://docs.mcp-b.ai) — WebMCP polyfill + local relay
-- [MCP SDK](https://modelcontextprotocol.io) — client + transports
+## Docs
 
-## Why Effect
-
-Every operation can fail. Browsers crash, sites change, networks drop, synthesizers hallucinate.
-
-| Problem | Effect solution |
-|---|---|
-| Browser container leaks | `Scope` + `acquireRelease` |
-| Transient failures | `Schedule.exponential` + `retry` |
-| Typed error routing | `Schema.TaggedError` + `catchTag` |
-| Inject synthesizer / store / browser | `Layer` + `Context.Tag` |
-| CDP event streams | `Stream` |
-| LLM fallback | `ExecutionPlan` |
-| Spec + OpenAPI + tool-spec from one source | `Schema` |
-
----
-
-## What works today
-
-- **API capture + replay** via `scout / worker / heal` — production
-- **WebMCP capture** via `scout-dom` — works on sites with interactive HTML + clean ARIA. Tested on Midjourney, coey.dev, jordancoeyman.com, httpbin, and a handful of forms
-- **Extension** — Chrome MV3, inherits your session
-- **Daemon** — CDP-attached, works against managed Chromes
-- **Directory** — live, dual-type, free to read, free to write
-
-Receipts: [`experiments/SUMMARY.md`](./experiments/SUMMARY.md).
+- Website: https://unsurf.coey.dev
+- Record: `docs/src/content/docs/guides/record.mdx`
+- MCP: `docs/src/content/docs/guides/mcp.mdx`
+- Product direction: `docs/NORTHSTAR.md`
 
 ## License
 

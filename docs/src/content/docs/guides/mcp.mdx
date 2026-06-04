@@ -46,6 +46,27 @@ Open Cursor Settings → MCP Servers → **Add Server** and enter:
 
 Cursor will discover the available tools automatically.
 
+## Local browser MCP
+
+Use the hosted MCP server for Cloudflare-side scout/search/plan work. Use the local stdio server when an agent should operate the Chrome session already open on your machine:
+
+```json
+{
+  "mcpServers": {
+    "unsurf-local": {
+      "command": "unsurf-local-mcp"
+    }
+  }
+}
+```
+
+The local server exposes two tools:
+
+- `unsurf_local_sessions` — list attachable local Chrome/CDP tabs
+- `unsurf_local_execute` — run small browser action plans against the active attached browser, optionally recording an unsurf trace
+
+This is the "browser is the auth" path: the tool does not mint credentials or create a new browser profile; it uses the session you already authenticated.
+
 ## Connecting from a custom MCP client
 
 Any client that supports the Streamable HTTP transport can connect. Point it at the `/mcp` endpoint and send standard JSON-RPC messages:
@@ -91,7 +112,7 @@ curl -X POST https://unsurf-api.coey.dev/mcp \
   -d '{"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}'
 ```
 
-The response lists the registered tools. The core set is `scout`, `worker`, and `heal`. Depending on server configuration, you may also see `gallery`, `directory`, and `agent-scout`.
+The response lists the registered tools. The hosted server includes `scout`, `worker`, `heal`, `gallery`, `unsurf_search`, and `unsurf_execute`; `directory` and `agent-scout` appear when their optional bindings are configured.
 
 ## The trace-skill tool pair
 

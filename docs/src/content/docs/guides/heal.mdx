@@ -1,75 +1,25 @@
 ---
-title: How to heal a broken path
-description: Automatically recover when a scouted path stops working.
+title: How to heal a broken seam
+description: Repair a scouted replay path when the website's underlying API drifts.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-## When paths break
+`heal` belongs to Unsurf's reusable-seam path. It is what keeps `worker` useful after a website changes.
 
-Websites change. Endpoints move. Forms get redesigned. When a worker call fails, the path is marked as `broken`.
+## Flow
 
-The heal tool fixes it automatically.
-
-## Worked example
-
-Let's walk through a complete scenario: scouting a user API, watching it break, and healing it.
-
-### 1. Scout the site
-
-```bash
-curl -X POST https://unsurf-api.coey.dev/tools/scout \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://acme-app.com",
-    "task": "find the endpoint that lists users"
-  }'
+```text
+worker fails
+   ↓
+heal retries
+   ↓
+re-scout if needed
+   ↓
+return a repaired path
 ```
 
-```json
-{
-  "siteId": "site_lx1a_k9m3",
-  "endpointCount": 4,
-  "pathId": "path_lx1a_q7z2",
-  "openApiSpec": {
-    "openapi": "3.1.0",
-    "paths": {
-      "/api/v1/users": {
-        "get": {
-          "summary": "List users",
-          "responses": { "200": { "description": "User list" } }
-        }
-      }
-    }
-  }
-}
-```
-
-The scouted path replays `GET /api/v1/users`. The worker uses it successfully for weeks.
-
-### 2. The site changes
-
-Acme deploys a new version. The user list endpoint moves from `/api/v1/users` to `/api/v2/users`. The old URL now returns 404.
-
-### 3. Worker fails with PathBrokenError
-
-```bash
-curl -X POST https://unsurf-api.coey.dev/tools/worker \
-  -H "Content-Type: application/json" \
-  -d '{ "pathId": "path_lx1a_q7z2" }'
-```
-
-```json
-{
-  "error": "PathBrokenError: GET /api/v1/users returned 404"
-}
-```
-
-The path's status flips to `broken` and its `failCount` increments.
-
-### 4. Call heal
-
-Pass the broken path ID and (optionally) the error message to give the re-scout context:
+## Call heal
 
 ```bash
 curl -X POST https://unsurf-api.coey.dev/tools/heal \
@@ -87,74 +37,22 @@ curl -X POST https://unsurf-api.coey.dev/tools/heal \
 }
 ```
 
-Heal retried the original path (3 attempts with exponential backoff), confirmed it's dead, then re-scouted `https://acme-app.com` with the same task. The new path points to `GET /api/v2/users`.
+## What heal does
 
-### 5. Worker succeeds with the healed path
+1. retries the original replay path,
+2. marks it broken if the failure persists,
+3. scouts the original site/task again,
+4. verifies the replacement,
+5. returns the new path.
 
-Use the `newPathId` from the heal response:
+## When to use it
 
-```bash
-curl -X POST https://unsurf-api.coey.dev/tools/worker \
-  -H "Content-Type: application/json" \
-  -d '{ "pathId": "path_mx2b_r8a1" }'
-```
-
-```json
-{
-  "success": true,
-  "response": {
-    "users": [
-      { "id": 1, "name": "Alice" },
-      { "id": 2, "name": "Bob" }
-    ]
-  }
-}
-```
-
-## What heal does internally
-
-1. **Retry** — attempts the original path with exponential backoff (3 attempts, starting at 500ms)
-2. **Mark broken** — if retries fail, sets the path status to `broken` and logs a run
-3. **Re-scout** — launches a fresh scout on the same site URL with the same task
-4. **Verify** — executes the new path with the worker to confirm it works
-5. **Update** — saves the new path, marks the old one `active` with an incremented `healCount`
-
-## Automatic vs. explicit healing
-
-When the worker encounters a **transient** error (network timeout, 502, 503), it retries automatically with exponential backoff before failing. No heal call is needed.
-
-For **permanent** errors (404, schema mismatch), the worker returns a `PathBrokenError`. Your agent or automation should then call `heal` explicitly.
+| Situation | Use |
+|---|---|
+| A direct replay path drifted | `heal` |
+| The browser task itself changed visually | update the browser plan or loop spec |
+| The user-session task is still browser-native | stay on local browser MCP |
 
 <Aside type="tip">
-In an MCP agent loop, you can wire this up automatically: if `worker` returns a `PathBrokenError`, call `heal` with the same `pathId`, then retry `worker` with the returned `newPathId`.
-</Aside>
-
-## Monitoring path health
-
-Every heal attempt is logged in the `runs` table with full input/output, so you can audit exactly what changed.
-
-Query a path's current status by looking it up through the worker or via D1 directly:
-
-```json
-{
-  "id": "path_lx1a_q7z2",
-  "siteId": "site_lx1a_k9m3",
-  "task": "find the endpoint that lists users",
-  "status": "active",
-  "failCount": 0,
-  "healCount": 1,
-  "lastUsedAt": "2025-01-15T09:32:00.000Z",
-  "createdAt": "2025-01-02T14:00:00.000Z"
-}
-```
-
-Key fields to watch:
-
-- **`status`** — `active` (healthy), `broken` (needs heal), or `healing` (heal in progress)
-- **`failCount`** — consecutive failures since last success; reset to 0 after a heal or successful worker call
-- **`healCount`** — total number of times this path has been healed; a high count may indicate an unstable target site
-- **`lastUsedAt`** — when the worker last executed this path; stale paths may need a proactive re-scout
-
-<Aside type="note">
-Each heal run is recorded with `tool: "heal"` in the `runs` table, including a `before/after` diff in the `output` field when the path changes.
+Healing repairs seams. It does not replace the browser runtime. If the site only works through the authenticated UI, record or loop in the browser instead.
 </Aside>

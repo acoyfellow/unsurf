@@ -14,7 +14,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'unsurf',
-      description: 'Turn any website into a typed API',
+      description: 'Give agents a real authenticated browser — and get back proof.',
       social: [
         { icon: 'github', label: 'GitHub', href: 'https://github.com/acoyfellow/unsurf' },
       ],

@@ -1,109 +1,85 @@
 ---
 title: How unsurf works
-description: The architecture and philosophy behind turning websites into typed APIs.
+description: Browser runtime, proof artifacts, and reusable seams in one system.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
-import SourceCode from '../../../components/SourceCode.astro';
 
 ## The problem
 
-Every SPA is an API client. Behind every web form, every dashboard, every data table — there are HTTP calls to a backend. But these APIs are undocumented, unauthenticated for direct access, and invisible to agents.
+Agents often need to use websites that are already authenticated in a real browser. Fresh headless containers do not inherit that state, and copied credentials create a new security problem.
 
-Agents today interact with websites by launching browsers, finding DOM elements, clicking buttons, and scraping text. This is slow (10-45 seconds per action), fragile (breaks when CSS changes), and expensive (full browser per operation).
+Unsurf starts from a different premise:
 
-## The insight
+```text
+the browser is the auth
+```
 
-If you watch the network traffic while a browser uses a site, you see the real API. Every `fetch()` call, every XHR request — that is the typed, structured interface the frontend already uses. The UI is just a wrapper.
+## The model
 
-unsurf captures that traffic and turns it into a typed API definition.
+```text
+authenticated browser
+        ↓
+agent action
+        ↓
+video + trace + receipt
+        ↓
+optional typed API seam
+```
 
-## The three tools
+### 1. Browser runtime
 
-### Scout
+The local runtime attaches to an already-open Chrome/CDP session. Nearby agents can discover it through `unsurf-local-mcp`, or application code can use `recordAttachedLocal(...)` directly.
 
-The scout launches a headless browser via [Cloudflare Browser Rendering](https://developers.cloudflare.com/browser-rendering/), navigates to a target URL, and enables Chrome DevTools Protocol (CDP) network capture.
+### 2. Proof artifacts
 
-Every network request is intercepted:
-- `Network.requestWillBeSent` — captures method, URL, headers, body
-- `Network.responseReceived` + `Network.getResponseBody` — captures status, headers, response body
+Recording wraps a browser run and produces:
 
-The scout then:
+- video
+- action trace
+- result metadata
+- viewer links with grant-gated access
 
-1. **Filters** to XHR/fetch requests (ignores images, CSS, scripts)
-2. **Normalizes** URL patterns (`/users/123` → `/users/:id`)
-3. **Groups** requests by normalized pattern
-4. **Infers** a JSON Schema from response bodies per group
-5. **Generates** an OpenAPI 3.1 specification from all captured endpoints
-6. **Saves** endpoints to D1 (via Drizzle), HAR logs and screenshots to R2
+`observeVideo()` inspects those recordings. `loop()` composes record + observe + refine until a yes/no North Star is met.
 
-### Worker
+### 3. Reusable seams
 
-The worker executes a previously scouted path. It has two strategies:
+When a website reveals a stable API beneath the UI, Unsurf can capture it:
 
-- **Fast path**: If the scout captured a direct API endpoint, the worker replays the HTTP call using Effect's `HttpClient`. No browser. Milliseconds.
-- **Slow path**: If the form requires JavaScript execution, the worker launches a browser and steps through the saved navigation path.
+- `scout` observes traffic and stores a typed seam
+- `worker` replays it directly over HTTP
+- `heal` repairs it when the site drifts
 
-The worker always validates the response against the stored schema.
+That path still matters. It is now one layer in a broader browser-runtime product, not the entire pitch.
 
-### Heal
+## Hosted vs local
 
-Websites change. When the worker fails:
-
-1. **Retry** with exponential backoff (handles transient failures)
-2. If retries exhaust, **re-scout** the same URL with the same task
-3. **Diff** old endpoints against new ones
-4. **Update** the stored path
-5. **Re-execute** with the patched path
-
-## Why Effect
-
-unsurf is built entirely on [Effect](https://effect.website), a TypeScript library for building reliable applications. Every operation is an `Effect<Success, Error, Dependencies>`.
-
-This matters because:
-
-**Typed errors.** A scout can fail with `BrowserError`, `NetworkError`, or `StoreError`. These are not strings — they are typed values in the error channel:
-
-<SourceCode file="src/domain/Errors.ts" title="Error types" />
-
-The heal system uses `catchTag` to route each error type to the right recovery strategy.
-
-**Resource safety.** Browser containers are expensive. Effect's `Scope` and `acquireRelease` guarantee cleanup even if the scout crashes mid-operation. No zombie browsers.
-
-**Dependency injection.** Every service is defined as a `Context.Tag` and injected via `Layer`. Here's the Browser service interface:
-
-<SourceCode file="src/services/Browser.ts" title="Browser service" />
-
-In production, `Browser.Live` connects to Cloudflare's browser. In tests, `Browser.TestLive` replays recorded fixtures. The business logic is identical:
-
-<SourceCode file="examples/scout-with-layers.ts" title="Scout with test layers (live example)" />
-
-**Streams.** CDP emits hundreds of network events during a session. Effect's `Stream` processes them as they arrive — filter, group, transform — without buffering everything in memory.
-
-**Retry policies.** The heal system uses `Schedule.exponential` for backoff and `Schedule.whileInput` to retry only on transient errors. This is declarative, composable, and testable.
+| Surface | Best for |
+|---|---|
+| Local browser MCP | Driving the browser you already authenticated |
+| Browser Run provider | Hosted Cloudflare Worker-side BrowserHandle flows |
+| `record` / `loop` | Producing inspectable proof from browser work |
+| Hosted MCP / REST | Scouting, search, planning, and shared hosted surfaces |
+| API replay | Repeated work that can skip the browser after discovery |
 
 ## Infrastructure
 
-unsurf runs entirely on Cloudflare:
+Hosted Unsurf runs on Cloudflare:
 
-| Component | Cloudflare Service | Purpose |
-|---|---|---|
-| Compute | Workers | API server, MCP tools |
-| Browser | Browser Rendering | Headless Chrome for scouting |
-| Database | D1 (SQLite) | Endpoints, paths, run history |
-| Blob storage | R2 | HAR logs, screenshots |
-| Infra config | Alchemy | TypeScript, not YAML |
+- Workers
+- Workers AI
+- Browser Rendering for hosted scouting
+- D1 + R2 for stored specs, runs, and trace bundles
+
+The local browser provider is swappable behind Unsurf's browser abstraction. Today it is powered by `agent-browser`.
+
+## Why this shape
+
+- real browser auth beats invented delegation layers
+- video makes browser work reviewable
+- loops turn visual evidence into a stop condition
+- typed API seams reduce repeat browser work when the web app gives you one
 
 <Aside>
-Everything deploys to your own Cloudflare account. unsurf is fully self-hosted — no external services, no data leaving your infrastructure.
+Use a browser when the user/session matters. Use a seam when repeated direct HTTP replay is the better interface.
 </Aside>
-
-## The philosophy
-
-The web was designed for humans to browse. Agents should not have to pretend to be humans.
-
-Every website already has a typed API underneath its UI. unsurf surfaces it.
-
-```
-surf the web → unsurf it
-```

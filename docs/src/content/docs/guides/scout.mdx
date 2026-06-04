@@ -1,9 +1,11 @@
 ---
 title: How to scout a website
-description: Capture API endpoints from any site using the scout tool.
+description: Capture a reusable API seam when direct HTTP replay is better than repeated browser interaction.
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
+
+`scout` is Unsurf's seam-discovery path. Use it after, or instead of, browser work when the website exposes an underlying API worth reusing.
 
 ## Basic scout
 
@@ -12,96 +14,45 @@ curl -X POST $UNSURF_URL/tools/scout \
   -H "Content-Type: application/json" \
   -d '{
     "url": "https://example.com",
-    "task": "find the contact form and map how it submits"
+    "task": "find the search API"
   }'
 ```
 
-The `task` field guides the scout's exploration. Be specific about what you want to find.
+A good `task` names the interaction or seam you want, not just "explore the site."
 
-## Writing effective tasks
-
-Good tasks are specific and action-oriented:
-
-| ✅ Good | ❌ Bad |
+| Good | Weak |
 |---|---|
-| "find the contact form and map how it submits" | "explore the site" |
-| "navigate to the dashboard and capture all data-loading endpoints" | "find APIs" |
-| "add an item to cart and capture the checkout flow" | "test the store" |
+| "find the contact-form submit endpoint" | "find APIs" |
+| "capture the dashboard data loader" | "explore the dashboard" |
+| "map product search requests" | "test the store" |
 
-## Scouting authenticated sites
-
-If the target site requires authentication, pass cookies or headers:
-
-```json
-{
-  "url": "https://app.example.com/dashboard",
-  "task": "capture all data-loading endpoints on the dashboard",
-  "auth": {
-    "cookies": "session=abc123; token=xyz",
-    "headers": {
-      "Authorization": "Bearer your-token"
-    }
-  }
-}
-```
-
-<Aside type="caution">
-Auth tokens are stored temporarily in memory during the scout session and are not persisted to D1 or R2.
-</Aside>
-
-## Force a fresh scout
-
-By default, scout results are cached per URL in the gallery. To bypass the cache and run a fresh scout, set `force`:
-
-```json
-{
-  "url": "https://example.com",
-  "task": "find the contact form and map how it submits",
-  "force": true
-}
-```
-
-This is useful when the target site has changed since the last scout, or when you want to capture a different set of endpoints for the same URL.
-
-## Reading scout results
+## What comes back
 
 The response includes:
 
-- **`siteId`** — use this to query endpoints later
-- **`endpointCount`** — total unique endpoints found
-- **`pathId`** — the navigation path taken, replayable by the worker
-- **`openApiSpec`** — complete OpenAPI 3.1 JSON
+- `siteId`
+- `endpointCount`
+- `pathId`
+- `openApiSpec`
 
-## Auto-publish to the directory
+Use `pathId` with `worker`. Use the OpenAPI spec when you want a portable description of the discovered seam.
 
-Set `publish` to automatically add the scouted API to the public directory once the scout completes:
+## Where scout fits now
 
-```json
-{
-  "url": "https://example.com",
-  "task": "find the contact form and map how it submits",
-  "publish": true
-}
-```
+Use the browser runtime when the user's authenticated session is the thing. Use scout when:
 
-When `publish` is `true`, the scouted API and its OpenAPI spec are immediately visible in the directory. If omitted or `false`, results are private to your account until you publish manually.
+- the page exposes a stable API you want to call repeatedly
+- direct HTTP replay will be cheaper or simpler than repeated UI work
+- you want typed interface material for another integration
 
-## Retrieving the OpenAPI spec
+## Authenticated sites
 
-```bash
-curl $UNSURF_URL/sites/{siteId}/openapi
-```
+Hosted scout supports explicit cookies or headers, but for user-session work the preferred product path is still the local authenticated browser runtime. Scout is for seam discovery; local MCP is for operating the browser the user already trusts.
 
-This returns a valid OpenAPI 3.1 specification you can import into any tool that consumes OpenAPI — Postman, Swagger UI, `openapi-typescript`, etc.
+<Aside type="tip">
+If the task is "use my logged-in dashboard," start with local browser MCP. If the task is "find the data endpoint behind this dashboard," scout may be the better follow-up.
+</Aside>
 
-## Listing captured endpoints
+## Publish or keep local
 
-```bash
-curl $UNSURF_URL/sites/{siteId}/endpoints
-```
-
-Each endpoint includes:
-- `method` and `pathPattern` — e.g., `GET /users/:id`
-- `requestSchema` — inferred JSON Schema for request body
-- `responseSchema` — inferred JSON Schema for response body
-- `sampleCount` — how many times this endpoint was observed
+Set `publish: true` when the discovered seam belongs in the shared Directory. Otherwise keep the result private to your deploy.

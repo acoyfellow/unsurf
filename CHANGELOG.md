@@ -4,6 +4,17 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Added
+- `recordAttachedLocal(...)` for recording against an already-running authenticated Chrome/CDP session without taking ownership of the browser lifecycle.
+- `unsurf record ... --cdp-port <port>` and `unsurf loop ... --cdp-port <port>` so existing real-browser sessions can be reused directly from the CLI.
+- `unsurf-local-mcp` stdio server with `unsurf_local_sessions` and `unsurf_local_execute` for local agents that need to discover attachable browser tabs or run small browser action plans on demand.
+- `openBrowserRunBrowser(...)` as an official Cloudflare Browser Run provider for hosted Worker-side `BrowserHandle` flows (`goto`, `click`, `fill`, `wait`, `snapshot`, `screenshot`).
+- `recordBrowserRunSession(...)` for Cloudflare-native Browser Run session recordings, returning an rrweb recording `sessionId` finalized on browser close.
+
+### Changed
+- The local record provider now uses `agent-browser --cdp <port>` for attached browsers and leaves externally-owned sessions open after a run.
+- Authenticated end-to-end proof now exists against a live Chrome For Testing profile: unsurf attached to the existing browser, verified the dashboard session, and recorded the run to WebM.
+
 ## [0.4.0] - 2026-04-24
 
 ### Changed (breaking default, API-compatible)

@@ -1,262 +1,105 @@
 ---
 title: Record a browser session
-description: Drive a real Chrome (headed or headless), tap a YubiKey once, record the whole session as MP4 — and never blow an agent's context on a browser ever again.
+description: Drive a real browser, reuse its auth, and capture the run as video + trace + receipt.
 ---
 
-import { Aside, Steps } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-This guide shows how to drive a real Chrome browser from a script or agent, record the full session as video, and persist authentication (including WebAuthn / YubiKey) across runs. No WKWebView. No embedded-browser auth shims. Just Chrome.
+`record` is Unsurf's proof layer. It wraps a browser run and produces a video, trace, status bundle, and viewer link.
 
-The recording below was produced by the exact script this guide documents.
-
-<video
-  controls
-  autoplay
-  muted
-  loop
-  playsinline
-  preload="metadata"
-  style="width: 100%; max-width: 640px; border-radius: 8px; margin: 1rem 0;"
->
-  <source src="/videos/coey-tour.mp4" type="video/mp4" />
-  <source src="/videos/coey-tour.webm" type="video/webm" />
-</video>
-
-_13 seconds, start to finish. Opens [coey.dev](https://coey.dev/), clicks **PROJECTS**, scrolls the list, lands on [unsurf](https://coey.dev/projects/unsurf)._
-
-## Why this matters
-
-The typical "agent driving a browser" stack breaks on three things:
-
-1. **WebAuthn / passkeys / YubiKey** — embedded webviews can't complete Apple's `ASAuthorizationController` ceremony cleanly against most IdPs. Real Chrome can.
-2. **Federated corp browsers** — MDM policy blocks CDP. Trying to `--auto-connect` to your daily-driver Chrome triggers federation prompts every call.
-3. **Text-based selectors** — `click "text=foo"` dies the moment a page has two matches. Then the surrounding script cascades into dead-air hangs.
-
-The pattern below solves all three with one line, one dedicated profile, and a tick-gated loop.
-
-## Prerequisites
+## Start from a real browser
 
 ```bash
-npm i -g agent-browser
-agent-browser install     # downloads Chrome For Testing (~200MB, one time)
+agent-browser --headed --profile ~/.cmux-browser open https://example.com
 ```
 
-<Aside type="note">
-On macOS with MDM-locked work Chrome, `agent-browser` automatically uses the Chrome For Testing sandbox at `~/.agent-browser/browsers/`. Your daily-driver Chrome is never touched.
+Sign in once. Reuse that browser for agent work.
+
+## Record a fresh local browser run
+
+```ts
+import { recordLocal } from "unsurf/skills/record";
+
+const result = await recordLocal({
+  task: "verify the happy path",
+  run: async (browser) => {
+    await browser.goto("https://example.com");
+    await browser.wait(1000);
+  },
+});
+```
+
+## Record the browser already open on your machine
+
+```ts
+import { recordAttachedLocal } from "unsurf/skills/record";
+
+const result = await recordAttachedLocal({
+  connect: 9222,
+  task: "record the authenticated dashboard",
+  run: async (browser) => {
+    await browser.goto("https://example.com/dashboard");
+    await browser.wait(4000);
+  },
+});
+```
+
+CLI equivalent:
+
+```bash
+export TRACE_INGEST_TOKEN=...
+unsurf record ./demo.ts --task "dashboard proof" --cdp-port 9222
+```
+
+## Hosted Browser Run provider
+
+```ts
+import { openBrowserRunBrowser } from "unsurf/skills/record";
+
+const browser = await openBrowserRunBrowser({ binding: env.BROWSER });
+try {
+  await browser.goto("https://httpbin.org/forms/post");
+  await browser.fill('input[name="custname"]', "unsurf");
+  const snapshot = await browser.snapshot();
+} finally {
+  await browser.close();
+}
+```
+
+Browser Run is the hosted/provider lane: Cloudflare Worker-side browser flows with the same browser-handle verbs.
+
+```ts
+import { recordBrowserRunSession } from "unsurf/skills/record";
+
+const recording = await recordBrowserRunSession({
+  binding: env.BROWSER,
+  run: async (browser) => {
+    await browser.goto("https://httpbin.org/forms/post");
+    await browser.fill('input[name="custname"]', "unsurf");
+  },
+});
+```
+
+`recordBrowserRunSession(...)` turns on Browser Run's native session recording and returns its session ID after the session closes. Browser Run recordings are replayable rrweb events in Browser Run logs/API, not MP4 files. Local attached Chrome remains the playable-video path.
+
+## What the result carries
+
+- run status
+- trace id
+- viewer URL
+- optional signed video URL
+- metadata for the task and provider
+
+Every new trace is grant-gated by default. See [Privacy](/guides/privacy/).
+
+## When to record
+
+Record when:
+
+- a browser task should be reviewable later
+- an agent run should produce proof, not just text logs
+- you want a video suitable for docs, debugging, or sharing
+
+<Aside>
+Local attached recording is the clearest expression of the product: the browser keeps the auth, Unsurf captures the proof.
 </Aside>
-
-## The one-liner
-
-```bash
-agent-browser --headed --profile ~/.cmux-browser open https://my.cloudflare.dev
-```
-
-- `--headed` — visible window (drop it to run headless, which is what you want for video recording so the window doesn't steal focus)
-- `--profile ~/.cmux-browser` — dedicated, persistent Chrome profile. Auth once, reuse forever.
-- Same profile across runs = cookies, localStorage, and WebAuthn credentials all persist
-
-### Proving the session persists
-
-```bash
-agent-browser --headed --profile ~/.cmux-browser open https://my.cloudflare.dev
-# ... log in once, tap YubiKey, close ...
-agent-browser close
-
-# Fresh invocation, same profile, no login needed:
-agent-browser --profile ~/.cmux-browser open https://my.cloudflare.dev
-agent-browser get title
-# → "Access: App Launcher"  (not the SSO page)
-```
-
-## The loop — why a one-shot script is a glass cannon
-
-Naïve browser scripts look like this:
-
-```bash
-agent-browser open https://example.com
-agent-browser click "text=Login"   # fails if "Login" appears twice
-sleep 2                             # guess timing, hope for the best
-agent-browser click "text=Submit"  # runs even if previous step failed
-```
-
-Every `sleep` is dead air on camera. Every text-selector is a landmine. Any failure cascades silently and the daemon can end up in an inconsistent state (you'll see `Command aborted`).
-
-The fix is a **tick-gated loop**: each step is a tick, each tick gates on a **win flag** checked in the page, and each call has a hard timeout. The loop is the harness; the agent is dumb; the win flag is the fixed point.
-
-<Steps>
-
-1. **Pick a win flag per step** — a piece of DOM state that's only true when the step succeeded.
-
-   ```js
-   // Home: title contains "Jordan Coeyman"
-   /Jordan Coeyman/.test(document.title)
-   // On /projects page
-   location.pathname === '/projects'
-   // On /projects/unsurf page
-   /\/projects\/unsurf/.test(location.pathname)
-   // Scroll actually moved
-   window.scrollY > 1500
-   ```
-
-2. **Wrap every subcommand with a hard timeout.** macOS doesn't ship `timeout(1)`, but `perl alarm` works everywhere:
-
-   ```bash
-   run() {
-     perl -e '
-       my $timeout = shift;
-       my $pid = fork();
-       if ($pid == 0) { exec(@ARGV); exit 127; }
-       local $SIG{ALRM} = sub { kill 9, $pid; exit 124; };
-       alarm $timeout;
-       waitpid($pid, 0);
-       exit($? >> 8);
-     ' -- 10 "$@"
-   }
-   ```
-
-3. **Each tick: take one action, check the win flag, retry on miss.**
-
-   ```bash
-   tick() {
-     local state="$1" action="$2" check="$3"
-     for i in $(seq 1 6); do
-       eval "$action"
-       if [ "$($check)" = "ok" ]; then
-         echo "$state ✓"; return 0
-       fi
-       sleep 1
-     done
-     echo "$state ✗"; return 1
-   }
-   ```
-
-4. **Wait for web fonts before recording** — `font-display: swap` means the page paints with a fallback face first, then hot-swaps once the real font loads. Recording before that moment captures the fallback face on video.
-
-   ```bash
-   agent-browser wait --fn 'document.fonts.ready.then(() => true)'
-   ```
-
-5. **Prefer URL-based and href-based selectors over text.** Text selectors are great for humans but brittle for agents — any page with more than one instance of a string breaks them.
-
-   ```bash
-   # Brittle:
-   agent-browser click "text=unsurf"
-
-   # Resilient:
-   agent-browser click 'a[href="/projects/unsurf"]'
-
-   # Even better when you know the destination:
-   agent-browser open https://coey.dev/projects/unsurf
-   ```
-
-</Steps>
-
-## The full script
-
-This is the exact script that produced the video at the top of this page. It's also on disk at [`examples/loop-coey-tour.sh`](https://github.com/acoyfellow/unsurf/blob/main/examples/loop-coey-tour.sh) in the unsurf repo.
-
-```bash
-#!/usr/bin/env bash
-# Loop-driven recording of a coey.dev tour.
-# Each state is a "tick": take one action, verify win-flag, move on.
-# Hard timeouts + retries + pulse lines. No hangs possible.
-
-set -u
-OUT=~/cloudflare/recordings/coey-tour
-mkdir -p "$(dirname "$OUT")"
-PROFILE=~/.cmux-browser
-TIMEOUT=${TIMEOUT:-10}
-MAX_TICKS=${MAX_TICKS:-6}
-AB="agent-browser --profile $PROFILE"  # headless → no focus steal
-
-pulse() { printf '[%s] %s\n' "$(date +%H:%M:%S)" "$*" >&2; }
-
-run() {
-  local label="$1"; shift
-  perl -e 'my $t=shift; my $pid=fork(); if($pid==0){exec(@ARGV);exit 127} local $SIG{ALRM}=sub{kill 9,$pid;exit 124}; alarm $t; waitpid($pid,0); exit($?>>8)' \
-    -- "$TIMEOUT" "$@"
-}
-
-eval_js() { run "eval" $AB eval "$1" 2>/dev/null; }
-check_home()     { eval_js "/Jordan Coeyman/.test(document.title) ? 'ok' : ''"; }
-check_projects() { eval_js "location.pathname === '/projects' ? 'ok' : ''"; }
-check_unsurf()   { eval_js "/\\/projects\\/unsurf/.test(location.pathname) ? 'ok' : ''"; }
-check_scrolled() { eval_js "window.scrollY > 1500 ? 'ok' : ''"; }
-
-tick() {
-  local state="$1" action="$2" check="$3"
-  for i in $(seq 1 $MAX_TICKS); do
-    pulse "$state tick $i/$MAX_TICKS"
-    eval "$action" >/dev/null 2>&1
-    local ok; ok=$($check | tr -d '"\r\n ')
-    if [ "$ok" = "ok" ]; then pulse "$state ✓"; return 0; fi
-    sleep 1
-  done
-  pulse "$state ✗ (gave up)"; return 1
-}
-
-run "close" agent-browser close >/dev/null 2>&1 || true
-sleep 1
-
-pulse "OPEN: homepage"
-tick OPEN "run open $AB open https://coey.dev >/dev/null" check_home || exit 1
-
-pulse "FONTS: wait for document.fonts.ready"
-run "fonts" $AB wait --fn 'document.fonts.ready.then(() => true)' >/dev/null 2>&1
-
-pulse "RECORD: start"
-run "rec-start" $AB record start "$OUT.webm" >/dev/null 2>&1
-
-pulse "NAV: click Projects"
-tick NAV "run click $AB click 'a[href=\"/projects\"]' 2>/dev/null || run nav $AB open https://coey.dev/projects" check_projects || exit 1
-
-pulse "SCROLL: down"
-tick SCROLL "run scroll $AB scroll down 2400" check_scrolled || exit 1
-run "wait" $AB wait 800 >/dev/null 2>&1
-
-pulse "PICK: navigate to unsurf"
-tick PICK "run nav $AB open https://coey.dev/projects/unsurf" check_unsurf || exit 1
-
-pulse "STOP: recording"
-run "rec-stop" $AB record stop >/dev/null 2>&1
-
-ffmpeg -y -i "$OUT.webm" -c:v libx264 -crf 22 -preset fast -movflags +faststart "$OUT.mp4" >/dev/null 2>&1
-echo "$OUT.mp4"
-```
-
-Run it:
-
-```bash
-chmod +x examples/loop-coey-tour.sh
-./examples/loop-coey-tour.sh
-# → ~/cloudflare/recordings/coey-tour.mp4
-```
-
-## Lifting this into unsurf proper
-
-The shell script above is the procedural form. The declarative form is a [`proof-spec.v0`](/reference/config/) — observe, act, assert, with evidence. Every tick becomes a spec step; the win flag becomes an `assert`. Unsurf's `record()` skill (in `src/skills/record/`) already wraps any `BrowserHandle` callback into a video+trace+bundle with a canonical URL.
-
-The logical next step is feeding a proof-spec into a loop runner so skills can be **refined and committed** across runs — [Lopopolo's workout-session pattern](https://twitter.com/lopopolo/): plant a flag, loop until captured, commit the refined skill, repeat until reliability metrics stabilize. That runner now ships as the [`loop` skill](/guides/loop/).
-
-## Private by default (0.4.0+)
-
-Every new trace is grant-gated. The upload returns a signed `viewerUrl`;
-the bare `/r/<id>` 404s for anything uploaded through the current worker.
-Default grant TTL is 7 days — pass `--public` (or `visibility: "public"`
-in the JS API) for a 365-day long-lived shareable grant. Both are
-revocable on demand with `unsurf trace-revoke <id>`. Traces from before
-0.4.0 keep serving bare so existing links don't break. See the
-[Privacy guide](/guides/privacy/) for the full model.
-
-## Related
-
-- **[Agent integration](/guides/agent-integration/)** — hand a BrowserHandle to an LLM and let it drive the page directly.
-- **[MCP Server](/guides/mcp/)** — expose unsurf's skills to any MCP-speaking agent.
-- **Record skill internals** — [`src/skills/record/README.md`](https://github.com/acoyfellow/unsurf/blob/main/src/skills/record/README.md), [`SPEC.md`](https://github.com/acoyfellow/unsurf/blob/main/src/skills/record/SPEC.md), [`SECURITY.md`](https://github.com/acoyfellow/unsurf/blob/main/src/skills/record/SECURITY.md).
-
-## Anti-patterns
-
-- **Don't `--auto-connect` on an MDM-managed Chrome.** It triggers federation prompts every call; on Cloudflare work laptops this is instant death.
-- **Don't use `text=...` selectors when you have a URL or an href.** Ambiguity is a hang waiting to happen.
-- **Don't trust `networkidle` as a font-ready signal.** Use `document.fonts.ready`.
-- **Don't try to record WebAuthn ceremonies via a native macOS shell's WKWebView.** Just use real Chrome — that's the whole point of this guide.

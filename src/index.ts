@@ -76,6 +76,7 @@ export {
 	validateSiteEffect,
 } from "./lib/validate.js";
 // MCP
+export { createLocalMcpServer, runLocalMcpServer } from "./local-mcp.js";
 export { createMcpServer, handleMcpRequest } from "./mcp.js";
 export type { BrowserService } from "./services/Browser.js";
 // Services

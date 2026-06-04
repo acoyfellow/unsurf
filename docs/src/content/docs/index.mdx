@@ -1,11 +1,11 @@
 ---
 title: unsurf
-description: Turn any website into a typed API.
+description: Give agents a real authenticated browser — and get back proof.
 template: splash
 hero:
   title: |
     <span class="hero-title">unsurf</span>
-  tagline: Turn any website into a typed API.
+  tagline: Give agents a real authenticated browser — and get back proof.
   actions:
     - text: Get started
       link: /tutorial/
@@ -17,14 +17,31 @@ hero:
       variant: minimal
 ---
 
-import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
+
+Unsurf lets agents act in the browser you already trust, record what happened, and reuse structured seams when a site exposes them.
 
 <div class="hero-snippet">
 
 <Tabs>
-  <TabItem label="MCP">
+  <TabItem label="Local MCP">
 ```json
-// Connect from Claude, Cursor, or any MCP client
+{
+  "mcpServers": {
+    "unsurf-local": { "command": "unsurf-local-mcp" }
+  }
+}
+```
+  </TabItem>
+  <TabItem label="Attached recording">
+```bash
+bunx unsurf record ./demo.ts \
+  --task "authenticated proof" \
+  --cdp-port 9222
+```
+  </TabItem>
+  <TabItem label="Hosted MCP">
+```json
 {
   "mcpServers": {
     "unsurf": {
@@ -35,79 +52,53 @@ import { Card, CardGrid, Code, Tabs, TabItem } from '@astrojs/starlight/componen
 }
 ```
   </TabItem>
-  <TabItem label="curl">
-```bash
-# Scout any site → get a typed OpenAPI spec
-curl -X POST https://unsurf-api.coey.dev/tools/scout \
-  -H "Content-Type: application/json" \
-  -d '{
-    "url": "https://any-website.com",
-    "task": "find all API endpoints"
-  }'
-
-# Returns: siteId, endpoints[], openApiSpec, pathId
-```
-  </TabItem>
-  <TabItem label="npm">
-```typescript
-import { scout, worker, heal } from "unsurf";
-
-// Scout → capture every API call
-const result = await scout({ url, task });
-
-// Worker → replay without a browser
-const data = await worker({ pathId: result.pathId });
-
-// Heal → auto-fix when sites change
-const fixed = await heal({ pathId, error });
-```
-  </TabItem>
 </Tabs>
 
 </div>
 
 <CardGrid>
-  <Card title="Scout" icon="magnifier">
-    An agent explores a site, captures every API call, and maps the endpoints with inferred schemas.
+  <Card title="Authenticated browser" icon="laptop">
+    Attach to the real Chrome session you already signed into. The browser is the auth.
   </Card>
-  <Card title="Worker" icon="rocket">
-    Replay captured API calls directly — no browser needed. Milliseconds, not seconds.
+  <Card title="Local browser MCP" icon="open-book">
+    Nearby agents can discover tabs and run small browser action plans through `unsurf-local-mcp`.
   </Card>
-  <Card title="Heal" icon="heart">
-    Site changed? Path broken? Heal re-scouts, diffs, patches, and retries automatically.
+  <Card title="Record" icon="document">
+    Produce video, trace, receipt, and a grant-gated viewer link for review.
   </Card>
-  <Card title="MCP Server" icon="open-book">
-    Connect from Claude Desktop, Cursor, or any MCP client. Three tools, one endpoint.
+  <Card title="Observe + loop" icon="rocket">
+    Ask questions about recordings, then refine and retry until the North Star is met.
   </Card>
-  <Card title="NPM Package" icon="add-document">
-    `npm install unsurf` — use the tools, services, and types in your own project.
+  <Card title="Browser Run recording" icon="cloud-download">
+    Run hosted browser flows in Workers and record native replay sessions in Browser Run.
   </Card>
-  <Card title="Self-hosted" icon="setting">
-    Deploy to your own Cloudflare account. Your data stays yours. One command.
+  <Card title="Scout seams" icon="magnifier">
+    Capture useful API traffic from web apps when direct replay beats UI driving.
   </Card>
-  <Card title="API Directory" icon="list-format">
-    Community-discovered registry of unsurfed APIs. Scout once, share forever. Browse at /directory.
-  </Card>
-  <Card title="proof-spec.v0" icon="document">
-    One schema for tools, gates, and proof loops. Shared with [gateproof](https://gateproof.dev) — same observe/act/assert at different altitudes. `import { runSpec, type ProofSpec } from "unsurf"`.
+  <Card title="Replay + heal" icon="heart">
+    Call captured APIs directly, then re-scout and repair when they drift.
   </Card>
 </CardGrid>
 
-## One schema, two repos
+## One system, three layers
 
-unsurf and [gateproof](https://gateproof.dev) share the same `observe / act / assert` schema — `proof-spec.v0`. unsurf drives the DOM (click, fill, submit with role+name targets). gateproof drives HTTP + exec. Specs round-trip between them.
-
-```typescript
-import { runSpec, verifySpec, type ProofSpec } from "unsurf";
-
-// A single file describes tool + gate + proof-loop.
-const spec: ProofSpec = JSON.parse(await Bun.file("./spec.json").text());
-
-// tool mode: runs act[]
-const tool = await runSpec(spec, { email: "jane@example.com" });
-
-// gate mode: runs observe + assert, ignores act
-const gate = await verifySpec(spec);
+```text
+authenticated browser
+        ↓
+agent action
+        ↓
+video + trace + receipt
+        ↓
+optional typed API seam
 ```
 
-Full field reference: [SPEC.md](https://github.com/acoyfellow/unsurf/blob/main/experiments/_proof-spec-v0/SPEC.md). Risk is computed deterministically from the DSL — the synthesizer's claim is never trusted.
+1. **Browser** — act in the real authenticated session.
+2. **Proof** — record, inspect, and loop until the task is done.
+3. **Seams** — turn stable website behavior into typed, reusable interfaces.
+
+## What to read next
+
+- [Tutorial](/tutorial/) — start with an authenticated browser session.
+- [Record](/guides/record/) — produce proof artifacts.
+- [MCP](/guides/mcp/) — hosted MCP vs local browser MCP.
+- [How it works](/concepts/how-it-works/) — the product model.

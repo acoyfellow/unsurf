@@ -1,123 +1,57 @@
 ---
 title: How to replay a captured API
-description: Execute scouted paths and replay API calls without a browser.
+description: Use worker when a scouted website seam is more useful than driving the browser again.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 
-## Replay an endpoint
+After `scout` discovers a reusable seam, `worker` replays it directly over HTTP.
 
-After scouting, the worker tool replays captured API calls directly — no browser needed.
+## Replay
 
 ```bash
 curl -X POST $UNSURF_URL/tools/worker \
   -H "Content-Type: application/json" \
   -d '{
     "pathId": "your-path-id",
-    "data": {
-      "name": "Jane Doe",
-      "email": "jane@example.com"
-    }
+    "data": { "query": "jane" }
   }'
 ```
 
-## Fast path vs. slow path
+## Why use worker
 
-The worker tries two strategies:
+Choose worker when:
 
-1. **Fast path** — if the scouted path found a direct API endpoint (e.g., `POST /api/contact`), the worker replays the HTTP call directly. This takes milliseconds.
+- you already know the seam
+- the browser does not add value for this repeat operation
+- you want millisecond-scale direct calls instead of a fresh UI walk
 
-2. **Slow path** — if no direct API endpoint exists (e.g., the form submits through JavaScript), the worker launches a browser and executes the step-by-step path. This takes seconds.
+Choose the browser runtime when:
 
-The worker chooses automatically. You don't need to specify which.
+- the user session itself matters
+- the action is visual or interaction-heavy
+- you want a reviewable recorded proof
 
-## Passing data
+## Authenticated replay
 
-The `data` field maps to the captured endpoint's request schema. If the scout found a `POST /api/contact` with fields `name`, `email`, and `message`, pass those:
-
-```json
-{
-  "pathId": "example-com-contact-form",
-  "data": {
-    "name": "Jane Doe",
-    "email": "jane@example.com",
-    "message": "Hello from unsurf"
-  }
-}
-```
-
-<Aside type="tip">
-Check the endpoint's `requestSchema` (from the scout result) to see exactly which fields are expected and their types.
-</Aside>
-
-## Authenticated endpoints
-
-For APIs that require authentication, pass custom headers:
+Worker can receive explicit request headers:
 
 ```json
 {
-  "pathId": "api-github-com-repos",
-  "data": {
-    "owner": "acoyfellow",
-    "repo": "unsurf"
-  },
+  "pathId": "path_abc",
   "headers": {
-    "Authorization": "Bearer ghp_xxxxxxxxxxxx",
-    "Cookie": "session=abc123"
+    "Authorization": "Bearer ...",
+    "Cookie": "session=..."
   }
 }
 ```
 
-Headers are merged into the outgoing request. Common use cases:
+That is useful for programmatic integrations. It is not a replacement for the local "browser is the auth" path when you are acting inside the user's existing live session.
 
-| Header | Use case |
-|--------|----------|
-| `Authorization: Bearer <token>` | OAuth, JWT, API tokens |
-| `Authorization: Basic <base64>` | Basic auth |
-| `Cookie: session=...` | Session cookies |
-| `X-Api-Key: <key>` | API key authentication |
+## If replay breaks
+
+If the API moved or response shape changed, call [heal](/guides/heal/).
 
 <Aside type="tip">
-The directory shows which APIs require auth. Look for the 🔐 badge or check the `auth` field in the API metadata.
+Unsurf can do both: use the browser to prove the flow, then use `worker` when the same stable HTTP seam is better reused directly.
 </Aside>
-
-### With inbox.dog
-
-For sites that need login flows, pair unsurf with [inbox.dog](https://inbox.dog) for session management:
-
-```typescript
-import { worker } from "unsurf";
-import { getSession } from "inbox.dog";
-
-// inbox.dog handles login, cookies, token refresh
-const session = await getSession("github.com");
-
-// unsurf replays with those credentials
-const result = await worker({
-  pathId: "api-github-com-repos",
-  data: { owner: "acoyfellow", repo: "unsurf" },
-  headers: session.headers
-});
-```
-
-**Division of labor:**
-- **inbox.dog** — manages sessions (login flows, cookie jars, token refresh)
-- **unsurf** — manages structure (endpoints, schemas, replay)
-
-## Reading the response
-
-```json
-{
-  "success": true,
-  "response": {
-    "id": 42,
-    "status": "submitted"
-  }
-}
-```
-
-The `response` field contains the target API's response body, validated against the inferred schema.
-
-## When replay fails
-
-If the target site has changed since the scout, the worker will return an error. Use the [heal tool](/guides/heal/) to re-scout and update the path automatically.

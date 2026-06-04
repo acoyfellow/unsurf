@@ -1,0 +1,12 @@
+{
+	"name": "unsurf-browser-run-proof",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@cloudflare/puppeteer": "^1.1.0"
+	},
+	"devDependencies": {
+		"typescript": "^5.9.3",
+		"wrangler": "^4.63.0"
+	}
+}

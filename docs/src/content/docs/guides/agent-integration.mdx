@@ -1,375 +1,78 @@
 ---
 title: How to use unsurf from an AI agent
-description: Connect your AI agent to unsurf via MCP and turn any website into a callable API.
+description: Choose between local browser MCP, proof loops, and hosted seam discovery.
 ---
 
-import { Aside, Steps, Tabs, TabItem } from '@astrojs/starlight/components';
+import { Tabs, TabItem, Aside } from '@astrojs/starlight/components';
 
-unsurf is built for agents. The three tools — scout, worker, heal — form a lifecycle that lets an agent discover, call, and maintain web APIs without ever touching a browser itself.
+Unsurf gives agents two complementary control planes:
 
-This guide covers how to connect, what to send, and the patterns that produce reliable results.
+- **local browser MCP** for the real authenticated browser on the user's machine
+- **hosted MCP** for shared scout/search/plan surfaces
 
-## Connecting your agent via MCP
+## Connect the local browser
 
-The unsurf MCP server speaks [Streamable HTTP](https://modelcontextprotocol.io) at:
-
+```json
+{
+  "mcpServers": {
+    "unsurf-local": { "command": "unsurf-local-mcp" }
+  }
+}
 ```
-https://unsurf-api.coey.dev/mcp
-```
+
+Use:
+
+- `unsurf_local_sessions`
+- `unsurf_local_execute`
+
+This is the right path for dashboards, apps behind login, and any task where the active user session matters.
+
+## Connect hosted Unsurf
 
 <Tabs>
-  <TabItem label="Claude Desktop">
-    Add this to `~/.claude/mcp.json`:
-
-    ```json
-    {
-      "mcpServers": {
-        "unsurf": {
-          "type": "streamable-http",
-          "url": "https://unsurf-api.coey.dev/mcp"
-        }
-      }
+  <TabItem label="MCP config">
+```json
+{
+  "mcpServers": {
+    "unsurf": {
+      "type": "streamable-http",
+      "url": "https://unsurf-api.coey.dev/mcp"
     }
-    ```
-
-    Restart Claude Desktop. The `scout`, `worker`, and `heal` tools appear automatically.
-  </TabItem>
-  <TabItem label="Cursor">
-    In Cursor settings, add an MCP server:
-
-    - **Name:** `unsurf`
-    - **Transport:** Streamable HTTP
-    - **URL:** `https://unsurf-api.coey.dev/mcp`
-
-    The tools are now available in Cursor's agent mode.
-  </TabItem>
-  <TabItem label="Custom MCP Client">
-    Use the official `@modelcontextprotocol/sdk` to connect programmatically:
-
-    ```typescript
-    import { Client } from "@modelcontextprotocol/sdk/client/index.js";
-    import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
-
-    const client = new Client(
-      { name: "my-agent", version: "1.0" },
-      { capabilities: {} }
-    );
-
-    const transport = new StreamableHTTPClientTransport(
-      new URL("https://unsurf-api.coey.dev/mcp")
-    );
-
-    await client.connect(transport);
-
-    // Now call tools
-    const result = await client.callTool({
-      name: "scout",
-      arguments: {
-        url: "https://jsonplaceholder.typicode.com",
-        task: "find all API endpoints"
-      }
-    });
-    ```
+  }
+}
+```
   </TabItem>
 </Tabs>
 
-<Aside type="tip">
-  If you self-host unsurf, replace the URL with your own worker's `/mcp` endpoint.
-</Aside>
+Use hosted MCP for:
 
-## The agent workflow: Scout → Worker → Heal
+- `scout`
+- `worker`
+- `heal`
+- trace search / planning surfaces
 
-Every agent interaction follows the same lifecycle:
+## Agent decision tree
 
-<Steps>
+```text
+Need the user's existing login?
+  → local browser MCP
 
-1. **Scout** a website to discover its API endpoints.
+Need proof of what happened?
+  → record or loop
 
-   The agent sends a URL and a natural-language task. unsurf launches a headless browser, captures all network traffic, infers schemas, and returns a `siteId`, `pathId`, endpoint count, and a full OpenAPI spec.
-
-2. **Worker** replays a captured endpoint — no browser.
-
-   The agent sends a `pathId` (from the scout result) and optional `data`. unsurf replays the API call directly over HTTP. This is fast (milliseconds) and cheap (no browser).
-
-3. **Heal** when a worker call fails.
-
-   The agent sends the broken `pathId` and the error message. unsurf retries with backoff, then re-scouts if needed, then verifies the fix.
-
-</Steps>
-
-The key insight: **scout once, worker many times, heal when it breaks.** An agent should scout a site when it first encounters it, then reuse the `pathId` for all subsequent calls.
-
-## Managing state across calls
-
-MCP is stateless. Each request is independent — the server does not remember previous calls. Your agent must track the IDs:
-
-| ID | Created by | Used by | What it represents |
-|---|---|---|---|
-| `siteId` | `scout` | — | A scouted website (groups endpoints) |
-| `pathId` | `scout` | `worker`, `heal` | A replayable navigation path |
-| `newPathId` | `heal` | `worker` | A repaired path (replaces the old one) |
-
-A typical agent should maintain a mapping of **task → pathId** in its conversation context or an external store:
-
-```json
-{
-  "known_paths": {
-    "get jsonplaceholder users": "path_m1abc_x7def",
-    "submit contact form on example.com": "path_m2ghi_y8jkl"
-  }
-}
+Need a repeated direct HTTP seam?
+  → scout → worker → heal
 ```
 
-When the agent needs to perform a task it has done before, it skips the scout and goes straight to the worker.
+## Prompt guidance
 
-<Aside type="caution">
-  After a successful `heal`, the response may contain a `newPathId`. If present, the agent **must** update its stored mapping — the old `pathId` may no longer work.
-</Aside>
-
-## Prompting patterns that produce good results
-
-### Scout task strings
-
-The `task` parameter on scout guides what the browser explores. Good tasks are specific and action-oriented:
-
-```json
-// ✅ Specific — tells the scout what to interact with
-{"task": "navigate to the pricing page and capture the API calls that load plan data"}
-{"task": "fill in the search box with 'laptop' and capture the search results endpoint"}
-{"task": "open the dashboard and capture all data-loading XHR requests"}
-
-// ❌ Vague — the scout has no direction
-{"task": "explore the site"}
-{"task": "find APIs"}
-{"task": "look around"}
+```text
+When the user's browser session matters, use unsurf-local first.
+When the task should be reviewable, record it.
+When success is visual, use loop with a yes/no North Star.
+When the site exposes a stable API worth reusing, scout it and replay with worker.
 ```
-
-### System prompt guidance for your agent
-
-If you control your agent's system prompt, include instructions like:
-
-```
-You have access to the `unsurf` tools for interacting with websites via their underlying APIs.
-
-Workflow:
-1. When you need data from a website you haven't visited before, call `scout` with
-   the URL and a specific task describing what to find.
-2. Save the `pathId` from the scout result. Use `worker` with that `pathId` for
-   subsequent calls — it's 100x faster than scouting again.
-3. If `worker` returns an error, call `heal` with the broken `pathId` and the
-   error message. Update your stored `pathId` if heal returns a `newPathId`.
-
-Never re-scout a URL you already have a working pathId for.
-```
-
-### Agent-scout (LLM-guided exploration)
-
-If the unsurf instance has an `ANTHROPIC_API_KEY` configured, a fourth tool is available: `agent-scout`. This uses an LLM to actively click, type, and navigate — discovering endpoints that a simple page load would miss.
-
-Use `agent-scout` when:
-- The site is an SPA that requires interaction to load data
-- You need endpoints behind forms, filters, or pagination
-- A basic `scout` returned zero or few endpoints
-
-```json
-{
-  "name": "agent-scout",
-  "arguments": {
-    "url": "https://app.example.com",
-    "task": "log in with test@example.com / password123, navigate to the reports tab, and export a CSV"
-  }
-}
-```
-
-## Error handling by type
-
-Every error from unsurf is typed. Here's what your agent should do with each:
-
-| Error | Meaning | Agent action |
-|---|---|---|
-| `NetworkError` | Target site unreachable or returned HTTP error | Retry after a delay. If the site is down, inform the user. |
-| `BrowserError` | Headless browser crashed or timed out | Retry the scout. If persistent, the site may block headless browsers. |
-| `NotFoundError` | The `pathId` doesn't exist in storage | The path was never created or was cleaned up. Re-scout. |
-| `PathBrokenError` | The site changed and the path no longer works | Call `heal` with the broken `pathId` and the error reason. |
-| `StoreError` | Internal storage failure (D1/R2) | Retry once. If persistent, report as an infrastructure issue. |
 
 <Aside>
-  The `PathBrokenError` is the most important signal. It means the website changed — the agent should call `heal` immediately rather than retrying the same broken path.
+The hosted and local surfaces are intentionally different. One coordinates shared Unsurf services; the other lets nearby agents act through the browser the user already trusts.
 </Aside>
-
-### Decision tree
-
-```
-worker() call
-  ├─ success → return result to user
-  ├─ NetworkError (transient: 502, 503, timeout)
-  │   └─ retry worker() up to 2 more times
-  ├─ NetworkError (permanent: 404, 403)
-  │   └─ call heal(pathId, error)
-  │       ├─ healed: true → use newPathId going forward
-  │       └─ healed: false → inform user, site may require auth
-  ├─ PathBrokenError
-  │   └─ call heal(pathId, reason)
-  ├─ NotFoundError
-  │   └─ re-scout the original URL
-  └─ StoreError
-      └─ retry once, then report infrastructure issue
-```
-
-## Example conversation flow
-
-Here's a realistic agent ↔ unsurf interaction:
-
-```
-User: "Get me the top posts from Hacker News"
-
-Agent thinks: I need to find the HN API. Let me scout it.
-
-Agent → unsurf:
-  tool: scout
-  arguments:
-    url: "https://news.ycombinator.com"
-    task: "capture the API calls that load the front page stories"
-
-unsurf → Agent:
-  {
-    "siteId": "site_m1abc_x7d",
-    "endpointCount": 3,
-    "pathId": "path_m1abc_y8e",
-    "openApiSpec": {
-      "paths": {
-        "https://news.ycombinator.com/news": {
-          "get": { ... }
-        },
-        "https://hacker-news.firebaseio.com/v0/topstories.json": {
-          "get": {
-            "responses": {
-              "200": {
-                "content": {
-                  "application/json": {
-                    "schema": { "type": "array", "items": { "type": "number" } }
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-Agent thinks: I now have a pathId. Let me call the worker.
-Agent stores: {"hn top stories": "path_m1abc_y8e"}
-
-Agent → unsurf:
-  tool: worker
-  arguments:
-    pathId: "path_m1abc_y8e"
-
-unsurf → Agent:
-  {
-    "success": true,
-    "response": [41895432, 41894567, 41893210, ...]
-  }
-
-Agent → User: "Here are the top Hacker News story IDs: ..."
-```
-
-Later, if the same user asks again:
-
-```
-User: "Refresh the HN top posts"
-
-Agent thinks: I already have a pathId for this. Skip scout, go straight to worker.
-
-Agent → unsurf:
-  tool: worker
-  arguments:
-    pathId: "path_m1abc_y8e"
-```
-
-And if it breaks:
-
-```
-unsurf → Agent:
-  Error: NetworkError { url: "...", status: 404, message: "HTTP 404 Not Found" }
-
-Agent thinks: Path is broken. Let me heal it.
-
-Agent → unsurf:
-  tool: heal
-  arguments:
-    pathId: "path_m1abc_y8e"
-    error: "HTTP 404 Not Found"
-
-unsurf → Agent:
-  { "healed": true, "newPathId": "path_m2def_z9f" }
-
-Agent updates store: {"hn top stories": "path_m2def_z9f"}
-```
-
-## Tips for tool description customization
-
-If you're building a custom MCP client, you can override the tool descriptions sent to your LLM to better fit your use case:
-
-**Narrow the scout scope:** Instead of the generic "Explore a website and capture every API call", try:
-```
-Explore a website to find its data-fetching endpoints. Returns endpoint schemas
-and a pathId for fast replay. Only call this for sites you haven't visited before.
-```
-
-**Add workflow hints to worker:** Instead of "Execute a scouted path", try:
-```
-Replay an API endpoint discovered by scout. Requires a pathId from a previous
-scout result. This is fast (no browser). If it fails with PathBrokenError,
-call heal instead of retrying.
-```
-
-**Make heal self-documenting:**
-```
-Repair a broken API path. Pass the pathId and the error message. Returns a
-newPathId if the endpoint moved — you MUST use the new ID for future calls.
-```
-
-<Aside type="tip">
-  The goal of description customization is to reduce unnecessary scout calls. Agents tend to re-scout when they should worker, wasting browser resources. Make the descriptions clearly convey when each tool is appropriate.
-</Aside>
-
-## Working with the OpenAPI spec
-
-The scout returns a full OpenAPI 3.1 specification. Your agent can use this to:
-
-- **Understand response shapes** before calling worker — the schema tells you exactly what fields to expect
-- **Discover related endpoints** — the spec lists all captured endpoints, not just the primary one
-- **Generate type-safe code** — feed the spec to `openapi-typescript` or similar tools
-- **Plan multi-step workflows** — if the spec shows both `GET /users` and `POST /users/:id/orders`, the agent can chain them
-
-## Passing data to endpoints
-
-The worker's `data` parameter serves double duty:
-
-1. **Path parameters** — keys matching `:param` names in the URL pattern are substituted. For example, if the endpoint pattern is `https://api.example.com/users/:id`, passing `{"id": "42"}` resolves to `https://api.example.com/users/42`.
-
-2. **Request body** — for POST/PUT/PATCH endpoints, the entire `data` object is sent as the JSON body.
-
-```json
-{
-  "pathId": "path_abc123",
-  "data": {
-    "id": "42",
-    "name": "Updated Name",
-    "email": "new@example.com"
-  }
-}
-```
-
-## Summary
-
-| Pattern | Do this | Not this |
-|---|---|---|
-| First visit to a site | `scout` → save `pathId` | — |
-| Repeat visit | `worker` with saved `pathId` | `scout` again |
-| Worker fails (transient) | Retry `worker` 1-2 times | `heal` immediately |
-| Worker fails (permanent) | `heal` → update `pathId` | Retry `worker` forever |
-| Heal returns `newPathId` | Replace your stored `pathId` | Keep using the old one |
-| Need deeper exploration | Use `agent-scout` | Multiple `scout` calls |

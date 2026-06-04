@@ -1,332 +1,103 @@
 ---
-title: "Tutorial: Your first unsurf"
-description: Deploy unsurf, scout a live site, replay its API, heal a broken path, and connect an AI agent — all in one sitting.
+title: "Tutorial: your first unsurf"
+description: Attach to a real authenticated browser, record a proof, expose it to local agents, then learn where API scouting fits.
 ---
 
-import { Steps, Aside, Tabs, TabItem } from '@astrojs/starlight/components';
-import SourceCode from '../../components/SourceCode.astro';
+import { Steps, Aside } from '@astrojs/starlight/components';
 
-This tutorial walks you through the complete unsurf loop — **Scout → Worker → Heal** — against a live website. By the end you will have a deployed instance, a captured API with typed schemas, and an AI agent connected over MCP.
+This tutorial covers the shortest path through the current product:
 
-Every step shows the exact command and its expected output. Nothing is left to guesswork.
+1. start a real browser profile,
+2. attach Unsurf to it,
+3. record a proof run,
+4. expose the browser through local MCP,
+5. optionally scout a reusable API seam.
 
-## 1 — Deploy
-
-You need a [Cloudflare account](https://dash.cloudflare.com/sign-up) on the **Workers Paid** plan (required for Browser Rendering) and [Bun](https://bun.sh) installed.
-
-<Steps>
-
-1. **Clone and install**
-
-   ```bash
-   git clone https://github.com/acoyfellow/unsurf
-   cd unsurf
-   bun install
-   ```
-
-2. **Set your Alchemy password**
-
-   ```bash
-   echo 'ALCHEMY_PASSWORD=choose-a-secure-password' > .env
-   ```
-
-3. **Deploy**
-
-   ```bash
-   CLOUDFLARE_API_TOKEN=your-token bun run deploy
-   ```
-
-   Alchemy creates the D1 database, R2 bucket, and Browser Rendering binding automatically. When it finishes you will see:
-
-   ```
-   Published unsurf (0.2.0)
-   https://unsurf.YOUR-SUBDOMAIN.workers.dev
-   ```
-
-4. **Save your URL**
-
-   Every command below uses `$UNSURF_URL`. Set it now:
-
-   ```bash
-   export UNSURF_URL="https://unsurf.YOUR-SUBDOMAIN.workers.dev"
-   ```
-
-</Steps>
-
-Verify the deploy:
+## 1 — Prepare the real browser
 
 ```bash
-curl $UNSURF_URL
+npm i -g agent-browser
+agent-browser install
+agent-browser --headed --profile ~/.cmux-browser open https://example.com
 ```
 
-```json
-{
-  "name": "unsurf",
-  "version": "0.2.0",
-  "description": "Turn any website into a typed API",
-  "tools": ["scout", "worker", "heal"],
-  "mcp": "/mcp",
-  "docs": "https://unsurf.coey.dev"
+Sign in to whatever site you want to give agents access to. That profile is now your reusable authenticated workspace.
+
+<Aside type="note">
+Unsurf does not mint credentials for this path. It attaches to the browser you already authenticated.
+</Aside>
+
+## 2 — Record against the attached session
+
+Create `demo.ts`:
+
+```ts
+export default async function run(browser) {
+  await browser.goto("https://example.com/dashboard");
+  await browser.wait(4000);
 }
 ```
 
-## 2 — Scout: capture an API
-
-Scouting launches a headless browser on Cloudflare's edge, navigates to a URL, and captures every API call the page makes. For each endpoint it normalises the URL pattern (`/posts/1` → `/posts/:id`), infers a JSON Schema from the response body, and generates an OpenAPI 3.1 spec.
-
-Point it at [JSONPlaceholder](https://jsonplaceholder.typicode.com):
+Then record it:
 
 ```bash
-curl -X POST $UNSURF_URL/tools/scout \
+export TRACE_INGEST_TOKEN=...
+bunx unsurf record ./demo.ts \
+  --task "authenticated dashboard proof" \
+  --cdp-port 9222
+```
+
+The result includes the trace metadata and viewer link. The browser stays open because Unsurf attached to an externally-owned session.
+
+## 3 — Put the browser on MCP
+
+```json
+{
+  "mcpServers": {
+    "unsurf-local": { "command": "unsurf-local-mcp" }
+  }
+}
+```
+
+Your local agent now gets:
+
+- `unsurf_local_sessions`
+- `unsurf_local_execute`
+
+That means nearby agents can discover the browser you already trust and ask it to perform small action plans.
+
+## 4 — Close the loop when success needs verification
+
+```bash
+unsurf loop "open coey.dev, click projects, open the first one" \
+  --north-star "Did the browser land on a project page?" \
+  --max-iter 3 \
+  --cdp-port 9222
+```
+
+Loop records, observes its own video, refines, and retries until the North Star is met or the budget ends.
+
+## 5 — Scout a reusable seam when HTTP is better
+
+Some browser work reveals a stable hidden API. When that happens, capture it:
+
+```bash
+curl -X POST https://unsurf-api.coey.dev/tools/scout \
   -H "Content-Type: application/json" \
   -d '{
-    "url": "https://jsonplaceholder.typicode.com",
-    "task": "discover all API endpoints"
+    "url": "https://example.com",
+    "task": "find the search API"
   }'
 ```
 
-Expected response (your IDs will differ):
+Then replay it directly with `worker`, and use `heal` if the seam drifts. This is still part of Unsurf — just not the only story anymore.
 
-```json
-{
-  "siteId": "site_m5xq2a_7hk3p1",
-  "endpointCount": 6,
-  "pathId": "path_m5xq2a_9bc4d2",
-  "openApiSpec": {
-    "openapi": "3.1.0",
-    "info": {
-      "title": "jsonplaceholder.typicode.com",
-      "version": "1.0.0"
-    },
-    "paths": {
-      "/posts": {
-        "get": {
-          "operationId": "getPosts",
-          "responses": {
-            "200": {
-              "description": "Successful response",
-              "content": {
-                "application/json": {
-                  "schema": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "userId": { "type": "integer" },
-                        "id": { "type": "integer" },
-                        "title": { "type": "string" },
-                        "body": { "type": "string" }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      "/users": {
-        "get": { "...":  "(same structure — inferred from captured traffic)" }
-      },
-      "/comments": {
-        "get": { "...":  "(same structure)" }
-      }
-    }
-  }
-}
+## Mental model
+
+```text
+browser first
+proof second
+API seam when useful
 ```
 
-Here is what just happened:
-
-1. A headless Chrome navigated to `jsonplaceholder.typicode.com`.
-2. unsurf watched every XHR/fetch request via Chrome DevTools Protocol — the same mechanism behind your browser's Network tab.
-3. Each endpoint was grouped by method + normalised URL pattern, and a JSON Schema was inferred from the response body.
-4. Everything was persisted to D1 and R2, and an OpenAPI 3.1 spec was generated.
-
-Save the `pathId` from your response — you will use it for every remaining step:
-
-```bash
-export PATH_ID="path_m5xq2a_9bc4d2"   # ← paste yours here
-```
-
-<Aside type="tip">
-The `endpointCount` tells you how many distinct API calls the page made on load. JSONPlaceholder's homepage typically fires requests to `/posts`, `/users`, `/comments`, and a few others.
-</Aside>
-
-Here is the domain model for a captured endpoint — every field was populated automatically by the scout:
-
-<SourceCode file="src/domain/Endpoint.ts" title="CapturedEndpoint — what the scout stores for each endpoint" />
-
-## 3 — Worker: replay without a browser
-
-The scout gave you a `pathId` that points to captured endpoints. The **Worker** tool replays those API calls directly over HTTP — no browser, no rendering. Responses come back in milliseconds.
-
-```bash
-curl -X POST $UNSURF_URL/tools/worker \
-  -H "Content-Type: application/json" \
-  -d "{\"pathId\": \"$PATH_ID\"}"
-```
-
-Expected response:
-
-```json
-{
-  "success": true,
-  "response": [
-    {
-      "userId": 1,
-      "id": 1,
-      "title": "sunt aut facere repellat provident occaecati excepturi optio reprehenderit",
-      "body": "quia et suscipit\nsuscipit recusandae ..."
-    },
-    {
-      "userId": 1,
-      "id": 2,
-      "title": "qui est esse",
-      "body": "est rerum tempore vitae\nsequi sint nihil ..."
-    }
-  ]
-}
-```
-
-That data came straight from JSONPlaceholder's API. unsurf looked up the stored path, found the first `GET` endpoint, and issued a plain `fetch`. No browser was involved.
-
-You can also pass `data` to fill path parameters or provide a request body:
-
-```bash
-curl -X POST $UNSURF_URL/tools/worker \
-  -H "Content-Type: application/json" \
-  -d "{\"pathId\": \"$PATH_ID\", \"data\": {\"id\": 3}}"
-```
-
-If the captured endpoint pattern contains `:id`, Worker substitutes it with the value you provide.
-
-## 4 — Heal: recover from a broken path
-
-Websites change. Endpoints move, response shapes shift, URLs get rewritten. When a Worker replay fails, **Heal** fixes it automatically.
-
-The heal sequence:
-
-1. **Retry** the Worker call with exponential backoff (handles transient errors).
-2. If retries fail, **mark the path as broken**.
-3. **Re-scout** the original URL and task to capture fresh endpoints.
-4. **Retry Worker** with the new path.
-5. If it works, mark the original path `active` and return the `newPathId`.
-
-Call heal with your working path to see it in action:
-
-```bash
-curl -X POST $UNSURF_URL/tools/heal \
-  -H "Content-Type: application/json" \
-  -d "{\"pathId\": \"$PATH_ID\", \"error\": \"simulated failure for tutorial\"}"
-```
-
-Because JSONPlaceholder is stable, the retry succeeds immediately — no re-scout needed:
-
-```json
-{
-  "healed": true
-}
-```
-
-If the endpoint had genuinely broken, Heal would have re-scouted and returned a new path:
-
-```json
-{
-  "healed": true,
-  "newPathId": "path_m5xq3b_4ef8g9"
-}
-```
-
-<Aside type="caution">
-Heal launches a browser to re-scout, so it is slower than Worker. An agent should call Heal only when Worker returns a failure — not on every request.
-</Aside>
-
-The path domain model tracks health across the full cycle:
-
-<SourceCode file="src/domain/Path.ts" title="ScoutedPath — status, failCount, and healCount track path health" />
-
-## 5 — Connect an AI agent over MCP
-
-unsrf exposes Scout, Worker, and Heal over a single MCP endpoint. Any MCP-compatible client can connect and use all three tools with no extra configuration.
-
-<Tabs>
-  <TabItem label="Claude Desktop">
-
-Add this to `~/Library/Application Support/Claude/claude_desktop_config.json` (macOS) or `%APPDATA%\Claude\claude_desktop_config.json` (Windows):
-
-```json
-{
-  "mcpServers": {
-    "unsurf": {
-      "type": "streamable-http",
-      "url": "https://unsurf.YOUR-SUBDOMAIN.workers.dev/mcp"
-    }
-  }
-}
-```
-
-  </TabItem>
-  <TabItem label="Cursor">
-
-Add this to `.cursor/mcp.json` in your project root:
-
-```json
-{
-  "mcpServers": {
-    "unsurf": {
-      "type": "streamable-http",
-      "url": "https://unsurf.YOUR-SUBDOMAIN.workers.dev/mcp"
-    }
-  }
-}
-```
-
-  </TabItem>
-  <TabItem label="Any MCP client">
-
-Point your client at the streamable-http endpoint:
-
-```
-https://unsurf.YOUR-SUBDOMAIN.workers.dev/mcp
-```
-
-  </TabItem>
-</Tabs>
-
-Once connected, the agent sees three tools:
-
-| Tool | Description the agent reads | Input |
-|------|----------------------------|-------|
-| **scout** | Explore a website and capture every API call. Returns endpoints with inferred schemas and an OpenAPI spec. | `url`, `task` |
-| **worker** | Replay a scouted API path directly — no browser needed. | `pathId`, optional `data` |
-| **heal** | Fix a broken path. Retries with backoff, then re-scouts and patches if needed. | `pathId`, optional `error` |
-
-Try asking Claude:
-
-> *Scout jsonplaceholder.typicode.com and find all the API endpoints. Then fetch the list of users.*
-
-Claude will call `scout`, read the `pathId` from the result, then call `worker` — the same two steps you did with curl. If the worker call ever fails, Claude will call `heal` with the error message and get back a working path.
-
-<Aside type="note">
-The agent never needs to know about headless browsers, schema inference, or OpenAPI generation. It sees three tools, calls them in sequence, and gets structured data back.
-</Aside>
-
-## What you learned
-
-You completed the full unsurf loop:
-
-1. **Deployed** an unsurf instance to Cloudflare — D1, R2, and Browser Rendering provisioned automatically.
-2. **Scouted** JSONPlaceholder — a headless browser captured API calls and generated typed schemas + an OpenAPI spec.
-3. **Replayed** a captured endpoint with Worker — direct HTTP, no browser, millisecond response times.
-4. **Healed** a path — unsurf retried with backoff and would have re-scouted if the endpoint had genuinely broken.
-5. **Connected an AI agent** over MCP — three tools, one endpoint, the agent handles the rest.
-
-The core pattern: **Scout** turns a website into a typed API. **Worker** replays it fast. **Heal** keeps it working when sites change. An agent chains all three without human intervention.
-
-**Next steps:**
-
-- [How to scout a website](/guides/scout/) — targeting specific pages, multi-step navigation, and the agent-scout mode.
-- [How to replay a captured API](/guides/replay/) — passing data, choosing endpoints, and handling errors.
-- [How to heal a broken path](/guides/heal/) — understanding the retry policy and when to re-scout.
-- [MCP Server](/guides/mcp/) — authentication, rate limiting, and production configuration.
+That is the current Unsurf loop.

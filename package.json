@@ -1,7 +1,7 @@
 {
 	"name": "unsurf",
 	"version": "0.4.0",
-	"description": "Turn any website into a typed API",
+	"description": "Authenticated browser runtime, proof artifacts, and reusable website seams",
 	"type": "module",
 	"main": "dist/index.js",
 	"module": "dist/index.js",
@@ -10,6 +10,10 @@
 		".": {
 			"import": "./dist/index.js",
 			"types": "./dist/index.d.ts"
+		},
+		"./local-mcp": {
+			"import": "./dist/local-mcp.js",
+			"types": "./dist/local-mcp.d.ts"
 		},
 		"./skills/record": {
 			"import": "./dist/skills/record.js",
@@ -26,6 +30,7 @@
 	},
 	"bin": {
 		"unsurf": "./dist/cli.js",
+		"unsurf-local-mcp": "./dist/local-mcp.js",
 		"unsurf-daemon": "./examples/webmcp-daemon/daemon.ts"
 	},
 	"files": [
@@ -68,7 +73,7 @@
 	"dependencies": {
 		"@acoyfellow/proof-spec": "file:./vendor/proof-spec",
 		"@cloudflare/ai": "^1.2.2",
-		"@cloudflare/puppeteer": "^1.0.6",
+		"@cloudflare/puppeteer": "^1.1.0",
 		"@effect/platform": "^0.94.5",
 		"@effect/schema": "^0.75.5",
 		"@modelcontextprotocol/sdk": "^1.26.0",

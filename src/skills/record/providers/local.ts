@@ -19,6 +19,7 @@ export interface LocalProviderOptions {
 	session?: string;
 	/** Optional CDP endpoint (port number or ws:// URL) to connect to an existing browser. */
 	connect?: number | string;
+	closeOnExit?: boolean;
 	/** Extra env for the child process. */
 	env?: Record<string, string>;
 }
@@ -29,12 +30,12 @@ function randomSession(): string {
 
 async function runAb(
 	bin: string,
-	session: string,
+	prefix: string[],
 	args: string[],
 	env?: Record<string, string>,
 ): Promise<{ stdout: string; stderr: string; code: number }> {
 	return new Promise((resolve, reject) => {
-		const child = spawn(bin, ["--session", session, ...args], {
+		const child = spawn(bin, [...prefix, ...args], {
 			env: { ...process.env, ...env },
 			stdio: ["ignore", "pipe", "pipe"],
 		});
@@ -57,9 +58,12 @@ export async function openLocalBrowser(opts: LocalProviderOptions = {}): Promise
 	const bin = opts.bin ?? "agent-browser";
 	const session = opts.session ?? randomSession();
 	const env = opts.env;
+	const closeOnExit = opts.closeOnExit ?? opts.connect === undefined;
+	const prefix =
+		opts.connect === undefined ? ["--session", session] : ["--cdp", String(opts.connect)];
 
 	const run = async (args: string[]) => {
-		const { stdout, stderr, code } = await runAb(bin, session, args, env);
+		const { stdout, stderr, code } = await runAb(bin, prefix, args, env);
 		if (code !== 0) {
 			throw new Error(
 				`agent-browser ${args.join(" ")} exited ${code}: ${(stderr || stdout).slice(0, 400)}`,
@@ -67,12 +71,6 @@ export async function openLocalBrowser(opts: LocalProviderOptions = {}): Promise
 		}
 		return stdout;
 	};
-
-	// Connect up front if a CDP target was given. If not, agent-browser will
-	// launch its own Chrome on first command.
-	if (opts.connect !== undefined) {
-		await run(["connect", String(opts.connect)]);
-	}
 
 	return {
 		async goto(url) {
@@ -117,9 +115,8 @@ export async function openLocalBrowser(opts: LocalProviderOptions = {}): Promise
 			await run(["record", "stop"]);
 		},
 		async close() {
-			// --all would kill every session; we want this one only. Issue close
-			// without --all; agent-browser treats it as "close this session".
-			await runAb(bin, session, ["close"], env).catch(() => {});
+			if (!closeOnExit) return;
+			await runAb(bin, prefix, ["close"], env).catch(() => {});
 		},
 	};
 }

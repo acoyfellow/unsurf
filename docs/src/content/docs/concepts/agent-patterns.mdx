@@ -1,175 +1,94 @@
 ---
 title: Agent interaction patterns
-description: How AI agents interact with unsurf — lifecycle, context management, cost model.
+description: How agents should use Unsurf's local browser runtime, proof loop, and reusable API seams.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
-import SourceCode from '../../../components/SourceCode.astro';
 
-## Why agent-first
+## Choose the right surface
 
-Most web automation tools assume a human is driving. They expose browser sessions, DOM selectors, and screenshot-based reasoning. This works, but poorly:
-
-| Approach | Latency | Fragility | Cost |
-|---|---|---|---|
-| Browser automation (Playwright, Puppeteer) | 10-45s per action | Breaks on CSS/DOM changes | Full browser per op |
-| Screenshot + vision model | 5-15s per action | Breaks on layout changes | Vision API calls |
-| **unsurf (after scout)** | **50-200ms per call** | **Breaks only if API changes** | **One HTTP request** |
-
-unsurf inverts the model. Instead of the agent pretending to be a human clicking buttons, the agent discovers the real API underneath and calls it directly.
-
-The browser is used *once* to scout. After that, it's pure HTTP.
-
-## The lifecycle
-
-An agent using unsurf follows a three-phase lifecycle:
-
-```
-┌─────────┐     ┌─────────┐     ┌─────────┐
-│  Scout  │────▶│ Worker  │────▶│  Heal   │
-│ (learn) │     │  (use)  │     │  (fix)  │
-└─────────┘     └─────────┘     └─────────┘
-   once          many times      when needed
-```
-
-### Scout — expensive, infrequent
-
-The agent calls `scout` with a URL and a natural-language task. unsurf launches a headless browser, navigates the site, captures every XHR/fetch request via Chrome DevTools Protocol, infers schemas, and returns an OpenAPI spec plus a replayable `pathId`.
-
-**Cost:** 5-30 seconds. Requires a browser container.
-
-**When to scout:**
-- First time interacting with a site
-- After a `heal` fails (site has changed fundamentally)
-- When the agent needs to discover new endpoints
-
-### Worker — cheap, frequent
-
-The agent calls `worker` with a `pathId` and optional `data`. unsurf replays the captured API call directly via HTTP. No browser.
-
-**Cost:** 50-200ms. One HTTP request.
-
-**When to use:**
-- Every time the agent needs data from or sends data to the site
-- Repeatedly, in loops, in parallel — it's just an API call
-
-### Heal — automatic recovery
-
-When `worker` fails, the agent calls `heal`. unsurf retries with exponential backoff (handles transient errors), then re-scouts if the site has changed, diffs the old and new endpoints, updates the path, and verifies.
-
-**Cost:** Variable. 500ms for a transient retry, 5-30s for a full re-scout.
-
-**When to use:**
-- `worker` returns `PathBrokenError`
-- The agent wants self-healing behavior without manual intervention
-
-## Managing state across calls
-
-unsurf's MCP server is **stateless** — each request is independent. The agent must track two identifiers:
-
-| ID | From | Used by | Lifetime |
-|---|---|---|---|
-| `siteId` | `scout` response | Querying endpoints, OpenAPI spec | Permanent (per site) |
-| `pathId` | `scout` response | `worker`, `heal` | Until site changes |
-
-A well-behaved agent stores these in its conversation context:
-
-```
-Agent: "I'll scout example.com for their contact form."
-→ scout({url, task}) → {siteId: "abc", pathId: "def"}
-
-Agent: "Found it. The form submits to POST /api/contact.
-        I'll remember pathId 'def' for future submissions."
-→ worker({pathId: "def", data: {...}}) → {success: true}
-```
-
-If the agent loses the `pathId` (new conversation, context window overflow), it can re-scout. The results are stored server-side in D1, so the same site won't produce duplicate entries.
-
-## When to re-scout vs heal
-
-| Situation | Action | Why |
-|---|---|---|
-| Worker returns `PathBrokenError` | `heal` | Heal tries backoff first, then re-scouts automatically |
-| Worker returns `NetworkError` | Retry, then `heal` | Could be transient |
-| Agent needs endpoints it didn't capture | `scout` with a new task | Heal only fixes known paths |
-| Site has been completely redesigned | `scout` | Heal can only patch, not rediscover |
-| Agent lost its `pathId` | `scout` | Fastest way to get a new one |
-
-<Aside type="tip">
-When in doubt, call `heal` first. It's cheaper than a full re-scout when the site only changed slightly.
-</Aside>
-
-## URL normalization
-
-When the scout captures requests, it normalizes URL patterns so the agent gets clean, parameterized endpoints instead of specific instances:
-
-| Raw URL | Normalized pattern |
+| Need | Use |
 |---|---|
-| `/users/42` | `/users/:id` |
-| `/posts/550e8400-e29b-41d4-a716-446655440000` | `/posts/:id` |
-| `/api/items/SGVsbG8gV29ybGQ=` | `/api/items/:id` |
-| `/api/v2/users` | `/api/v2/users` (no change) |
+| Operate the browser the user already authenticated | `unsurf-local-mcp` |
+| Record a browser run for review | `record` / `recordAttachedLocal` |
+| Retry until visual success is proven | `loop` |
+| Ask what happened in a run | `observeVideo` |
+| Reuse a stable hidden HTTP seam | `scout` → `worker` → `heal` |
 
-Here's the normalizer in action — this is real library code, tested in CI:
+## Pattern 1 — Drive the trusted browser
 
-<SourceCode file="examples/url-normalization.ts" title="URL normalization (live example)" />
+Use local MCP when another nearby agent should act inside the user's real session:
 
-The implementation lives in `src/lib/url.ts`:
+```json
+{
+  "mcpServers": {
+    "unsurf-local": { "command": "unsurf-local-mcp" }
+  }
+}
+```
 
-<SourceCode file="src/lib/url.ts" title="URL normalizer source" />
+Typical flow:
 
-## Schema inference
+1. call `unsurf_local_sessions`
+2. inspect the attachable tabs
+3. call `unsurf_local_execute`
+4. optionally record the action plan
 
-For each captured endpoint, unsurf infers a JSON Schema from the response body. The agent receives this in the OpenAPI spec.
+This is the right path for authenticated dashboards, enterprise apps, and any work where the browser identity matters.
 
-What the inferrer detects:
+## Pattern 2 — Record for proof
 
-| JSON value | Inferred type | Extras |
-|---|---|---|
-| `"hello"` | `string` | — |
-| `"2024-01-15T10:30:00Z"` | `string` | `format: "date-time"` |
-| `"user@example.com"` | `string` | `format: "email"` |
-| `"https://..."` | `string` | `format: "uri"` |
-| `42` | `integer` | — |
-| `3.14` | `number` | — |
-| `true` | `boolean` | — |
-| `[...]` | `array` | `items` schema inferred from elements |
-| `{...}` | `object` | `properties` + `required` inferred |
+If the task matters enough to review later, record it:
 
-Here's the inferrer in action — this is real library code, tested in CI:
+```bash
+unsurf record ./run.ts --task "dashboard proof" --cdp-port 9222
+```
 
-<SourceCode file="examples/schema-inference.ts" title="Schema inference (live example)" />
+A proof bundle gives the agent and the human a shared artifact: the browser video, trace, status, and viewer link.
 
-When multiple responses are observed, schemas are **merged**: properties in all samples → `required`, properties in some → optional, `integer` + `number` → `number`, conflicting types → `anyOf`. The more traffic the scout captures, the more accurate the schema becomes.
+## Pattern 3 — Loop until the North Star is met
 
-## Cost and latency model
+Use `loop()` when the success condition is visual or interaction-heavy:
 
-For agents making decisions about when to call each tool:
+```bash
+unsurf loop "fill the three visible form fields" \
+  --north-star "Did all three fields contain non-empty values?" \
+  --max-iter 3 \
+  --cdp-port 9222
+```
 
-| Tool | Browser needed | Typical latency | Billable |
-|---|---|---|---|
-| `scout` | ✅ Yes | 5-30s | Browser Rendering minutes |
-| `worker` (fast path) | ❌ No | 50-200ms | Worker CPU time only |
-| `worker` (slow path) | ✅ Yes | 3-15s | Browser Rendering minutes |
-| `heal` (retry succeeds) | ❌ No | 0.5-2s | Worker CPU time only |
-| `heal` (re-scout needed) | ✅ Yes | 5-30s | Browser Rendering minutes |
+Good North Stars are yes/no and observable from the recording.
+
+## Pattern 4 — Capture a reusable seam
+
+If an operation repeats often and the browser exposes a stable HTTP endpoint, use:
+
+```text
+scout once → worker many times → heal on drift
+```
+
+That path is still excellent for search APIs, data loaders, and repeatable CRUD-like flows. It is simply not the only Unsurf workflow.
+
+## Agent prompt guidance
+
+```text
+Use Unsurf like this:
+1. If the task depends on the user's existing login, use the local browser MCP.
+2. If the task should be reviewable, record it.
+3. If success is visual, prefer loop with a yes/no North Star.
+4. If the site exposes a stable API seam worth reusing, scout it and replay it with worker.
+5. Heal a broken seam instead of repeatedly retrying the same dead path.
+```
+
+## Error posture
+
+| Failure | Agent response |
+|---|---|
+| No local browser sessions | Ask the user to open/authenticate the browser runtime |
+| Browser action fails | Stop the plan, return the failing action, do not blindly continue |
+| Loop misses North Star | Refine or stop at budget |
+| `worker` path drifts | Call `heal` |
 
 <Aside>
-Cloudflare Browser Rendering requires a Workers Paid plan. The fast path (direct HTTP replay) is the primary value of unsurf — scout once, call cheaply forever.
+The mistake is not choosing browser over API or API over browser. The mistake is treating those as separate products. Unsurf keeps both behind one agent-facing system.
 </Aside>
-
-## Error types and agent responses
-
-Each error type signals a different recovery strategy:
-
-| Error | Meaning | Agent should |
-|---|---|---|
-| `BrowserError` | Browser container failed | Retry once, then report to user |
-| `NetworkError` | Target site unreachable | Wait and retry (transient) |
-| `StoreError` | Database write failed | Retry once (infrastructure issue) |
-| `NotFoundError` | `pathId` doesn't exist | Re-scout the site |
-| `PathBrokenError` | Site changed, path invalid | Call `heal` |
-
-Here's how typed errors and `catchTag` work — this is real library code, tested in CI:
-
-<SourceCode file="examples/error-handling.ts" title="Typed error routing (live example)" />

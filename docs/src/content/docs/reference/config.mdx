@@ -1,14 +1,31 @@
 ---
 title: Configuration
-description: Environment variables, Cloudflare bindings, database schema, REST API, and scripts.
+description: Local browser runtime settings, environment variables, Cloudflare bindings, and hosted API details.
 ---
 
 import { Aside } from '@astrojs/starlight/components';
 import SourceCode from '../../../components/SourceCode.astro';
 
+## Local browser runtime
+
+The local/browser path assumes a Chrome DevTools endpoint is already available. The common setup is:
+
+```bash
+agent-browser --headed --profile ~/.cmux-browser open https://example.com
+```
+
+Then attach with either:
+
+```bash
+unsurf record ./demo.ts --cdp-port 9222
+unsurf-local-mcp
+```
+
+The local MCP server defaults to CDP port `9222`; tool callers can pass a different `cdpPort` when needed.
+
 ## alchemy.run.ts
 
-unsurf uses [Alchemy](https://alchemy.run) to define infrastructure as TypeScript. No YAML. No TOML.
+unsurf uses [Alchemy](https://alchemy.run) to define hosted infrastructure as TypeScript. No YAML. No TOML.
 
 <SourceCode file="alchemy.run.ts" />
 
@@ -18,7 +35,7 @@ unsurf uses [Alchemy](https://alchemy.run) to define infrastructure as TypeScrip
 |---|---|---|
 | `ALCHEMY_PASSWORD` | ✅ | Encrypts Alchemy's local state file. Set any strong passphrase; changing it invalidates existing state. |
 | `ALCHEMY_STATE_TOKEN` | | Cloudflare API token scoped to Alchemy's remote state store (`CloudflareStateStore`). When set, state is persisted remotely instead of on disk — required for CI deploys. |
-| `CLOUDFLARE_API_TOKEN` | ✅ | Cloudflare API token with **Workers, D1, R2, and Browser Rendering** permissions. Used by Alchemy to provision resources. |
+| `CLOUDFLARE_API_TOKEN` | ✅ | Cloudflare API token with **Workers, D1, R2, and Browser Run** permissions. Used by Alchemy to provision resources. |
 | `CLOUDFLARE_ACCOUNT_ID` | ✅ | Your Cloudflare account ID. Found at the top of the Cloudflare dashboard. |
 | `ANTHROPIC_API_KEY` | | Anthropic API key. Passed as a secret binding to the worker for LLM-guided scouting. Without it, scout falls back to heuristic-only mode. |
 | `ALCHEMY_STAGE` | | Deployment stage (`production` by default). Set to a different value to deploy an isolated copy (e.g. `staging`, `dev`). |
@@ -33,7 +50,7 @@ These are configured automatically by Alchemy:
 |---|---|---|---|
 | `DB` | D1 Database | `unsurf-db` | Stores sites, endpoints, paths, run history |
 | `STORAGE` | R2 Bucket | `unsurf-storage` | Stores HAR logs, screenshots, traces |
-| `BROWSER` | Browser Rendering | — | Headless browser for scouting |
+| `BROWSER` | Browser Run | — | Hosted browser flows, scouting, screenshots, and native rrweb session recordings via `recordBrowserRunSession(...)` |
 | `ANTHROPIC_API_KEY` | Secret | — | Passed through as an encrypted secret binding (only when the env var is set) |
 | `CACHE` | KV Namespace | `unsurf-cache` | Gallery response caching. Optional — gallery works without it but responses are not cached. |
 | `VECTORS` | Vectorize Index | `unsurf-vectors` | Semantic search index for the API directory. Required for `/d/` directory and `/search` routes. |
@@ -133,7 +150,7 @@ Health check and service metadata.
 {
   "name": "unsurf",
   "version": "0.2.0",
-  "description": "Turn any website into a typed API",
+  "description": "Authenticated browser runtime, proof artifacts, and reusable website seams",
   "tools": ["scout", "worker", "heal"],
   "mcp": "/mcp",
   "docs": "https://unsurf.coey.dev"

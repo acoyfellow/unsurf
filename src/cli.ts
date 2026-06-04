@@ -75,6 +75,7 @@ Usage:
   unsurf record <script.(m)js|.ts> [flags] Record an agent run; prints trace URL
     --task <str>                           Human label (default: script path)
     --harness <str>                        Harness tag written to meta.json
+    --cdp-port <port>                      Attach to an existing local browser
     --public                               Long-lived (365d) shareable grant.
                                            Default is private (7d grant).
                                            Both are grant-gated; no bare URLs.
@@ -84,6 +85,7 @@ Usage:
     --north-star <str>                     Yes/no question (required)
     --max-iter <n>                         Max iterations (default 5)
     --tick-ms <ms>                         Per-iteration budget (default 120000)
+    --cdp-port <port>                      Attach recordings to an existing browser
     --public                               Record each iteration with a 365d
                                            shareable grant. Default is 7d.
     Env: CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID (Workers AI),
@@ -683,6 +685,7 @@ async function recordCommand(args: string[]): Promise<void> {
 
 	const task = flagValue(args, "--task") || scriptPath;
 	const harness = flagValue(args, "--harness");
+	const cdpPort = flagValue(args, "--cdp-port");
 	// v0.4.0: default is private. --public opts into the 365d long-lived
 	// shareable grant. --private kept as a no-op alias for transition so
 	// existing scripts don't break (the flag already did nothing new).
@@ -701,13 +704,16 @@ async function recordCommand(args: string[]): Promise<void> {
 		process.exit(1);
 	}
 
-	const { recordLocal } = await import("./skills/record/index.js");
-	const result = await recordLocal({
+	const { recordAttachedLocal, recordLocal } = await import("./skills/record/index.js");
+	const recordOptions = {
 		task,
 		run,
 		...(harness ? { harness } : {}),
 		visibility,
-	});
+	};
+	const result = cdpPort
+		? await recordAttachedLocal({ ...recordOptions, connect: cdpPort })
+		: await recordLocal(recordOptions);
 
 	process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 	if (result.status === "failed") process.exit(1);
@@ -733,6 +739,7 @@ async function loopCommand(args: string[]): Promise<void> {
 
 	const maxIterStr = flagValue(args, "--max-iter");
 	const tickMsStr = flagValue(args, "--tick-ms");
+	const cdpPort = flagValue(args, "--cdp-port");
 	const isPublic = args.includes("--public");
 	const visibility: "public" | "private" = isPublic ? "public" : "private";
 
@@ -751,9 +758,12 @@ async function loopCommand(args: string[]): Promise<void> {
 
 	// Every iteration's recording gets grant-gated; default private, or
 	// public (long-lived) when --public is set.
-	const { recordLocal } = await import("./skills/record/index.js");
+	const { recordAttachedLocal, recordLocal } = await import("./skills/record/index.js");
 	const recordFn: import("./skills/loop/types.js").RecordFn = async ({ task, run }) => {
-		const r = await recordLocal({ task, run, harness: "loop", visibility });
+		const recordOptions = { task, run, harness: "loop", visibility };
+		const r = cdpPort
+			? await recordAttachedLocal({ ...recordOptions, connect: cdpPort })
+			: await recordLocal(recordOptions);
 		return {
 			traceUrl: r.viewerUrl ?? r.url,
 			...(r.videoUrl ? { videoUrl: r.videoUrl } : {}),
