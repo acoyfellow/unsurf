@@ -15,6 +15,12 @@ import { makeHttpUploader } from "./uploader.js";
 
 export { newTraceId } from "./id.js";
 export {
+	type BrowserProviderCapabilities,
+	type CmuxBrowserHandle,
+	type CmuxProviderOptions,
+	openCmuxBrowser,
+} from "./providers/cmux.js";
+export {
 	type BrowserRunHandle,
 	type BrowserRunProviderOptions,
 	type BrowserRunRecordingResult,

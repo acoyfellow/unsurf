@@ -70,11 +70,13 @@ export async function record(opts: RecordOptions, deps: RecordRuntimeDeps): Prom
 		tracer.steps = traced.steps;
 		tracer.handle = traced.handle;
 
-		try {
-			await browser.startRecording(videoPath);
-			recordingStarted = true;
-		} catch (e) {
-			console.warn(`[trace ${id}] startRecording failed: ${(e as Error).message}`);
+		if (browser.capabilities?.recording !== false) {
+			try {
+				await browser.startRecording(videoPath);
+				recordingStarted = true;
+			} catch (e) {
+				console.warn(`[trace ${id}] startRecording failed: ${(e as Error).message}`);
+			}
 		}
 
 		try {

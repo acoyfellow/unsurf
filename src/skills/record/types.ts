@@ -25,6 +25,21 @@ import type { EvidenceBundle } from "@acoyfellow/proof-spec";
  * uploads a partial bundle marked `status: "failed"`.
  */
 export interface BrowserHandle {
+	/**
+	 * Optional provider capabilities. Older/custom handles may omit this;
+	 * callers must treat omitted capabilities as unknown rather than supported.
+	 */
+	readonly capabilities?: {
+		snapshots?: boolean;
+		screenshots?: boolean;
+		eval?: boolean;
+		persistentAuth?: boolean;
+		humanTakeover?: boolean;
+		recording?: boolean;
+		tracing?: boolean;
+		network?: boolean;
+		isolation?: "shared-profile" | "isolated-context" | "isolated-browser" | "unknown";
+	};
 	/** Navigate and wait for load. */
 	goto(url: string): Promise<void>;
 	/** Click an element by CSS selector. */
@@ -177,7 +192,7 @@ export interface MetaJson {
 	version: "v0";
 	id: string;
 	task: string;
-	provider: "local" | "filepath" | "browserRun" | "browserRendering" | "custom";
+	provider: "local" | "cmux" | "filepath" | "browserRun" | "browserRendering" | "custom";
 	harness?: string;
 	extra?: Record<string, string | number | boolean>;
 	/**
