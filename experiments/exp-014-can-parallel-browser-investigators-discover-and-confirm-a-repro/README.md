@@ -14,7 +14,15 @@ bun fixture/server.ts
 bun run run:cmux
 ```
 
-The run opens four discovery surfaces concurrently, promotes the lifecycle/reload candidate, and executes three broken plus three fixed confirmation runs in fresh surfaces.
+The deterministic run opens four discovery surfaces concurrently, promotes the strongest observed candidate, and executes three broken plus three fixed confirmation runs in fresh surfaces.
+
+For the real agent-discovery gate, provide Workers AI credentials and run:
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=... CLOUDFLARE_API_TOKEN=... bun run run:agents
+```
+
+This asks four independent Workers AI investigators—each receiving only its role, the vague symptom, target URL, and bounded browser action vocabulary—to generate strategies concurrently. Generated strategies are then executed in separate cmux surfaces. Only observed candidates enter the unchanged deterministic 3+3 confirmation gate.
 
 ## Outputs
 
@@ -31,7 +39,7 @@ Generated `out/` artifacts are intentionally gitignored. Run the command to prod
 - `/fixed` remains complete through the same lifecycle/reload sequence.
 - `/health` supports harness readiness checks.
 
-The fixture is deliberately small and deterministic. It validates orchestration and evidence mechanics, not real-world bug complexity.
+The fixture is deliberately small and deterministic. The default run validates orchestration and evidence mechanics. `run:agents` additionally tests unknown-path strategy discovery, but still does not represent full real-world bug complexity.
 
 ## Proof policy
 

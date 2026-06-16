@@ -5,7 +5,8 @@
   "scripts": {
     "fixture": "bun fixture/server.ts",
     "test": "vitest run test/fixture.test.ts",
-    "run:cmux": "bun run.ts --provider cmux"
+    "run:cmux": "bun run.ts --provider cmux",
+    "run:agents": "bun run.ts --provider cmux --agents"
   },
   "devDependencies": {
     "typescript": "^5.9.3",

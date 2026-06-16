@@ -107,12 +107,38 @@ export async function openCmuxBrowser(opts: CmuxProviderOptions = {}): Promise<C
 		async goto(url) {
 			await command(["navigate", url]);
 			await command(["wait", "--load-state", "complete", "--timeout-ms", "20000"]);
+			// WKWebView may report load completion just before the first DOM snapshot
+			// is available to automation. A snapshot is a cheap readiness barrier.
+			await command(["snapshot", "--interactive"]);
+			await new Promise((resolve) => setTimeout(resolve, 150));
 		},
 		async click(selector) {
-			await command(["click", "--selector", selector]);
+			let error: unknown;
+			for (let attempt = 0; attempt < 4; attempt++) {
+				try {
+					await command(["click", "--selector", selector]);
+					return;
+				} catch (cause) {
+					error = cause;
+					await command(["snapshot", "--interactive"]).catch(() => {});
+					await new Promise((resolve) => setTimeout(resolve, 200));
+				}
+			}
+			throw error;
 		},
 		async fill(selector, value) {
-			await command(["fill", "--selector", selector, "--text", value]);
+			let error: unknown;
+			for (let attempt = 0; attempt < 4; attempt++) {
+				try {
+					await command(["fill", "--selector", selector, "--text", value]);
+					return;
+				} catch (cause) {
+					error = cause;
+					await command(["snapshot", "--interactive"]).catch(() => {});
+					await new Promise((resolve) => setTimeout(resolve, 200));
+				}
+			}
+			throw error;
 		},
 		async wait(arg) {
 			if (typeof arg === "number") {
