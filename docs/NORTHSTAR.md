@@ -1,99 +1,74 @@
-# unsurf North Star
+# Unsurf North Star
 
-> _"Humans and agents hand unsurf a goal; unsurf drives a real browser, produces a narrated mp4 + trace bundle, and — for agents — closes the loop by watching its own video and refining the spec until the North Star is met."_
+> Unsurf turns browser-agent claims into independently replayed, evidence-backed proof.
 
-## The USP is the mp4
+## The product is reproducible proof
 
-Videos are the product. Not screenshots, not rrweb JSON, not DOM snapshots. **A shareable `.mp4` of the agent doing the thing.** This is the demo, the docs, the dogfood, the tweet.
+A browser agent saying “I reproduced it” is not evidence. Unsurf discovers a candidate path, compiles it to a portable repro, and confirms it in fresh runs against broken and fixed targets.
 
-Everything else (trace.json, result.json, meta.json, steps list) is supporting evidence around the video.
+The canonical local invocation is:
 
-## The two canonical invocations
-
-```ts
-// Human path (the main USP)
-const { videoUrl, traceUrl } = await unsurf.record({
-  url: "coey.dev",
-  steps: "click Projects, scroll, pick the one you resonate with",
-});
-
-// Agent path (the compounding loop)
-await unsurf.loop({
-  spec: "log into the cmux dashboard with yubikey",
-  northStar: "reach the authenticated dashboard URL",
-  maxIterations: 5,
-});
+```bash
+unsurf investigate \
+  --symptom "The response looked complete, then continued" \
+  --broken "$BASELINE_URL" \
+  --fixed "$CANDIDATE_URL"
 ```
 
-## What runs where — design choices
+A successful run returns:
 
-| Concern | Choice | Rationale |
-|---|---|---|
-| Primary execution | Local (real Chrome via agent-browser) | Best video fidelity, already works |
-| Cloud execution | Browser Run provider shipped | Hosted BrowserHandle flows + native rrweb recording; not a local-auth replacement |
-| Vision backend | Workers AI (Llama 3.2 vision) | Free-tier, CF-native, no vendor keys |
-| Refiner LLM | Kimi K2.6 via Workers AI | Top-tier reasoning, on-platform |
-| Storage | R2 (`trace.coey.dev`) | Already wired, signed URL viewer |
-| Auth (ingest) | Per-token KV table | Replaces single shared token |
-| Rate limiting | Workers Rate Limit binding | Native, per-token keyed |
+```text
+✓ Candidate observed
+✓ Broken reproduced 3/3
+✓ Fixed reproduced 0/3
 
-## Non-goals (explicit)
+Repro:  .unsurf/runs/<id>/repro.json
+Report: .unsurf/runs/<id>/report.md
+```
 
-- ❌ Claiming Browser Run native recordings are mp4. They are replayable rrweb events.
-- ❌ Eliminating the local provider. It is the primary authenticated/playable-video path.
-- ❌ Treating cloud recording as a replacement for local browser auth.
+## Evidence is capability-driven
 
-## Phases (order may change; all ship independently useful units)
+Required:
 
-### Phase 0 — prove form-fill E2E ✅
-Before building anything new, verify the current `record()` skill produces a clean mp4 of a form-fill tour. If it hangs or misbehaves, fix the foundation first. Win: `bun examples/form-fill-demo.ts` writes an mp4 to `trace.coey.dev/r/<id>`.
+- a portable action and assertion contract;
+- deterministic independent replay;
+- machine-readable results;
+- explicit provider and isolation semantics.
 
-### Phase 1 — harden ingest ✅
-- Per-token KV table (`tokens[hash] = { owner, scope, quota, revoked }`)
-- Workers Rate Limit binding on `/upload`
-- R2 lifecycle: 90-day TTL on trace bundles, IA tier after 30 days
-- Back-compat: keep legacy `TRACE_INGEST_TOKEN` working until migration is done
+Optional, depending on the provider:
 
-### Phase 2 — `observeVideo()` skill ✅
-- `src/skills/observe-video/` with same shape as `record/`
-- Keyframe extraction via ffmpeg scene-change filter (drop near-duplicates)
-- Vision backend interface; default impl = Workers AI Llama 3.2 vision
-- API: `await observeVideo(mp4Path, "did X happen?") → { answer, confidence, evidenceFrames }`
-- Win: feed a form-fill mp4 in, correctly answer "was the form submitted?"
+- screenshots and snapshots;
+- video;
+- browser session replay;
+- traces and network logs.
 
-### Phase 3 — `loop()` skill ✅
-- `src/skills/loop/` — orchestrator, not a provider
-- Tick-gated control loop (pulse pattern, no hanging on silent failures)
-- Refiner LLM: Kimi K2.6 on Workers AI, given `{ currentSpec, observation, northStar }`
-- Emits one trace bundle per iteration + a stitched "loop bundle"
-- Win: give it a 2-iteration North Star, confirm it refines and stops
+Video remains excellent evidence where it exists, but it is not the product contract. A provider must never claim evidence it cannot produce.
 
-### Phase 4a — Browser Run provider + native recording ✅
-- `src/skills/record/providers/browser-run.ts` using `@cloudflare/puppeteer`
-- Shared BrowserHandle verbs for hosted Workers flows
-- `recordBrowserRunSession(...)` enabling Browser Run's native rrweb session recording
+## Providers
 
-### Phase 4b — cloud playable video (deferred)
-- Pixel/video capture rather than rrweb replay events
-- Upload/viewer integration for cloud-produced video bytes
-- MCP execution surface only after the playable-artifact path is proven
+| Provider | Best use | Isolation | Evidence |
+|---|---|---|---|
+| cmux browser | Local authenticated exploration and confirmation | Shared browser profile unless explicitly configured otherwise | Snapshots, screenshots, assertions, timelines |
+| Browser Run | Hosted/public/scalable confirmation | Isolated hosted sessions | Snapshots, screenshots, rrweb session recording |
+| Attached Chrome | Legacy/local playable recording | Depends on selected profile | Video, snapshots, screenshots, timelines |
+
+A fresh cmux surface is separate page state, not automatically a fresh browser identity. Unsurf reports that distinction instead of hiding it.
+
+## Canonical workflow
+
+1. Receive a vague symptom and target URLs.
+2. Run several causal investigators independently.
+3. Promote only a candidate that actually observes the symptom.
+4. Serialize it as `repro.json`.
+5. Re-run it at least three times against the broken target.
+6. Re-run it at least three times against the fixed candidate.
+7. Produce a reviewer-readable report and machine receipt.
 
 ## Working agreement
 
-- The agent (me) proves each phase E2E before pinging Jordan.
-- No "looks like it should work" — run it, watch the mp4, confirm the asserted behavior.
-- Foundation must hold before building on top.
-
-## Design decisions that firmed up along the way
-
-- **Workers AI `response_format: json_schema`** is the shape guarantee.
-  No userland retry loop, no regex extraction, no model-specific branching.
-  The inference runtime enforces the JSON schema at decode time.
-- **Privacy by grant, not by auth.** Private traces use short-lived
-  HMAC-signed viewer grants (`?vt=<exp>.<gen>.<sig>`) rather than
-  per-user accounts. Revocation is a `grantGeneration` bump in meta.json
-  — no KV namespace for revoked tokens, no key rotation.
-- **Video is the flagship proof.** Local recording produces playable files for sharing.
-  Browser Run's native rrweb recording is a separate hosted debugging/replay artifact.
-- **Local remains the authful video path.** Browser Run now ships as the hosted provider
-  for browser flows and native session recording, without pretending to inherit local auth.
+- No “looks like it should work.” Execute it.
+- Model prose is not confirmation.
+- Distinct discovery and confirmation runs are mandatory.
+- Provider capabilities and isolation are visible in every receipt.
+- Sensitive browser state such as raw cookies is never collected as evidence.
+- Keep local authenticated interaction and hosted isolated execution interchangeable behind explicit provider capabilities.

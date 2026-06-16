@@ -26,6 +26,10 @@
 		"./skills/loop": {
 			"import": "./dist/skills/loop.js",
 			"types": "./dist/skills/loop.d.ts"
+		},
+		"./investigate": {
+			"import": "./dist/investigate.js",
+			"types": "./dist/investigate.d.ts"
 		}
 	},
 	"bin": {

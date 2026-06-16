@@ -1,14 +1,14 @@
 ---
 title: unsurf
-description: Give agents a real authenticated browser — and get back proof.
+description: Turn browser-agent claims into independently replayed proof.
 template: splash
 hero:
   title: |
     <span class="hero-title">unsurf</span>
-  tagline: Give agents a real authenticated browser — and get back proof.
+  tagline: Turn browser-agent claims into independently replayed proof.
   actions:
-    - text: Get started
-      link: /tutorial/
+    - text: Investigate a bug
+      link: /guides/investigate/
       icon: right-arrow
       variant: primary
     - text: View on GitHub
@@ -19,37 +19,28 @@ hero:
 
 import { Card, CardGrid, Tabs, TabItem } from '@astrojs/starlight/components';
 
-Unsurf lets agents act in the browser you already trust, record what happened, and reuse structured seams when a site exposes them.
+Unsurf discovers a browser repro, promotes only observed behavior, and independently confirms the fix.
 
 <div class="hero-snippet">
 
 <Tabs>
-  <TabItem label="Local MCP">
-```json
-{
-  "mcpServers": {
-    "unsurf-local": { "command": "unsurf-local-mcp" }
-  }
-}
-```
-  </TabItem>
-  <TabItem label="Attached recording">
+  <TabItem label="Investigate">
 ```bash
-bunx unsurf record ./demo.ts \
-  --task "authenticated proof" \
-  --cdp-port 9222
+unsurf investigate \
+  --symptom "The response looked complete, then continued" \
+  --broken "$BASELINE_URL" \
+  --fixed "$CANDIDATE_URL"
 ```
   </TabItem>
-  <TabItem label="Hosted MCP">
-```json
-{
-  "mcpServers": {
-    "unsurf": {
-      "type": "streamable-http",
-      "url": "https://unsurf-api.coey.dev/mcp"
-    }
-  }
-}
+  <TabItem label="Replay">
+```bash
+unsurf replay .unsurf/runs/abc123/repro.json \
+  --target "$PREVIEW_URL" --runs 3
+```
+  </TabItem>
+  <TabItem label="Doctor">
+```bash
+unsurf doctor
 ```
   </TabItem>
 </Tabs>
@@ -57,48 +48,43 @@ bunx unsurf record ./demo.ts \
 </div>
 
 <CardGrid>
+  <Card title="Parallel discovery" icon="magnifier">
+    Several causal investigators explore a vague symptom in independent browser surfaces.
+  </Card>
+  <Card title="Fresh confirmation" icon="rocket">
+    Only an observed candidate is replayed three times against broken and fixed targets.
+  </Card>
+  <Card title="Portable repro" icon="document">
+    `repro.json` is the deterministic contract. Model prose is never confirmation.
+  </Card>
+  <Card title="Evidence-backed" icon="open-book">
+    Every run emits screenshots, state timelines, a machine receipt, and a reviewer report.
+  </Card>
   <Card title="Authenticated browser" icon="laptop">
-    Attach to the real Chrome session you already signed into. The browser is the auth.
+    cmux uses the real browser profile you already trust. Provider isolation is always explicit.
   </Card>
-  <Card title="Local browser MCP" icon="open-book">
-    Nearby agents can discover tabs and run small browser action plans through `unsurf-local-mcp`.
-  </Card>
-  <Card title="Record" icon="document">
-    Produce video, trace, receipt, and a grant-gated viewer link for review.
-  </Card>
-  <Card title="Observe + loop" icon="rocket">
-    Ask questions about recordings, then refine and retry until the North Star is met.
-  </Card>
-  <Card title="Browser Run recording" icon="cloud-download">
-    Run hosted browser flows in Workers and record native replay sessions in Browser Run.
-  </Card>
-  <Card title="Scout seams" icon="magnifier">
-    Capture useful API traffic from web apps when direct replay beats UI driving.
-  </Card>
-  <Card title="Replay + heal" icon="heart">
-    Call captured APIs directly, then re-scout and repair when they drift.
+  <Card title="Hosted execution" icon="cloud-download">
+    Browser Run remains the isolated hosted lane with native replay recordings.
   </Card>
 </CardGrid>
 
-## One system, three layers
+## What comes back
 
 ```text
-authenticated browser
-        ↓
-agent action
-        ↓
-video + trace + receipt
-        ↓
-optional typed API seam
+✓ Candidate observed
+✓ Broken reproduced 3/3
+✓ Fixed reproduced 0/3
+
+Repro:  .unsurf/runs/<id>/repro.json
+Report: .unsurf/runs/<id>/report.md
+Result: .unsurf/runs/<id>/result.json
 ```
 
-1. **Browser** — act in the real authenticated session.
-2. **Proof** — record, inspect, and loop until the task is done.
-3. **Seams** — turn stable website behavior into typed, reusable interfaces.
+Reproducibility is mandatory. Video is optional evidence determined by provider capabilities.
 
 ## What to read next
 
-- [Tutorial](/tutorial/) — start with an authenticated browser session.
-- [Record](/guides/record/) — produce proof artifacts.
+- [Investigate a browser bug](/guides/investigate/) — the canonical workflow.
+- [Record](/guides/record/) — video-capable proof capture.
 - [MCP](/guides/mcp/) — hosted MCP vs local browser MCP.
 - [How it works](/concepts/how-it-works/) — the product model.

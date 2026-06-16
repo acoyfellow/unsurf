@@ -1,0 +1,76 @@
+---
+title: Investigate and confirm browser bugs
+description: Turn a vague symptom into a portable repro and independently confirm a fix.
+---
+
+Unsurf can open several investigators in the browser you already trust, promote only an observed reproduction path, and replay it against broken and fixed targets.
+
+## Check your environment
+
+```bash
+unsurf doctor
+```
+
+The local provider uses cmux's in-app browser. It supports authenticated interaction, snapshots, and screenshots. cmux surfaces share the Default browser profile, so a fresh surface is not automatically a fresh browser identity.
+
+## Investigate
+
+```bash
+unsurf investigate \
+  --symptom "The response looked complete, then continued" \
+  --broken http://localhost:4178/broken \
+  --fixed http://localhost:4178/fixed \
+  --success-value complete
+```
+
+Unsurf will:
+
+1. run four causal investigators in separate cmux surfaces;
+2. promote only a path that observes the unwanted state;
+3. replay that path three times against the broken target;
+4. replay it three times against the fixed target;
+5. write a portable repro, screenshots, machine receipt, and reviewer report.
+
+Typical output:
+
+```text
+✓ PASS — fix confirmed
+  candidates: 2/4
+  broken:     3/3 reproduced
+  fixed:      3/3 clean
+
+  Repro:  .unsurf/runs/<id>/repro.json
+  Report: .unsurf/runs/<id>/report.md
+  Result: .unsurf/runs/<id>/result.json
+```
+
+## Replay anywhere
+
+```bash
+unsurf replay .unsurf/runs/<id>/repro.json \
+  --target https://candidate-preview.example.com \
+  --runs 3
+```
+
+`repro.json` is the contract. Model prose is never treated as confirmation.
+
+## Custom state assertions
+
+The default fixture convention reads `body[data-state]` and treats `resumed` as failure. For another app:
+
+```bash
+unsurf investigate \
+  --symptom "Checkout returns to processing" \
+  --broken "$BASELINE_URL" \
+  --fixed "$CANDIDATE_URL" \
+  --selector '[data-testid="checkout"]' \
+  --attribute data-status \
+  --failure-value processing \
+  --success-value complete
+```
+
+## Evidence policy
+
+Reproducibility is mandatory. Video is optional evidence.
+
+The cmux provider produces action timelines, snapshots, state assertions, and screenshots. Providers with recording support may also attach video or session replay. Unsurf never invents artifacts a provider cannot capture.

@@ -8,6 +8,7 @@ export default defineConfig({
 		"skills/record": "src/skills/record/index.ts",
 		"skills/observe-video": "src/skills/observe-video/index.ts",
 		"skills/loop": "src/skills/loop/index.ts",
+		investigate: "src/investigate/index.ts",
 	},
 	format: ["esm"],
 	dts: true,

@@ -35,6 +35,7 @@ export default defineConfig({
         {
           label: 'How-to Guides',
           items: [
+            { label: 'Investigate a browser bug', slug: 'guides/investigate' },
             { label: 'Scout a website', slug: 'guides/scout' },
             { label: 'Replay a captured API', slug: 'guides/replay' },
             { label: 'Heal a broken path', slug: 'guides/heal' },

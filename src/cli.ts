@@ -56,7 +56,7 @@ function printJson(data: unknown): void {
 }
 
 function usage(): never {
-	console.log(`unsurf — Turn any website into a typed API
+	console.log(`unsurf — Turn browser behavior into independently replayed proof
 
 Usage:
   unsurf search <query>                    Search the API directory
@@ -67,6 +67,24 @@ Usage:
     --args <json>                          Inline args JSON (or pass via stdin)
     --cdp-port <port>                      CDP port (default 9222)
     --pre-navigate                         Navigate the tab to target.url first
+
+  unsurf investigate [flags]               Discover a repro and confirm a fix
+    --symptom <text>                       Vague browser symptom (required)
+    --broken <url>                         Known-broken target (required)
+    --fixed <url>                          Candidate/fixed target (optional)
+    --runs <n>                             Confirmation runs (default 3)
+    --out <dir>                            Evidence directory (.unsurf/runs/<id>)
+    --selector <css>                       State element (default body)
+    --attribute <name>                     State attribute (default data-state)
+    --failure-value <value>                Unwanted value (default resumed)
+    --success-value <value>                Expected fixed value (optional)
+
+  unsurf replay <repro.json> [flags]        Replay a portable repro
+    --target <url>                         Target URL (required)
+    --runs <n>                             Replay count (default 3)
+    --out <dir>                            Evidence directory
+
+  unsurf doctor                            Check local browser/provider readiness
 
   unsurf scout <url> [flags]               Snapshot DOM; emit skeleton proof-spec
     --out <file>                           Write to file instead of stdout
@@ -787,6 +805,70 @@ async function loopCommand(args: string[]): Promise<void> {
 	if (!result.met) process.exit(result.stopReason === "maxIterations" ? 2 : 1);
 }
 
+async function doctorCommand(): Promise<void> {
+	const { execFile } = await import("node:child_process");
+	const { promisify } = await import("node:util");
+	const exec = promisify(execFile);
+	let cmux = false;
+	let detail = "not found";
+	try {
+		const result = await exec("cmux", ["--json", "browser", "status"]);
+		cmux = true;
+		detail = result.stdout.trim().slice(0, 120) || "ready";
+	} catch (error) { detail = (error as Error).message.split("\n")[0] ?? "unavailable"; }
+	console.log("Unsurf doctor\n");
+	console.log(`  cmux browser       ${cmux ? "✓ ready" : "✗ unavailable"}`);
+	console.log("  snapshots          ✓ yes");
+	console.log("  screenshots        ✓ yes");
+	console.log("  persistent auth    ✓ shared browser profile");
+	console.log("  isolated identity  ✗ no (use hosted Browser Run when required)");
+	console.log("  video recording    ✗ no on cmux WKWebView; optional evidence");
+	console.log(`  Workers AI         ${process.env.CLOUDFLARE_ACCOUNT_ID && process.env.CLOUDFLARE_API_TOKEN ? "✓ configured" : "· optional credentials missing"}`);
+	if (!cmux) console.log(`\n  cmux detail: ${detail}`);
+	if (!cmux) process.exitCode = 1;
+}
+
+async function investigateCommand(args: string[]): Promise<void> {
+	const symptom = requireFlagValue(args, "--symptom");
+	const brokenUrl = requireFlagValue(args, "--broken");
+	const { investigate } = await import("./investigate/index.js");
+	const fixedUrl = flagValue(args, "--fixed");
+	const outDirFlag = flagValue(args, "--out");
+	const runsFlag = flagValue(args, "--runs");
+	const selector = flagValue(args, "--selector");
+	const attribute = flagValue(args, "--attribute");
+	const failureValue = flagValue(args, "--failure-value");
+	const successValue = flagValue(args, "--success-value");
+	console.error("[unsurf] opening four independent cmux investigators…");
+	const { receipt, outDir } = await investigate({
+		symptom, brokenUrl,
+		...(fixedUrl ? { fixedUrl } : {}), ...(outDirFlag ? { outDir: outDirFlag } : {}),
+		...(runsFlag ? { runs: Number(runsFlag) } : {}), ...(selector ? { selector } : {}),
+		...(attribute ? { attribute } : {}), ...(failureValue ? { failureValue } : {}),
+		...(successValue ? { successValue } : {}),
+	});
+	console.log(`\n${receipt.passed ? "✓ PASS — fix confirmed" : "✗ FAIL — gate not satisfied"}`);
+	console.log(`  candidates: ${receipt.candidates.filter((c) => c.observed).length}/${receipt.candidates.length}`);
+	console.log(`  broken:     ${receipt.broken.filter((r) => r.failureObserved).length}/${receipt.broken.length} reproduced`);
+	if (receipt.fixedUrl) console.log(`  fixed:      ${receipt.fixed.filter((r) => !r.failureObserved).length}/${receipt.fixed.length} clean`);
+	console.log(`\n  Repro:  ${resolvePath(outDir, "repro.json")}`);
+	console.log(`  Report: ${resolvePath(outDir, "report.md")}`);
+	console.log(`  Result: ${resolvePath(outDir, "result.json")}`);
+	if (!receipt.passed) process.exitCode = 1;
+}
+
+async function replayCommand(args: string[]): Promise<void> {
+	const file = args[0];
+	if (!file || file.startsWith("--")) throw new Error("replay requires <repro.json>");
+	const target = requireFlagValue(args, "--target");
+	const { loadRepro, replayRepro } = await import("./investigate/index.js");
+	const outDir = flagValue(args, "--out");
+	const runs = flagValue(args, "--runs");
+	const results = await replayRepro(await loadRepro(file), { target, ...(outDir ? { outDir } : {}), ...(runs ? { runs: Number(runs) } : {}) });
+	printJson(results);
+	if (results.some((result) => result.error)) process.exitCode = 1;
+}
+
 async function main(): Promise<void> {
 	const args = process.argv.slice(2);
 	const command = args[0];
@@ -797,6 +879,18 @@ async function main(): Promise<void> {
 
 	try {
 		switch (command) {
+			case "doctor":
+				await doctorCommand();
+				break;
+
+			case "investigate":
+				await investigateCommand(args.slice(1));
+				break;
+
+			case "replay":
+				await replayCommand(args.slice(1));
+				break;
+
 			case "search": {
 				const query = args.slice(1).join(" ");
 				if (!query) {
