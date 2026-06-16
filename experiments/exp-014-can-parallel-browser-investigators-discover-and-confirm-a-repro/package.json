@@ -1,0 +1,14 @@
+{
+  "name": "unsurf-exp-014-browser-repro",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "fixture": "bun fixture/server.ts",
+    "test": "vitest run test/fixture.test.ts",
+    "run:cmux": "bun run.ts --provider cmux"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.4"
+  }
+}
