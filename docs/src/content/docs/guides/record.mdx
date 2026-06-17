@@ -5,15 +5,19 @@ description: Drive a real browser, reuse its auth, and capture the run as video 
 
 import { Aside } from '@astrojs/starlight/components';
 
-`record` is Unsurf's proof layer. It wraps a browser run and produces a video, trace, status bundle, and viewer link.
+`record` is Unsurf's video-capable proof layer. It wraps a supported browser run and produces a video, trace, status bundle, and viewer link.
 
-## Start from a real browser
+<Aside type="note">
+You do **not** need `agent-browser` for the canonical `unsurf investigate` or `unsurf replay` workflow. Those commands use cmux's in-app browser. This guide installs `agent-browser` only because cmux's WKWebView does not currently support screencast recording.
+</Aside>
+
+## Start from a real browser for video capture
 
 ```bash
 agent-browser --headed --profile ~/.cmux-browser open https://example.com
 ```
 
-Sign in once. Reuse that browser for agent work.
+Sign in once. Reuse that browser for video-capable agent work. For normal authenticated investigation, sign in directly through cmux instead.
 
 ## Record a fresh local browser run
 

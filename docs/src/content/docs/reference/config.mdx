@@ -8,15 +8,22 @@ import SourceCode from '../../../components/SourceCode.astro';
 
 ## Local browser runtime
 
-The local/browser path assumes a Chrome DevTools endpoint is already available. The common setup is:
+### Canonical investigation provider: cmux
+
+For `unsurf investigate` and `unsurf replay`, open cmux and verify its in-app browser:
 
 ```bash
-agent-browser --headed --profile ~/.cmux-browser open https://example.com
+unsurf doctor
 ```
 
-Then attach with either:
+No `agent-browser` installation or CDP port is required. cmux provides authenticated interaction, snapshots, screenshots, and human takeover. Its Default WebKit profile is shared across surfaces, and WKWebView currently does not provide screencast, CDP trace, or network capture.
+
+### Optional video/CDP adapter
+
+Install `agent-browser` only when you need playable local recording or an attached Chrome/CDP session:
 
 ```bash
+agent-browser --headed --profile ~/.unsurf-video open https://example.com
 unsurf record ./demo.ts --cdp-port 9222
 unsurf-local-mcp
 ```

@@ -56,9 +56,10 @@ That path still matters. It is now one layer in a broader browser-runtime produc
 
 | Surface | Best for |
 |---|---|
-| Local browser MCP | Driving the browser you already authenticated |
-| Browser Run provider | Hosted Cloudflare Worker-side BrowserHandle flows |
-| `record` / `loop` | Producing inspectable proof from browser work |
+| cmux browser | Canonical local authenticated investigation, snapshots, screenshots, and human takeover |
+| Local browser MCP | Driving an attached Chrome/CDP session when that adapter is needed |
+| Browser Run provider | Hosted isolated Cloudflare Worker-side BrowserHandle flows and native replay |
+| `record` / `loop` | Producing inspectable proof from video-capable browser work |
 | Hosted MCP / REST | Scouting, search, planning, and shared hosted surfaces |
 | API replay | Repeated work that can skip the browser after discovery |
 
@@ -71,7 +72,7 @@ Hosted Unsurf runs on Cloudflare:
 - Browser Rendering for hosted scouting
 - D1 + R2 for stored specs, runs, and trace bundles
 
-The local browser provider is swappable behind Unsurf's browser abstraction. Today it is powered by `agent-browser`.
+Browser providers are swappable behind Unsurf's browser abstraction. The canonical local investigation provider is now cmux's in-app browser. The `agent-browser` adapter remains available for attached Chrome/CDP and playable local video; it is not required for the normal investigation workflow.
 
 ## Why this shape
 

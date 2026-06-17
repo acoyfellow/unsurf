@@ -1,85 +1,105 @@
 ---
 title: "Tutorial: your first unsurf"
-description: Attach to a real authenticated browser, record a proof, expose it to local agents, then learn where API scouting fits.
+description: Investigate and confirm a browser bug with cmux, then learn when recording and reusable API seams fit.
 ---
 
-import { Steps, Aside } from '@astrojs/starlight/components';
+import { Aside } from '@astrojs/starlight/components';
 
-This tutorial covers the shortest path through the current product:
+The shortest path now uses **cmux's in-app browser**. `agent-browser` is not required for investigation, screenshots, portable repros, or broken/fixed confirmation.
 
-1. start a real browser profile,
-2. attach Unsurf to it,
-3. record a proof run,
-4. expose the browser through local MCP,
-5. optionally scout a reusable API seam.
+<Aside type="note" title="When is agent-browser still needed?">
+Only use the legacy attached-Chrome provider when you specifically need a playable local video or CDP-only evidence. cmux's WKWebView does not currently expose screencast recording, CDP traces, or network capture. Video is optional evidence; reproducible proof is the contract.
+</Aside>
 
-## 1 — Prepare the real browser
+## 1 — Check the local provider
+
+Open cmux, then run:
+
+```bash
+bunx unsurf doctor
+```
+
+Expected capabilities:
+
+```text
+cmux browser       ✓ ready
+snapshots          ✓ yes
+screenshots        ✓ yes
+persistent auth    ✓ shared browser profile
+isolated identity  ✗ no
+video recording    ✗ no on cmux WKWebView; optional evidence
+```
+
+Sign in through the cmux browser as you normally would. Unsurf uses the browser profile you already trust; it does not mint or copy credentials.
+
+## 2 — Investigate and confirm
+
+Give Unsurf a vague symptom plus broken and fixed targets:
+
+```bash
+bunx unsurf investigate \
+  --symptom "The response looked complete, then continued" \
+  --broken "$BASELINE_URL" \
+  --fixed "$CANDIDATE_URL"
+```
+
+Unsurf opens several explicit cmux browser surfaces, promotes only an observed candidate, and confirms it three times against each target.
+
+```text
+✓ PASS — fix confirmed
+  candidates: 2/4
+  broken:     3/3 reproduced
+  fixed:      3/3 clean
+
+  Repro:  .unsurf/runs/<id>/repro.json
+  Report: .unsurf/runs/<id>/report.md
+  Result: .unsurf/runs/<id>/result.json
+```
+
+## 3 — Replay the portable contract
+
+```bash
+bunx unsurf replay .unsurf/runs/<id>/repro.json \
+  --target "$ANOTHER_PREVIEW_URL" \
+  --runs 3
+```
+
+`repro.json`—not model prose—is the confirmation contract. The same artifact can move between previews and providers.
+
+## 4 — Understand cmux isolation
+
+A new cmux surface gets separate page/tab state, but surfaces currently share the Default WebKit browser profile.
+
+```text
+fresh cmux surface ≠ fresh browser identity
+```
+
+That is ideal for parallel authenticated exploration. For confirmation requiring clean identities, normalize application state, use separately configured profiles when available, or use Browser Run's isolated hosted sessions.
+
+## 5 — Record video only when it helps
+
+If the deliverable specifically needs a local MP4/WebM, use Unsurf's video-capable attached-Chrome provider. That legacy path currently uses `agent-browser`:
 
 ```bash
 npm i -g agent-browser
 agent-browser install
-agent-browser --headed --profile ~/.cmux-browser open https://example.com
+agent-browser --headed --profile ~/.unsurf-video open https://example.com
 ```
 
-Sign in to whatever site you want to give agents access to. That profile is now your reusable authenticated workspace.
-
-<Aside type="note">
-Unsurf does not mint credentials for this path. It attaches to the browser you already authenticated.
-</Aside>
-
-## 2 — Record against the attached session
-
-Create `demo.ts`:
-
-```ts
-export default async function run(browser) {
-  await browser.goto("https://example.com/dashboard");
-  await browser.wait(4000);
-}
-```
-
-Then record it:
+Then attach and record:
 
 ```bash
 export TRACE_INGEST_TOKEN=...
 bunx unsurf record ./demo.ts \
-  --task "authenticated dashboard proof" \
+  --task "authenticated dashboard video" \
   --cdp-port 9222
 ```
 
-The result includes the trace metadata and viewer link. The browser stays open because Unsurf attached to an externally-owned session.
+See [Record a browser session](/guides/record/) for the complete video workflow. Browser Run is the hosted alternative and produces native rrweb session replay rather than MP4.
 
-## 3 — Put the browser on MCP
+## 6 — Scout a reusable seam when HTTP is better
 
-```json
-{
-  "mcpServers": {
-    "unsurf-local": { "command": "unsurf-local-mcp" }
-  }
-}
-```
-
-Your local agent now gets:
-
-- `unsurf_local_sessions`
-- `unsurf_local_execute`
-
-That means nearby agents can discover the browser you already trust and ask it to perform small action plans.
-
-## 4 — Close the loop when success needs verification
-
-```bash
-unsurf loop "open coey.dev, click projects, open the first one" \
-  --north-star "Did the browser land on a project page?" \
-  --max-iter 3 \
-  --cdp-port 9222
-```
-
-Loop records, observes its own video, refines, and retries until the North Star is met or the budget ends.
-
-## 5 — Scout a reusable seam when HTTP is better
-
-Some browser work reveals a stable hidden API. When that happens, capture it:
+Some browser work reveals a stable hidden API. When repeated HTTP replay is better than UI driving, capture that seam:
 
 ```bash
 curl -X POST https://unsurf-api.coey.dev/tools/scout \
@@ -90,14 +110,18 @@ curl -X POST https://unsurf-api.coey.dev/tools/scout \
   }'
 ```
 
-Then replay it directly with `worker`, and use `heal` if the seam drifts. This is still part of Unsurf — just not the only story anymore.
+Then replay it directly with `worker`, and use `heal` if the seam drifts.
 
 ## Mental model
 
 ```text
-browser first
-proof second
-API seam when useful
+cmux browser interaction
+        ↓
+portable repro + independent confirmation
+        ↓
+optional video / session replay evidence
+        ↓
+optional typed API seam
 ```
 
-That is the current Unsurf loop.
+Start with cmux. Add another provider only when its capabilities are required.
