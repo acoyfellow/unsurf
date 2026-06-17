@@ -6,6 +6,10 @@ turn browser-agent claims into independently replayed proof
 
 Unsurf takes a vague browser symptom, discovers a reproducible path in a real browser, and confirms the path against broken and fixed targets.
 
+https://github.com/user-attachments/assets/unsurf-investigate-production.mp4
+
+[Watch the production dogfood demo](https://unsurf.coey.dev/videos/investigate-production.mp4) — Unsurf recorded its own updated production documentation.
+
 ## Investigate a bug
 
 ```bash
@@ -79,6 +83,8 @@ The legacy attached-Chrome provider remains available for local playable video r
 ## Evidence model
 
 Reproducibility is mandatory. Video is optional evidence.
+
+The demo above is intentional dogfood: Unsurf's video-capable local provider recorded the production docs that explain Unsurf's capability-aware proof model. The same run is published as [MP4](https://unsurf.coey.dev/videos/investigate-production.mp4) and [WebM](https://unsurf.coey.dev/videos/investigate-production.webm).
 
 Depending on provider capabilities, a run may contain:
 

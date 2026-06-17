@@ -143,6 +143,31 @@ nav.sidebar {
 }
 
 
+/* proof videos: first-class evidence, not decorative autoplay */
+video {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--sl-color-hairline);
+  background: #050505;
+  box-shadow: 0 18px 55px rgba(31, 35, 60, 0.14);
+}
+
+.dogfood-video {
+  max-width: var(--un-content-max);
+  margin: 1.5rem auto 2.5rem;
+}
+
+.dogfood-video p {
+  margin: 0;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--sl-color-hairline);
+  border-top: 0;
+  color: var(--sl-color-gray-3);
+  font-family: var(--sl-font-mono);
+  font-size: 0.78rem;
+}
+
 /* ═══════════════════════════════════════════════════════════
    SPLASH PAGE — theme-aware, full send
    ═══════════════════════════════════════════════════════════ */
